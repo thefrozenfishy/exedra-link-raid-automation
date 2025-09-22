@@ -4,3 +4,7 @@
 
 # Usage
 * Download exe from releases and run.
+
+# TODOs
+* Auto claim finished raids
+* Do host first then join later without manual inputs
