@@ -8,3 +8,4 @@
 # TODOs
 * Auto claim finished raids
 * Do host first then join later without manual inputs
+* Enable debug mode with env variable
