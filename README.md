@@ -9,3 +9,4 @@
 * Auto claim finished raids
 * Do host first then join later without manual inputs
 * Enable debug mode with env variable
+* Add thing to use rings for more later
