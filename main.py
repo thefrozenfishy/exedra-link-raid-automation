@@ -8,7 +8,7 @@ import numpy as np
 from PIL import ImageGrab, Image
 from enum import Enum
 
-debug = True
+debug = False
 if debug:
     os.makedirs("debug", exist_ok=True)
 
