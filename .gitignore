@@ -1,2 +1,5 @@
 .venv
 main.spec
+build
+debug
+
