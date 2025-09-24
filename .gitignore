@@ -1,5 +1,5 @@
 .venv
-main.spec
+link-raid-automation.spec
 build
 debug
 link-raid-automation-settings.ini
