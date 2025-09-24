@@ -19,7 +19,7 @@ defaults = {
     "join_diff": "9-12",
     "debug_mode": "false",
     "exe_name": "MadokaExedra",
-    "max_scroll_attempts": "20",
+    "max_scroll_attempts": "40",
 }
 
 config.read(CONFIG_FILE)
@@ -77,7 +77,11 @@ def get_text_in_img(cords: str) -> str:
 def find_coords_for_difficulties():
     data = get_data_in_img("battle_box")
     for i, text in enumerate(data["text"]):
-        if "lvl" in text.lower() and data["text"][i + 1] in LEVELS_TO_FIND:
+        text: str
+        if "lvl" in text.lower() and (
+            any(text.endswith(s) for s in LEVELS_TO_FIND)
+            or any(s in data["text"][i + 1] for s in LEVELS_TO_FIND)
+        ):
             x, y, w, h = (
                 data["left"][i],
                 data["top"][i],
@@ -103,7 +107,6 @@ def start_join():
             pydirectinput.click(
                 text_locations["join_button"][0], text_locations["join_button"][1]
             )
-            pyautogui.sleep(2)
             return
 
         pyautogui.moveTo(
@@ -145,13 +148,6 @@ def current_state() -> CurrentState:
     if "ready" in text.lower():
         return CurrentState.HOST_SCREEN
 
-    text = get_text_in_img("like_box")
-    if text.isdigit():
-        text2 = get_text_in_img("can_host_box")
-        if "play" in text.lower() and "0/6" not in text2:
-            return CurrentState.HOME_SCREEN_CAN_HOST
-        return CurrentState.HOME_SCREEN_CANNOT_HOST
-
     text = get_text_in_img("back_box")
     if "back" in text.lower():
         return CurrentState.BACK_SCREEN
@@ -162,6 +158,13 @@ def current_state() -> CurrentState:
         if "play" in text2.lower():
             return CurrentState.PLAY_JOIN_SCREEN
         return CurrentState.PLAY_HOST_SCREEN
+
+    text = get_text_in_img("like_box")
+    if text.isdigit():
+        text2 = get_text_in_img("can_host_box")
+        if "play" in text.lower() and "0/6" not in text2:
+            return CurrentState.HOME_SCREEN_CAN_HOST
+        return CurrentState.HOME_SCREEN_CANNOT_HOST
 
     return CurrentState.NO_ACTION
 
@@ -251,7 +254,7 @@ The OCR has to "see" the content of the game to determine what to do."""
     )
     text_locations["battle_box"] = (
         win.left + 0.475 * win.width,
-        win.top + 0.09 * win.height,
+        win.top + 0.18 * win.height,
         win.right - 0.465 * win.width,
         win.bottom - 0.6 * win.height,
     )
