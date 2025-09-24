@@ -18,6 +18,8 @@ defaults = {
     "join_team": "LR Auto 9-12",
     "join_diff": "9-12",
     "debug_mode": "false",
+    "exe_name": "MadokaExedra",
+    "max_scroll_attempts": "20",
 }
 
 config.read(CONFIG_FILE)
@@ -26,15 +28,16 @@ config["general"] = {
     **(config["general"] if "general" in config else {}),
 }
 
-if not os.path.exists(CONFIG_FILE):
-    with open(CONFIG_FILE, "w", encoding="utf-8", newline="\n") as f:
-        config.write(f)
+with open(CONFIG_FILE, "w", encoding="utf-8", newline="\n") as f:
+    config.write(f)
 
 DEBUG = config.getboolean("general", "debug_mode")
+if DEBUG:
+    os.makedirs("debug", exist_ok=True)
 
-HOST_TEAM = config.get("general", "host_team")
+HOST_TEAM = config.get("general", "host_team").replace(" ", "").lower()
 HOST_DIFF = config.getint("general", "host_diff")
-JOIN_TEAM = config.get("general", "join_team")
+JOIN_TEAM = config.get("general", "join_team").replace(" ", "").lower()
 JOIN_DIFF = config.get("general", "join_diff")
 if "-" in JOIN_DIFF:
     start, end = map(int, JOIN_DIFF.split("-"))
@@ -42,9 +45,8 @@ if "-" in JOIN_DIFF:
 else:
     LEVELS_TO_FIND = [int(JOIN_DIFF)]
 
-# Config
-TARGET_WINDOW = "MadokaExedra"
-MAX_SCROLL_ATTEMPTS = 20
+TARGET_WINDOW = config.get("general", "exe_name")
+MAX_SCROLL_ATTEMPTS = config.getint("general", "max_scroll_attempts")
 
 
 def get_game_window():
@@ -111,9 +113,11 @@ class CurrentState(Enum):
     JOIN_SCREEN = "JOIN_SCREEN"
     HOST_SCREEN = "HOST_SCREEN"
     HOME_SCREEN = "HOME_SCREEN"
-    BATTLE_SCREEN = "BATTLE_SCREEN"
+    NO_ACTION = "NO_ACTION"
     RESULTS_SCREEN = "RESULTS_SCREEN"
     BACK_SCREEN = "BACK_SCREEN"
+    PLAY_JOIN_SCREEN = "PLAY_JOIN_SCREEN"
+    PLAY_HOST_SCREEN = "PLAY_HOST_SCREEN"
 
 
 def get_img(cords: str):
@@ -155,7 +159,16 @@ def current_state() -> CurrentState:
         if "back" in text.lower():
             return CurrentState.BACK_SCREEN
 
-    return CurrentState.BATTLE_SCREEN
+    data = get_img("party_box")
+    for text in data["text"]:
+        if "party" in text.lower():
+            data2 = get_img("play_box")
+            for text in data2["text"]:
+                if "play" in text.lower():
+                    return CurrentState.PLAY_JOIN_SCREEN
+            return CurrentState.PLAY_HOST_SCREEN
+
+    return CurrentState.NO_ACTION
 
 
 text_locations = {}
@@ -182,12 +195,30 @@ The OCR has to "see" the content of the game to determine what to do.'
         win.right - 0.45 * win.width,
         win.bottom - 0.12 * win.height,
     )
+    text_locations["team_name"] = (
+        win.left + 0.4 * win.width,
+        win.top + 0.45 * win.height,
+        win.right - 0.4 * win.width,
+        win.bottom - 0.5 * win.height,
+    )
+    text_locations["party_box"] = (
+        win.left + 0.29 * win.width,
+        win.top + 0.45 * win.height,
+        win.right - 0.65 * win.width,
+        win.bottom - 0.5 * win.height,
+    )
+    text_locations["play_box"] = (
+        win.left + 0.5 * win.width,
+        win.top + 0.8 * win.height,
+        win.right - 0.4 * win.width,
+        win.bottom - 0.15 * win.height,
+    )
     text_locations["join_button"] = (
         int(win.right - 0.15 * win.width),
         int(win.bottom - 0.18 * win.height),
     )
     text_locations["play_button"] = (
-        int(win.right - 0.5 * win.width),
+        int(win.right - 0.4 * win.width),
         int(win.bottom - 0.18 * win.height),
     )
     text_locations["refresh_button"] = (
@@ -201,6 +232,10 @@ The OCR has to "see" the content of the game to determine what to do.'
     text_locations["host_screen_button"] = (
         int(win.left + 0.3 * win.width),
         int(win.top + 0.8 * win.height),
+    )
+    text_locations["next_team"] = (
+        int(win.left + 0.28 * win.width),
+        int(win.top + 0.58 * win.height),
     )
     text_locations["center_of_screen"] = (
         win.left + win.width // 2,
@@ -226,11 +261,26 @@ The OCR has to "see" the content of the game to determine what to do.'
     )
 
 
+def select_correct_team(team_name):
+    for _ in range(10):
+        if team_name.lower() in "".join(get_img("team_name")["text"]).lower().replace(
+            " ", ""
+        ):
+            return
+        pydirectinput.click(
+            text_locations["next_team"][0], text_locations["next_team"][1]
+        )
+        pyautogui.sleep(0.2)
+    input(f'Could not find team named "{team_name}"')
+    raise RuntimeError(f'Could not find team named "{team_name}"')
+
+
 def main():
     while True:
         pyautogui.sleep(1)
         state = current_state()
-        print("Current State:", state.name)
+        if DEBUG:
+            print("Current State:", state.name)
         match state:
             case CurrentState.JOIN_SCREEN:
                 start_join()
@@ -240,12 +290,27 @@ def main():
                     int(text_locations["host_box"][1]),
                 )
             case CurrentState.HOME_SCREEN:
+                # TODO: Do host if not done hosting
                 # pydirectinput.click(text_locations["host_screen_button"][0], text_locations["host_screen_button"][1])
                 pydirectinput.click(
                     text_locations["join_screen_button"][0],
                     text_locations["join_screen_button"][1],
                 )
-            case CurrentState.BATTLE_SCREEN:
+            case CurrentState.PLAY_JOIN_SCREEN:
+                select_correct_team(JOIN_TEAM)
+                print("Joining a game...")
+                pydirectinput.click(
+                    text_locations["play_button"][0], text_locations["play_button"][1]
+                )
+                pyautogui.sleep(2)
+            case CurrentState.PLAY_HOST_SCREEN:
+                select_correct_team(HOST_TEAM)
+                print("Hosting a game...")
+                pydirectinput.click(
+                    text_locations["play_button"][0], text_locations["play_button"][1]
+                )
+                pyautogui.sleep(2)
+            case CurrentState.NO_ACTION:
                 pyautogui.sleep(5)
                 # No need to ping the process that much while in battle.
             case CurrentState.RESULTS_SCREEN:
@@ -258,6 +323,7 @@ def main():
                     int(text_locations["back_box"][0]),
                     int(text_locations["back_box"][1]),
                 )
+                pyautogui.sleep(2)
 
 
 if __name__ == "__main__":

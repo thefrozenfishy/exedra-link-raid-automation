@@ -31,13 +31,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "build-${{ github.run_number }}" -m "Build ${{ github.run_number }}"
-          git push origin "build-${{ github.run_number }}"
+          git tag -a "version-${{ github.run_number }}" -m "version ${{ github.run_number }}"
+          git push origin "version-${{ github.run_number }}"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}
+          tag_name: version-${{ github.run_number }}
           files: dist/main.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

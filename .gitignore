@@ -2,4 +2,5 @@
 main.spec
 build
 debug
-
+link-raid-automation-settings.ini
+dist
