@@ -181,31 +181,31 @@ The OCR has to "see" the content of the game to determine what to do."""
         )
     text_locations["result_box"] = (
         win.left + 0.23 * win.width,
-        win.top + 0.795 * win.height,
+        win.top + 0.785 * win.height,
         win.right - 0.725 * win.width,
         win.bottom - 0.172 * win.height,
     )
     text_locations["back_box"] = (
         win.left + 0.45 * win.width,
-        win.top + 0.82 * win.height,
+        win.top + 0.81 * win.height,
         win.right - 0.45 * win.width,
         win.bottom - 0.12 * win.height,
     )
     text_locations["team_name"] = (
         win.left + 0.4 * win.width,
-        win.top + 0.45 * win.height,
+        win.top + 0.44 * win.height,
         win.right - 0.4 * win.width,
         win.bottom - 0.5 * win.height,
     )
     text_locations["party_box"] = (
         win.left + 0.29 * win.width,
-        win.top + 0.45 * win.height,
+        win.top + 0.44 * win.height,
         win.right - 0.65 * win.width,
         win.bottom - 0.5 * win.height,
     )
     text_locations["play_box"] = (
         win.left + 0.5 * win.width,
-        win.top + 0.8 * win.height,
+        win.top + 0.79 * win.height,
         win.right - 0.4 * win.width,
         win.bottom - 0.15 * win.height,
     )
@@ -215,7 +215,7 @@ The OCR has to "see" the content of the game to determine what to do."""
     )
     text_locations["join_button_box"] = (
         win.left + 0.8 * win.width,
-        win.top + 0.81 * win.height,
+        win.top + 0.8 * win.height,
         win.right - 0.12 * win.width,
         win.bottom - 0.14 * win.height,
     )
@@ -245,25 +245,25 @@ The OCR has to "see" the content of the game to determine what to do."""
     )
     text_locations["like_box"] = (
         win.left + 0.12 * win.width,
-        win.top + 0.15 * win.height,
+        win.top + 0.14 * win.height,
         win.right - 0.83 * win.width,
         win.bottom - 0.75 * win.height,
     )
     text_locations["battle_box"] = (
         win.left + 0.475 * win.width,
-        win.top + 0.1 * win.height,
+        win.top + 0.09 * win.height,
         win.right - 0.465 * win.width,
         win.bottom - 0.6 * win.height,
     )
     text_locations["host_box"] = (
         win.left + 0.73 * win.width,
-        win.top + 0.81 * win.height,
+        win.top + 0.8 * win.height,
         win.right - 0.15 * win.width,
         win.bottom - 0.13 * win.height,
     )
     text_locations["can_host_box"] = (
         win.left + 0.32 * win.width,
-        win.top + 0.83 * win.height,
+        win.top + 0.82 * win.height,
         win.right - 0.57 * win.width,
         win.bottom - 0.13 * win.height,
     )
