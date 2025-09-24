@@ -8,16 +8,17 @@ import numpy as np
 from PIL import ImageGrab, Image
 from enum import Enum
 import configparser
+from datetime import date
 
 CONFIG_FILE = "link-raid-automation-settings.ini"
 
 config = configparser.ConfigParser()
 defaults = {
     "host_team": "LR Auto 8",
-    "host_diff": "8",
     "join_team": "LR Auto 9-12",
     "join_diff": "9-12",
     "debug_mode": "false",
+    "document_daily_reward": "true",
     "exe_name": "MadokaExedra",
     "max_scroll_attempts": "40",
 }
@@ -36,7 +37,6 @@ if DEBUG:
     os.makedirs("debug", exist_ok=True)
 
 HOST_TEAM = config.get("general", "host_team").replace(" ", "").lower()
-HOST_DIFF = config.getint("general", "host_diff")
 JOIN_TEAM = config.get("general", "join_team").replace(" ", "").lower()
 JOIN_DIFF = config.get("general", "join_diff")
 if "-" in JOIN_DIFF:
@@ -45,6 +45,7 @@ if "-" in JOIN_DIFF:
 else:
     LEVELS_TO_FIND = [JOIN_DIFF]
 
+DAILY_SCREENSHOT = config.getboolean("general", "document_daily_reward")
 TARGET_WINDOW = config.get("general", "exe_name")
 MAX_SCROLL_ATTEMPTS = config.getint("general", "max_scroll_attempts")
 
@@ -78,7 +79,7 @@ def find_coords_for_difficulties():
     data = get_data_in_img("battle_box")
     for i, text in enumerate(data["text"]):
         text: str
-        if "lvl" in text.lower() and (
+        if "lvl" in text.lower().replace("i", "l") and (
             any(text.endswith(s) for s in LEVELS_TO_FIND)
             or any(s in data["text"][i + 1] for s in LEVELS_TO_FIND)
         ):
@@ -133,19 +134,26 @@ class CurrentState(Enum):
     BACK_SCREEN = "BACK_SCREEN"
     PLAY_JOIN_SCREEN = "PLAY_JOIN_SCREEN"
     PLAY_HOST_SCREEN = "PLAY_HOST_SCREEN"
+    DAILY_BONUS_COUNTER = "DAILY_BONUS_COUNTER"
+    DAILY_BONUS = "DAILY_BONUS"
+    CONTINUE = "CONTINUE"
 
 
 def current_state() -> CurrentState:
     text = get_text_in_img("result_box")
-    if "lvl" in text.lower():
+    if "lvl" in text.lower().replace("i", "l"):
         return CurrentState.RESULTS_SCREEN
 
     text = get_text_in_img("join_button_box")
-    if "join" in text.lower():
+    if "joln" in text.lower().replace("i", "l"):
         return CurrentState.JOIN_SCREEN
 
-    text = get_text_in_img("host_box")
-    if "ready" in text.lower():
+    text = get_text_in_img("daily_bonus_box")
+    if "dally" in text.lower().replace("i", "l"):
+        return CurrentState.DAILY_BONUS_COUNTER
+
+    text = get_text_in_img("host_diff_box")
+    if "lvl" in text.lower().replace("i", "l"):
         return CurrentState.HOST_SCREEN
 
     text = get_text_in_img("back_box")
@@ -161,10 +169,27 @@ def current_state() -> CurrentState:
 
     text = get_text_in_img("like_box")
     if text.isdigit():
+        text4 = get_text_in_img("in_progress_box")
+        if "vlewresults" in text4.lower().replace("i", "l"):
+            return CurrentState.HOME_SCREEN_CAN_HOST
+
         text2 = get_text_in_img("can_host_box")
-        if "play" in text.lower() and "0/6" not in text2:
+        text3 = get_text_in_img("in_progress_box")
+        if (
+            "progress" not in text3.lower()
+            and "play" in text2.lower()
+            and "0/6" not in text2
+        ):
             return CurrentState.HOME_SCREEN_CAN_HOST
         return CurrentState.HOME_SCREEN_CANNOT_HOST
+
+    text = get_text_in_img("daily_reward_box")
+    if "ob" in text.lower().replace("i", "l"):
+        return CurrentState.DAILY_BONUS
+
+    text = get_text_in_img("tap_to_continue")
+    if "contlnue" in text.lower().replace("i", "l"):
+        return CurrentState.CONTINUE
 
     return CurrentState.NO_ACTION
 
@@ -187,6 +212,24 @@ The OCR has to "see" the content of the game to determine what to do."""
         win.top + 0.785 * win.height,
         win.right - 0.725 * win.width,
         win.bottom - 0.172 * win.height,
+    )
+    text_locations["daily_bonus_box"] = (
+        win.left + 0.3 * win.width,
+        win.top + 0.1 * win.height,
+        win.right - 0.3 * win.width,
+        win.bottom - 0.7 * win.height,
+    )
+    text_locations["daily_reward_box"] = (
+        win.left + 0.4 * win.width,
+        win.top + 0.28 * win.height,
+        win.right - 0.4 * win.width,
+        win.bottom - 0.62 * win.height,
+    )
+    text_locations["daily_reward_pic_box"] = (
+        win.left + 0.35 * win.width,
+        win.top + 0.35 * win.height,
+        win.right - 0.35 * win.width,
+        win.bottom - 0.4 * win.height,
     )
     text_locations["back_box"] = (
         win.left + 0.45 * win.width,
@@ -232,7 +275,7 @@ The OCR has to "see" the content of the game to determine what to do."""
     )
     text_locations["join_screen_button"] = (
         int(win.left + 0.7 * win.width),
-        int(win.top + 0.8 * win.height),
+        int(win.top + 0.82 * win.height),
     )
     text_locations["host_screen_button"] = (
         int(win.left + 0.3 * win.width),
@@ -258,17 +301,33 @@ The OCR has to "see" the content of the game to determine what to do."""
         win.right - 0.465 * win.width,
         win.bottom - 0.6 * win.height,
     )
+    text_locations["host_diff_box"] = (
+        win.left + 0.68 * win.width,
+        win.top + 0.17 * win.height,
+        win.right - 0.22 * win.width,
+        win.bottom - 0.79 * win.height,
+    )
     text_locations["host_box"] = (
-        win.left + 0.73 * win.width,
-        win.top + 0.8 * win.height,
-        win.right - 0.15 * win.width,
-        win.bottom - 0.13 * win.height,
+        int(win.left + 0.73 * win.width),
+        int(win.top + 0.8 * win.height),
     )
     text_locations["can_host_box"] = (
         win.left + 0.32 * win.width,
         win.top + 0.82 * win.height,
         win.right - 0.57 * win.width,
         win.bottom - 0.13 * win.height,
+    )
+    text_locations["in_progress_box"] = (
+        win.left + 0.3 * win.width,
+        win.top + 0.75 * win.height,
+        win.right - 0.55 * win.width,
+        win.bottom - 0.15 * win.height,
+    )
+    text_locations["tap_to_continue"] = (
+        win.left + 0.4 * win.width,
+        win.top + 0.85 * win.height,
+        win.right - 0.4 * win.width,
+        win.bottom - 0.05 * win.height,
     )
 
 
@@ -294,8 +353,8 @@ def main():
                 start_join()
             case CurrentState.HOST_SCREEN:
                 pydirectinput.click(
-                    int(text_locations["host_box"][0]),
-                    int(text_locations["host_box"][1]),
+                    text_locations["host_box"][0],
+                    text_locations["host_box"][1],
                 )
             case CurrentState.HOME_SCREEN_CAN_HOST:
                 pydirectinput.click(
@@ -335,6 +394,26 @@ def main():
                     int(text_locations["back_box"][1]),
                 )
                 pyautogui.sleep(2)
+            case CurrentState.CONTINUE:
+                pydirectinput.click(
+                    int(text_locations["back_box"][0]),
+                    int(text_locations["back_box"][1]),
+                )
+            case CurrentState.DAILY_BONUS_COUNTER:
+                pydirectinput.click(
+                    int(text_locations["back_box"][0]),
+                    int(text_locations["back_box"][1]),
+                )
+            case CurrentState.DAILY_BONUS:
+                if DAILY_SCREENSHOT:
+                    img = ImageGrab.grab(text_locations["daily_reward_pic_box"])
+                    os.makedirs("daily_reward", exist_ok=True)
+                    img.save(f"daily_reward/{date.today().isoformat()}.png")
+
+                pydirectinput.click(
+                    int(text_locations["back_box"][0]),
+                    int(text_locations["back_box"][1]),
+                )
 
 
 if __name__ == "__main__":
