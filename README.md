@@ -8,7 +8,8 @@
 
 * This assumes your game runs in 16:9 aspect ratio. I have not tested on emulator myself so do tell if it doesn't work
 * Download exe from releases and run.
-* Configure settings in `link-raid-automation-settings.ini` file (Will be created on first run with default settings).
+* The file will run infinitely, hosting whenever able, otherwise joining the first battle it finds in your desired range.
+* Configure settings in `link-raid-automation-settings.ini`. This file is created automatically on first run with default settings.
   * ``host_team`` Team name which should be used when hosting.
   * ``join_team`` Team name to use when joining.
   * ``join_diff`` for multiple difficulties to be chosen by writing e.g. "9-12" meaning 9 to 12 inclusive.  
