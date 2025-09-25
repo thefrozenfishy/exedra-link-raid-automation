@@ -2,13 +2,15 @@ import pytesseract
 import pyautogui
 import pydirectinput
 import pygetwindow
+import keyboard
 import cv2
 import os
+import re
 import numpy as np
 from PIL import ImageGrab, Image
 from enum import Enum
 import configparser
-from datetime import date
+from datetime import datetime
 
 CONFIG_FILE = "link-raid-automation-settings.ini"
 
@@ -49,6 +51,8 @@ DAILY_SCREENSHOT = config.getboolean("general", "document_daily_reward")
 TARGET_WINDOW = config.get("general", "exe_name")
 MAX_SCROLL_ATTEMPTS = config.getint("general", "max_scroll_attempts")
 
+keyboard.add_hotkey("ctrl+shift+q", lambda: os._exit(0))
+
 
 def get_game_window():
     wins = pygetwindow.getWindowsWithTitle(TARGET_WINDOW)
@@ -72,7 +76,7 @@ def get_data_in_img(cords: str):
 
 def get_text_in_img(cords: str) -> str:
     data = get_data_in_img(cords)
-    return "".join(data["text"]).lower().replace(" ", "")
+    return re.sub(r"[^A-Za-z0-9]", "", "".join(data["text"]).lower().replace(" ", ""))
 
 
 def find_coords_for_difficulties():
@@ -111,8 +115,8 @@ def start_join():
             return
 
         pyautogui.moveTo(
-            text_locations["center_of_screen"][0],
-            text_locations["center_of_screen"][1],
+            text_locations["scroll_location"][0],
+            text_locations["scroll_location"][1],
         )
         pyautogui.scroll(-1)
         pyautogui.scroll(-1)
@@ -285,8 +289,8 @@ The OCR has to "see" the content of the game to determine what to do."""
         int(win.left + 0.28 * win.width),
         int(win.top + 0.58 * win.height),
     )
-    text_locations["center_of_screen"] = (
-        win.left + win.width // 2,
+    text_locations["scroll_location"] = (
+        win.left + win.width // 3,
         win.top + win.height // 2,
     )
     text_locations["like_box"] = (
@@ -408,7 +412,7 @@ def main():
                 if DAILY_SCREENSHOT:
                     img = ImageGrab.grab(text_locations["daily_reward_pic_box"])
                     os.makedirs("daily_reward", exist_ok=True)
-                    img.save(f"daily_reward/{date.today().isoformat()}.png")
+                    img.save(f"daily_reward/{datetime.today().isoformat()}.png")
 
                 pydirectinput.click(
                     int(text_locations["back_box"][0]),
@@ -419,4 +423,5 @@ def main():
 if __name__ == "__main__":
     setup_text_locations()
     print("starting with config:", dict(config["general"]))
+    print("Press Ctrl+Shift+Q to terminate the program.")
     main()
