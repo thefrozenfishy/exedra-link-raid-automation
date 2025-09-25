@@ -22,3 +22,5 @@
 
 * Auto claim finished raids
 * Add option to use rings for more LR
+* Enabled/Disable auto hosting in settings
+* Set hosting difficulty so people can host 1 high diff and then turn on the tool

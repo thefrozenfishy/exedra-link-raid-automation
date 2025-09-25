@@ -178,7 +178,7 @@ def current_state() -> CurrentState:
         if (
             "progress" not in text3.lower()
             and "play" in text2.lower()
-            and "0/6" not in text2
+            and "06" not in text2
         ):
             return CurrentState.HOME_SCREEN_CAN_HOST
         return CurrentState.HOME_SCREEN_CANNOT_HOST
