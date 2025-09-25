@@ -85,7 +85,7 @@ friends = [
     re.sub(r"[^A-Za-z0-9]", "", f.lower().replace(" ", ""))
     for f in friend_file.read_text(encoding="utf-8").split("\n")
 ]
-friends = [f for f in friends if len(f) > 2]
+friends = {f for f in friends if len(f) > 2}
 resp = get(
     "https://raw.githubusercontent.com/thefrozenfishy/exedra-link-raid-automation/main/community.txt",
     timeout=10,
@@ -98,7 +98,7 @@ if resp.ok:
 else:
     logging.error("Failed to fetch community members list.")
     community = []
-community = [c for c in community if len(c) > 2]
+community = {c for c in community if len(c) > 2}
 
 
 def get_game_window():
@@ -183,11 +183,10 @@ def start_join():
                 )
                 player_name = "".join(data["text"]).replace(" ", "")
                 logger.debug("Found player name: %s", player_name)
-                is_friend = FRIENDS_ONLY and any(f == player_name for f in friends)
-                is_community = COMMUNITY_ONLY and any(
-                    c == player_name for c in community
-                )
-                if not (is_friend or is_community):
+                if not (
+                    (FRIENDS_ONLY and player_name in friends)
+                    or (COMMUNITY_ONLY and player_name in community)
+                ):
                     run = False
 
             if run:
