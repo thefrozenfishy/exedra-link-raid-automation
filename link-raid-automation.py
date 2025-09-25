@@ -12,8 +12,20 @@ from enum import Enum
 import configparser
 from datetime import datetime
 import logging
+from pathlib import Path
+
+# from requests import get
 
 CONFIG_FILE = "link-raid-automation-settings.ini"
+FRIEND_FILE = "friends.txt"
+friend_file = Path(FRIEND_FILE)
+friend_file.touch(exist_ok=True)
+friends = [
+    re.sub(r"[^A-Za-z0-9]", "", f.lower().replace(" ", ""))
+    for f in friend_file.read_text(encoding="utf-8").split("\n")
+]
+# community_file = get()
+community = []
 
 config = configparser.ConfigParser()
 defaults = {
@@ -369,6 +381,9 @@ def select_correct_team(team_name):
 def main():
     setup_text_locations()
     logger.info("starting with config: %s", dict(config["general"]))
+    logger.info(
+        "Considering %d friends and %s community members", len(friends), len(community)
+    )
     logger.info("Press Ctrl+Shift+Q to terminate the program.")
     while True:
         pyautogui.sleep(1)

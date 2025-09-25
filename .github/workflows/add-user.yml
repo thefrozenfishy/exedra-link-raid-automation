@@ -1,0 +1,40 @@
+name: Add Username
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: "Username to add"
+        required: true
+
+
+jobs:
+  add-user:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate input
+        run: |
+            if ! [[ "${{ github.event.inputs.username }}" =~ ^[a-zA-Z0-9_-]{1,20}$ ]]; then
+            echo "Invalid username"
+            exit 1
+            fi
+
+      - name: Append username
+        run: |
+          if grep -qx "${{ github.event.inputs.username }}" community.txt; then
+            echo "Username already exists"
+            exit 0
+          else
+            echo "${{ github.event.inputs.username }}" >> community.txt
+          fi
+
+      - name: Commit & push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add community.txt
+          git commit -m "Add ${{ github.event.inputs.username }}" || echo "No changes to commit"
+          git push
