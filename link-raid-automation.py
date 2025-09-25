@@ -102,7 +102,10 @@ def find_coords_for_difficulties():
         text: str
         if "lvl" in text.lower().replace("i", "l") and (
             any(text.endswith(s) for s in LEVELS_TO_FIND)
-            or any(s in data["text"][i + 1] for s in LEVELS_TO_FIND)
+            or (
+                len(data["text"]) > i + 1
+                and any(s in data["text"][i + 1] for s in LEVELS_TO_FIND)
+            )
         ):
             x, y, w, h = (
                 data["left"][i],
