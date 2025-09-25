@@ -15,13 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate input
-        run: |
-            if ! [[ "${{ github.event.inputs.username }}" =~ ^[a-zA-Z0-9_-]{1,20}$ ]]; then
-            echo "Invalid username"
-            exit 1
-            fi
-
       - name: Append username
         run: |
           if grep -qx "${{ github.event.inputs.username }}" community.txt; then
