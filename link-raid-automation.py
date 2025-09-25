@@ -13,19 +13,9 @@ import configparser
 from datetime import datetime
 import logging
 from pathlib import Path
-
-# from requests import get
+from requests import get
 
 CONFIG_FILE = "link-raid-automation-settings.ini"
-FRIEND_FILE = "friends.txt"
-friend_file = Path(FRIEND_FILE)
-friend_file.touch(exist_ok=True)
-friends = [
-    re.sub(r"[^A-Za-z0-9]", "", f.lower().replace(" ", ""))
-    for f in friend_file.read_text(encoding="utf-8").split("\n")
-]
-# community_file = get()
-community = []
 
 config = configparser.ConfigParser()
 defaults = {
@@ -36,6 +26,8 @@ defaults = {
     "document_daily_reward": "true",
     "exe_name": "MadokaExedra",
     "max_scroll_attempts": "40",
+    "friends_only": "false",
+    "community_only": "false",
 }
 
 config.read(CONFIG_FILE)
@@ -64,6 +56,9 @@ DAILY_SCREENSHOT = config.getboolean("general", "document_daily_reward")
 TARGET_WINDOW = config.get("general", "exe_name")
 MAX_SCROLL_ATTEMPTS = config.getint("general", "max_scroll_attempts")
 
+FRIENDS_ONLY = config.getboolean("general", "friends_only")
+COMMUNITY_ONLY = config.getboolean("general", "community_only")
+
 keyboard.add_hotkey("ctrl+shift+q", lambda: os._exit(0))
 
 log_formatter = logging.Formatter("%(asctime)s - %(message)s", "%Y-%m-%d %H:%M:%S")
@@ -81,6 +76,29 @@ if DEBUG:
     )
     file_handler.setFormatter(log_formatter)
     logger.addHandler(file_handler)
+
+
+FRIEND_FILE = "friends.txt"
+friend_file = Path(FRIEND_FILE)
+friend_file.touch(exist_ok=True)
+friends = [
+    re.sub(r"[^A-Za-z0-9]", "", f.lower().replace(" ", ""))
+    for f in friend_file.read_text(encoding="utf-8").split("\n")
+]
+friends = [f for f in friends if len(f) > 2]
+resp = get(
+    "https://raw.githubusercontent.com/thefrozenfishy/exedra-link-raid-automation/main/community.txt",
+    timeout=10,
+)
+if resp.ok:
+    community = [
+        re.sub(r"[^A-Za-z0-9]", "", f.lower().replace(" ", ""))
+        for f in resp.text.splitlines()
+    ]
+else:
+    logging.error("Failed to fetch community members list.")
+    community = []
+community = [c for c in community if len(c) > 2]
 
 
 def get_game_window():
@@ -113,7 +131,9 @@ def find_coords_for_difficulties():
     for i, text in enumerate(data["text"]):
         text: str
         if "lvl" in text.lower().replace("i", "l") and (
-            any(text.endswith(s) for s in LEVELS_TO_FIND)
+            COMMUNITY_ONLY
+            or FRIENDS_ONLY
+            or any(text.endswith(s) for s in LEVELS_TO_FIND)
             or (
                 len(data["text"]) > i + 1
                 and any(s in data["text"][i + 1] for s in LEVELS_TO_FIND)
@@ -134,17 +154,55 @@ def start_join():
     for attempt in range(MAX_SCROLL_ATTEMPTS):
         logger.debug("Scroll attempt %2d/%d", attempt + 1, MAX_SCROLL_ATTEMPTS)
         x, y, w, h = find_coords_for_difficulties()
-        if x:
-            pyautogui.click(
-                text_locations["battle_box"][0] + x + w // 2,
-                text_locations["battle_box"][1] + y + h // 2,
-            )
-            pyautogui.sleep(0.5)
+        if x and y and w and h:
+            run = True
+            if FRIENDS_ONLY or COMMUNITY_ONLY:
 
-            click(text_locations["join_button"][0], text_locations["join_button"][1])
-            return
+                img = ImageGrab.grab(
+                    (
+                        text_locations["battle_box"][0]
+                        + x
+                        - text_locations["resolution"][0] // 4.16,
+                        text_locations["battle_box"][1]
+                        + y
+                        + text_locations["resolution"][1] // 10.25,
+                        text_locations["battle_box"][0]
+                        + x
+                        - text_locations["resolution"][0] // 18,
+                        text_locations["battle_box"][1]
+                        + y
+                        + text_locations["resolution"][1] // 7.4,
+                    )
+                )
+                if DEBUG:
+                    img.save("debug/join_player_name.png")
+                gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
+                gray = cv2.bitwise_not(gray)
+                data = pytesseract.image_to_data(
+                    gray, output_type=pytesseract.Output.DICT
+                )
+                player_name = "".join(data["text"]).replace(" ", "")
+                logger.debug("Found player name: %s", player_name)
+                is_friend = FRIENDS_ONLY and any(f == player_name for f in friends)
+                is_community = COMMUNITY_ONLY and any(
+                    c == player_name for c in community
+                )
+                if not (is_friend or is_community):
+                    run = False
 
-        pyautogui.moveTo(
+            if run:
+                pyautogui.click(
+                    text_locations["battle_box"][0] + x + w // 2,
+                    text_locations["battle_box"][1] + y + h // 2,
+                )
+                pyautogui.sleep(0.5)
+
+                click(
+                    text_locations["join_button"][0], text_locations["join_button"][1]
+                )
+                return
+
+        pydirectinput.moveTo(
             text_locations["scroll_location"][0],
             text_locations["scroll_location"][1],
         )
@@ -324,7 +382,7 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         int(win.top + 0.58 * win.height),
     )
     text_locations["scroll_location"] = (
-        win.left + win.width // 3,
+        win.left + 2 * win.width // 3,
         win.top + win.height // 2,
     )
     text_locations["like_box"] = (
@@ -367,6 +425,7 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         win.right - 0.4 * win.width,
         win.bottom - 0.05 * win.height,
     )
+    text_locations["resolution"] = (win.width, win.height)
 
 
 def select_correct_team(team_name):

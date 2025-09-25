@@ -14,9 +14,11 @@
   * ``join_team`` Team name to use when joining.
   * ``join_diff`` for multiple difficulties to be chosen by writing e.g. "9-12" meaning 9 to 12 inclusive.  
   * ``debug_mode`` Enable to save OCR screen grabs to a debug folder and log detailed.
-  * ``document_daily_reward`` Take screenshot of the daily reward
+  * ``document_daily_reward`` Take screenshot of the daily reward.
   * ``exe_name`` is the name of the exe as shown in task manager. Change if you renamed the exe or are using an emulator.
   * ``max_scroll_attempts`` How many times the program should scroll down before refreshing the join list.
+  * ``friends_only`` Enable this to only join games where the hostname is in your friends.txt file.
+  * ``community_only`` Enable this to only join games where the hostname is in the [community file](https://github.com/thefrozenfishy/exedra-link-raid-automation/blob/main/community.txt).
 
 ## TODOs
 
@@ -24,3 +26,4 @@
 * Add option to use rings for more LR
 * Enabled/Disable auto hosting in settings
 * Set hosting difficulty so people can host 1 high diff and then turn on the tool
+* Fix OCR for the join scrolling, atm it skips many options because it's hard to read nrs apparently
