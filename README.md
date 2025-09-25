@@ -22,6 +22,3 @@
 
 * Auto claim finished raids
 * Add option to use rings for more LR
-* Avoid dead runs
-* Avoid deserted runs
-* Avoid runs w less then X minutes remaining
