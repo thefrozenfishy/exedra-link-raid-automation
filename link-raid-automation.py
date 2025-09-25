@@ -342,7 +342,6 @@ def select_correct_team(team_name):
             return
         click(text_locations["next_team"][0], text_locations["next_team"][1])
         pyautogui.sleep(0.2)
-    input(f'Could not find team named "{team_name}"')
     raise RuntimeError(f'Could not find team named "{team_name}"')
 
 
@@ -422,7 +421,11 @@ def main():
 
 
 if __name__ == "__main__":
-    setup_text_locations()
-    print("starting with config:", dict(config["general"]))
-    print("Press Ctrl+Shift+Q to terminate the program.")
-    main()
+    try:
+        setup_text_locations()
+        print("starting with config:", dict(config["general"]))
+        print("Press Ctrl+Shift+Q to terminate the program.")
+        main()
+    except Exception as e:
+        print("Error:", e)
+        input("Press enter to close...")
