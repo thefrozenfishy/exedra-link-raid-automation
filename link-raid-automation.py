@@ -109,9 +109,7 @@ def start_join():
             )
             pyautogui.sleep(0.5)
 
-            pydirectinput.click(
-                text_locations["join_button"][0], text_locations["join_button"][1]
-            )
+            click(text_locations["join_button"][0], text_locations["join_button"][1])
             return
 
         pyautogui.moveTo(
@@ -123,9 +121,7 @@ def start_join():
         pyautogui.scroll(-1)
 
     # Refreshing
-    pydirectinput.click(
-        text_locations["refresh_button"][0], text_locations["refresh_button"][1]
-    )
+    click(text_locations["refresh_button"][0], text_locations["refresh_button"][1])
 
 
 class CurrentState(Enum):
@@ -199,6 +195,11 @@ def current_state() -> CurrentState:
 
 
 text_locations = {}
+
+
+def click(x: float | int, y: float | int):
+    pydirectinput.click(int(x), int(y))
+    pyautogui.moveTo(10, 10)
 
 
 def setup_text_locations():
@@ -339,9 +340,7 @@ def select_correct_team(team_name):
     for _ in range(10):
         if team_name.lower() in get_text_in_img("team_name"):
             return
-        pydirectinput.click(
-            text_locations["next_team"][0], text_locations["next_team"][1]
-        )
+        click(text_locations["next_team"][0], text_locations["next_team"][1])
         pyautogui.sleep(0.2)
     input(f'Could not find team named "{team_name}"')
     raise RuntimeError(f'Could not find team named "{team_name}"')
@@ -356,31 +355,31 @@ def main():
             case CurrentState.JOIN_SCREEN:
                 start_join()
             case CurrentState.HOST_SCREEN:
-                pydirectinput.click(
+                click(
                     text_locations["host_box"][0],
                     text_locations["host_box"][1],
                 )
             case CurrentState.HOME_SCREEN_CAN_HOST:
-                pydirectinput.click(
+                click(
                     text_locations["host_screen_button"][0],
                     text_locations["host_screen_button"][1],
                 )
             case CurrentState.HOME_SCREEN_CANNOT_HOST:
-                pydirectinput.click(
+                click(
                     text_locations["join_screen_button"][0],
                     text_locations["join_screen_button"][1],
                 )
             case CurrentState.PLAY_JOIN_SCREEN:
                 select_correct_team(JOIN_TEAM)
                 print("Joining a game...")
-                pydirectinput.click(
+                click(
                     text_locations["play_button"][0], text_locations["play_button"][1]
                 )
                 pyautogui.sleep(2)
             case CurrentState.PLAY_HOST_SCREEN:
                 select_correct_team(HOST_TEAM)
                 print("Hosting a game...")
-                pydirectinput.click(
+                click(
                     text_locations["play_button"][0], text_locations["play_button"][1]
                 )
                 pyautogui.sleep(2)
@@ -388,23 +387,23 @@ def main():
                 pyautogui.sleep(5)
                 # No need to ping the process that much while in battle.
             case CurrentState.RESULTS_SCREEN:
-                pydirectinput.click(
+                click(
                     int(text_locations["result_box"][2]),
                     int(text_locations["result_box"][3]),
                 )
             case CurrentState.BACK_SCREEN:
-                pydirectinput.click(
+                click(
                     int(text_locations["back_box"][0]),
                     int(text_locations["back_box"][1]),
                 )
                 pyautogui.sleep(2)
             case CurrentState.CONTINUE:
-                pydirectinput.click(
+                click(
                     int(text_locations["back_box"][0]),
                     int(text_locations["back_box"][1]),
                 )
             case CurrentState.DAILY_BONUS_COUNTER:
-                pydirectinput.click(
+                click(
                     int(text_locations["back_box"][0]),
                     int(text_locations["back_box"][1]),
                 )
@@ -412,9 +411,11 @@ def main():
                 if DAILY_SCREENSHOT:
                     img = ImageGrab.grab(text_locations["daily_reward_pic_box"])
                     os.makedirs("daily_reward", exist_ok=True)
-                    img.save(f"daily_reward/{datetime.today().isoformat()}.png")
+                    img.save(
+                        f"daily_reward/{datetime.today().strftime("%Y-%m-%dT%H-%M-%S")}.png"
+                    )
 
-                pydirectinput.click(
+                click(
                     int(text_locations["back_box"][0]),
                     int(text_locations["back_box"][1]),
                 )
