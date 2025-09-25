@@ -19,6 +19,7 @@
   * ``max_scroll_attempts`` How many times the program should scroll down before refreshing the join list.
   * ``friends_only`` Enable this to only join games where the hostname is in your friends.txt file.
   * ``community_only`` Enable this to only join games where the hostname is in the [community file](https://github.com/thefrozenfishy/exedra-link-raid-automation/blob/main/community.txt).
+    * To add yourself to the community list go [here](https://thefrozenfishy.github.io/exedra-dmg-calc/#/link-raid)
 
 ## TODOs
 
