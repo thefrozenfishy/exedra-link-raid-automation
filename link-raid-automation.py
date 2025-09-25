@@ -11,6 +11,7 @@ from PIL import ImageGrab, Image
 from enum import Enum
 import configparser
 from datetime import datetime
+import logging
 
 CONFIG_FILE = "link-raid-automation-settings.ini"
 
@@ -36,7 +37,7 @@ with open(CONFIG_FILE, "w", encoding="utf-8", newline="\n") as f:
 
 DEBUG = config.getboolean("general", "debug_mode")
 if DEBUG:
-    os.makedirs("debug", exist_ok=True)
+    os.makedirs("debug/logs", exist_ok=True)
 
 HOST_TEAM = config.get("general", "host_team").replace(" ", "").lower()
 JOIN_TEAM = config.get("general", "join_team").replace(" ", "").lower()
@@ -52,6 +53,22 @@ TARGET_WINDOW = config.get("general", "exe_name")
 MAX_SCROLL_ATTEMPTS = config.getint("general", "max_scroll_attempts")
 
 keyboard.add_hotkey("ctrl+shift+q", lambda: os._exit(0))
+
+log_formatter = logging.Formatter("%(asctime)s - %(message)s", "%Y-%m-%d %H:%M:%S")
+logger = logging.getLogger("lr_automation")
+logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
+
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(log_formatter)
+logger.addHandler(console_handler)
+
+if DEBUG:
+    file_handler = logging.FileHandler(
+        f"debug/logs/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')}.txt",
+        encoding="utf-8",
+    )
+    file_handler.setFormatter(log_formatter)
+    logger.addHandler(file_handler)
 
 
 def get_game_window():
@@ -70,7 +87,7 @@ def get_data_in_img(cords: str):
     if DEBUG:
         img.save(f"debug/{cords}.png")
         Image.fromarray(gray).save(f"debug/{cords}_gray.png")
-        print(cords, ">", data["text"])
+        logger.info("%s > %s", cords, data["text"])
     return data
 
 
@@ -99,8 +116,7 @@ def find_coords_for_difficulties():
 
 def start_join():
     for attempt in range(MAX_SCROLL_ATTEMPTS):
-        if DEBUG:
-            print(f"Scroll attempt {attempt + 1:2}/{MAX_SCROLL_ATTEMPTS}")
+        logger.debug("Scroll attempt %2d/%d", attempt + 1, MAX_SCROLL_ATTEMPTS)
         x, y, w, h = find_coords_for_difficulties()
         if x:
             pyautogui.click(
@@ -207,10 +223,11 @@ def setup_text_locations():
     try:
         win.activate()
     except Exception as e:
-        print(
-            f"""Could not activate window: {e}.
-This is not a major issue, just be sure that no application is hiding Exedra from view,
-The OCR has to "see" the content of the game to determine what to do."""
+        logger.exception(
+            """Could not activate window!
+This is not a major issue, just be sure that no application is hiding Exedra from view. 
+The OCR has to 'see' the content of the game to determine what to do.""",
+            exc_info=e,
         )
     text_locations["result_box"] = (
         win.left + 0.23 * win.width,
@@ -346,10 +363,13 @@ def select_correct_team(team_name):
 
 
 def main():
+    setup_text_locations()
+    logger.info("starting with config: %s", dict(config["general"]))
+    logger.info("Press Ctrl+Shift+Q to terminate the program.")
     while True:
         pyautogui.sleep(1)
         state = current_state()
-        print("Current State:", state.name)
+        logger.info("Current State: %s", state.name)
         match state:
             case CurrentState.JOIN_SCREEN:
                 start_join()
@@ -370,21 +390,20 @@ def main():
                 )
             case CurrentState.PLAY_JOIN_SCREEN:
                 select_correct_team(JOIN_TEAM)
-                print("Joining a game...")
+                logger.info("Joining a game...")
                 click(
                     text_locations["play_button"][0], text_locations["play_button"][1]
                 )
                 pyautogui.sleep(2)
             case CurrentState.PLAY_HOST_SCREEN:
                 select_correct_team(HOST_TEAM)
-                print("Hosting a game...")
+                logger.info("Hosting a game...")
                 click(
                     text_locations["play_button"][0], text_locations["play_button"][1]
                 )
                 pyautogui.sleep(2)
             case CurrentState.NO_ACTION:
                 pyautogui.sleep(5)
-                # No need to ping the process that much while in battle.
             case CurrentState.RESULTS_SCREEN:
                 click(
                     int(text_locations["result_box"][2]),
@@ -411,7 +430,7 @@ def main():
                     img = ImageGrab.grab(text_locations["daily_reward_pic_box"])
                     os.makedirs("daily_reward", exist_ok=True)
                     img.save(
-                        f"daily_reward/{datetime.today().strftime("%Y-%m-%dT%H-%M-%S")}.png"
+                        f"daily_reward/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')}.png"
                     )
 
                 click(
@@ -421,13 +440,4 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        setup_text_locations()
-        print("starting with config:", dict(config["general"]))
-        print("Press Ctrl+Shift+Q to terminate the program.")
-        main()
-    except Exception as e:
-        print("Error:", e)
-    finally:
-        print("Program terminated.")
-        input("Press enter to close...")
+    main()
