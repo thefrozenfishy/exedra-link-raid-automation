@@ -110,7 +110,8 @@ def find_coords_for_difficulties():
             x, y, w, h = (
                 data["left"][i],
                 data["top"][i],
-                data["width"][i] + data["width"][i + 1],
+                data["width"][i]
+                + (data["width"][i + 1] if len(data["width"]) > i + 1 else 0),
                 data["height"][i],
             )
             return x, y, w, h
@@ -324,7 +325,7 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         win.left + 0.475 * win.width,
         win.top + 0.18 * win.height,
         win.right - 0.465 * win.width,
-        win.bottom - 0.6 * win.height,
+        win.bottom - 0.5 * win.height,
     )
     text_locations["host_diff_box"] = (
         win.left + 0.68 * win.width,
