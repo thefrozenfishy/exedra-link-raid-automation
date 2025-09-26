@@ -190,7 +190,7 @@ def start_join():
                     run = False
 
             if run:
-                pyautogui.click(
+                click(
                     text_locations["battle_box"][0] + x + w // 2,
                     text_locations["battle_box"][1] + y + h // 2,
                 )
