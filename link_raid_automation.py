@@ -17,7 +17,7 @@ from requests import get
 
 CONFIG_FILE = "link-raid-automation-settings.ini"
 
-config = configparser.ConfigParser()
+ini_config = configparser.ConfigParser()
 defaults = {
     "host_team": "LR Auto 8",
     "join_team": "LR Auto 9-12",
@@ -30,34 +30,34 @@ defaults = {
     "community_only": "false",
 }
 
-config.read(CONFIG_FILE)
-config["general"] = {
+ini_config.read(CONFIG_FILE)
+ini_config["general"] = {
     **defaults,
-    **(config["general"] if "general" in config else {}),
+    **(ini_config["general"] if "general" in ini_config else {}),
 }
 
 with open(CONFIG_FILE, "w", encoding="utf-8", newline="\n") as f:
-    config.write(f)
+    ini_config.write(f)
 
-DEBUG = config.getboolean("general", "debug_mode")
+DEBUG = ini_config.getboolean("general", "debug_mode")
 if DEBUG:
     os.makedirs("debug/logs", exist_ok=True)
 
-HOST_TEAM = config.get("general", "host_team").replace(" ", "").lower()
-JOIN_TEAM = config.get("general", "join_team").replace(" ", "").lower()
-JOIN_DIFF = config.get("general", "join_diff")
+HOST_TEAM = ini_config.get("general", "host_team").replace(" ", "").lower()
+JOIN_TEAM = ini_config.get("general", "join_team").replace(" ", "").lower()
+JOIN_DIFF = ini_config.get("general", "join_diff")
 if "-" in JOIN_DIFF:
     start, end = map(int, JOIN_DIFF.split("-"))
     LEVELS_TO_FIND = list(map(str, range(start, end + 1)))
 else:
     LEVELS_TO_FIND = [JOIN_DIFF]
 
-DAILY_SCREENSHOT = config.getboolean("general", "document_daily_reward")
-TARGET_WINDOW = config.get("general", "exe_name")
-MAX_SCROLL_ATTEMPTS = config.getint("general", "max_scroll_attempts")
+DAILY_SCREENSHOT = ini_config.getboolean("general", "document_daily_reward")
+TARGET_WINDOW = ini_config.get("general", "exe_name")
+MAX_SCROLL_ATTEMPTS = ini_config.getint("general", "max_scroll_attempts")
 
-FRIENDS_ONLY = config.getboolean("general", "friends_only")
-COMMUNITY_ONLY = config.getboolean("general", "community_only")
+FRIENDS_ONLY = ini_config.getboolean("general", "friends_only")
+COMMUNITY_ONLY = ini_config.getboolean("general", "community_only")
 
 keyboard.add_hotkey("ctrl+shift+q", lambda: os._exit(0))
 
@@ -88,7 +88,7 @@ friends = [
 friends = {f for f in friends if len(f) > 2}
 resp = get(
     "https://raw.githubusercontent.com/thefrozenfishy/exedra-link-raid-automation/main/community.txt",
-    timeout=10,
+    timeout=3,
 )
 if resp.ok:
     community = [
@@ -100,6 +100,8 @@ else:
     community = []
 community = {c for c in community if len(c) > 2}
 
+tessaract_number_only = "--psm 6 -c tessedit_char_whitelist=0123456789"
+
 
 def get_game_window():
     wins = pygetwindow.getWindowsWithTitle(TARGET_WINDOW)
@@ -108,92 +110,98 @@ def get_game_window():
     return wins[0]
 
 
-def get_data_in_img(cords: str):
-    img = ImageGrab.grab(text_locations[cords])
+def _get_data_in_img(name: str, cords: tuple[int, int, int, int], config: str) -> dict:
+    img = ImageGrab.grab(cords)
     gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
     gray = cv2.bitwise_not(gray)
-    data = pytesseract.image_to_data(gray, output_type=pytesseract.Output.DICT)
+    _, black_and_white = cv2.threshold(
+        gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
+    )
+
+    # Auto scale if image is too small
+    h, w = black_and_white.shape
+    min_size = 50
+    if h < min_size or w < min_size:
+        scale_factor = max(min_size / h, min_size / w)
+        new_w, new_h = int(w * scale_factor), int(h * scale_factor)
+        black_and_white = cv2.resize(
+            black_and_white, (new_w, new_h), interpolation=cv2.INTER_CUBIC
+        )
+
+    data = pytesseract.image_to_data(
+        black_and_white, output_type=pytesseract.Output.DICT, config=config
+    )
 
     if DEBUG:
-        img.save(f"debug/{cords}.png")
-        Image.fromarray(gray).save(f"debug/{cords}_gray.png")
-        logger.info("%s > %s", cords, data["text"])
+        img.save(f"debug/{name}.png")
+        Image.fromarray(black_and_white).save(f"debug/{name}_gray.png")
+        logger.debug("%s > %s", name, data["text"])
     return data
 
 
-def get_text_in_img(cords: str) -> str:
-    data = get_data_in_img(cords)
+def get_data_in_img_with_offset(x: int, y: int, offset: str, config: str):
+    return _get_data_in_img(
+        offset,
+        (
+            x + text_locations[offset][0],
+            y + text_locations[offset][1],
+            x + text_locations[offset][2],
+            y + text_locations[offset][3],
+        ),
+        config,
+    )
+
+
+def get_data_in_img(cords: str, config: str):
+    return _get_data_in_img(cords, text_locations[cords], config)
+
+
+def get_text_in_img_with_offset(x: int, y: int, offset: str, config="") -> str:
+    data = get_data_in_img_with_offset(x, y, offset, config=config)
     return re.sub(r"[^A-Za-z0-9]", "", "".join(data["text"]).lower().replace(" ", ""))
 
 
-def find_coords_for_difficulties():
-    data = get_data_in_img("battle_box")
+def get_text_in_img(cords: str, config="") -> str:
+    data = get_data_in_img(cords, config)
+    return re.sub(r"[^A-Za-z0-9]", "", "".join(data["text"]).lower().replace(" ", ""))
+
+
+def find_coords_for_eligable_difficulty():
+    data = get_data_in_img("join_anchor_box", "")
     for i, text in enumerate(data["text"]):
-        text: str
-        if "lvl" in text.lower().replace("i", "l") and (
-            COMMUNITY_ONLY
-            or FRIENDS_ONLY
-            or any(text.endswith(s) for s in LEVELS_TO_FIND)
-            or (
-                len(data["text"]) > i + 1
-                and any(s in data["text"][i + 1] for s in LEVELS_TO_FIND)
+        if not "player" in text.lower():
+            continue
+        x = text_locations["join_anchor_box"][0] + data["left"][i]
+        y = text_locations["join_anchor_box"][1] + data["top"][i] + data["height"][i]
+        lvl = get_text_in_img_with_offset(
+            x, y, "join_lvl_offset", config=tessaract_number_only
+        )
+        if lvl in LEVELS_TO_FIND:
+            username = get_text_in_img_with_offset(
+                x,
+                y,
+                "join_username_offset",
             )
-        ):
-            x, y, w, h = (
-                data["left"][i],
-                data["top"][i],
-                data["width"][i]
-                + (data["width"][i + 1] if len(data["width"]) > i + 1 else 0),
-                data["height"][i],
-            )
-            return x, y, w, h
-    return 0, 0, 0, 0
+            return x, y, username
+    return 0, 0, ""
 
 
 def start_join():
     for attempt in range(MAX_SCROLL_ATTEMPTS):
         logger.debug("Scroll attempt %2d/%d", attempt + 1, MAX_SCROLL_ATTEMPTS)
-        x, y, w, h = find_coords_for_difficulties()
-        if x and y and w and h:
+        x, y, username = find_coords_for_eligable_difficulty()
+        if x and y:
             run = True
             if FRIENDS_ONLY or COMMUNITY_ONLY:
-
-                img = ImageGrab.grab(
-                    (
-                        text_locations["battle_box"][0]
-                        + x
-                        - text_locations["resolution"][0] // 4.16,
-                        text_locations["battle_box"][1]
-                        + y
-                        + text_locations["resolution"][1] // 10.25,
-                        text_locations["battle_box"][0]
-                        + x
-                        - text_locations["resolution"][0] // 18,
-                        text_locations["battle_box"][1]
-                        + y
-                        + text_locations["resolution"][1] // 7.4,
-                    )
-                )
-                if DEBUG:
-                    img.save("debug/join_player_name.png")
-                gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
-                gray = cv2.bitwise_not(gray)
-                data = pytesseract.image_to_data(
-                    gray, output_type=pytesseract.Output.DICT
-                )
-                player_name = "".join(data["text"]).replace(" ", "")
-                logger.debug("Found player name: %s", player_name)
+                logger.debug("Found player name: %s", username)
                 if not (
-                    (FRIENDS_ONLY and player_name in friends)
-                    or (COMMUNITY_ONLY and player_name in community)
+                    (FRIENDS_ONLY and username in friends)
+                    or (COMMUNITY_ONLY and username in community)
                 ):
                     run = False
 
             if run:
-                click(
-                    text_locations["battle_box"][0] + x + w // 2,
-                    text_locations["battle_box"][1] + y + h // 2,
-                )
+                click(x, y)
                 pyautogui.sleep(0.5)
 
                 click(
@@ -207,9 +215,7 @@ def start_join():
         )
         pyautogui.scroll(-1)
         pyautogui.scroll(-1)
-        pyautogui.scroll(-1)
 
-    # Refreshing
     click(text_locations["refresh_button"][0], text_locations["refresh_button"][1])
 
 
@@ -390,11 +396,23 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         win.right - 0.83 * win.width,
         win.bottom - 0.75 * win.height,
     )
-    text_locations["battle_box"] = (
-        win.left + 0.475 * win.width,
-        win.top + 0.18 * win.height,
-        win.right - 0.465 * win.width,
-        win.bottom - 0.5 * win.height,
+    text_locations["join_anchor_box"] = (
+        win.left + 0.43 * win.width,
+        win.top + 0.3 * win.height,
+        win.right - 0.51 * win.width,
+        win.bottom - 0.6 * win.height,
+    )
+    text_locations["join_lvl_offset"] = (
+        0.072 * win.width,
+        -0.125 * win.height,
+        0.095 * win.width,
+        -0.095 * win.height,
+    )
+    text_locations["join_username_offset"] = (
+        -0.19 * win.width,
+        -0.02 * win.height,
+        -0.01 * win.width,
+        0.005 * win.height,
     )
     text_locations["host_diff_box"] = (
         win.left + 0.68 * win.width,
@@ -438,7 +456,7 @@ def select_correct_team(team_name):
 
 def main():
     setup_text_locations()
-    logger.info("starting with config: %s", dict(config["general"]))
+    logger.info("starting with config: %s", dict(ini_config["general"]))
     logger.info(
         "Considering %d friends and %s community members", len(friends), len(community)
     )
