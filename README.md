@@ -14,7 +14,8 @@
   * ``join_diff`` for multiple difficulties to be chosen by writing e.g. "9-12" meaning 9 to 12 inclusive.  
   * ``auto_host`` Set this to true if you wish the game to automatically host games, false for the application to only join games.
   * ``host_diff`` Which difficulty you wish the game to host battles in.
-  * ``first_host_of_the_day_diff`` If set the first host battle of the day will use this difficulty instead of ``host_diff``.
+  * ``first_host_of_the_day_diff`` If set the first host battle of the day will use this difficulty instead of ``host_diff``. 
+    * ``NOTE: Currently not implemented, I need daily reset!``
   * ``debug_mode`` Enable to save OCR screen grabs to a debug folder and log detailed.
   * ``document_daily_reward`` Take screenshot of the daily reward.
   * ``exe_name`` is the name of the exe as shown in task manager. Change if you renamed the exe or are using an emulator.
@@ -24,6 +25,10 @@
   * ``only_join_friends_and_community`` Ignore all games that are not friends or community.
   * ``join_friends_and_community_max_difficulty`` The max difficulty to join friends and community stages in. Defaults to the highest difficulty given in ``join_diff``.
   * ``team_overrides`` If you for some difficulties wish to run other teams than ``default_team`` you can override it here.
+
+## Bug notes
+
+* The OCR is a bit touchy, so some actions like scrolling manually in the join list or various resolutions can mess things up. just changing screens will resolve any issue. I run Windowed 1024x576, so that's the best tested resolution.
 
 ## TODOs
 
