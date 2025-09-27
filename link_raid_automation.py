@@ -413,7 +413,8 @@ class CurrentState(Enum):
     HOME_SCREEN_CANNOT_HOST = "HOME_SCREEN_CANNOT_HOST"
     NO_ACTION = "NO_ACTION"
     RESULTS_SCREEN = "RESULTS_SCREEN"
-    BACK_SCREEN = "BACK_SCREEN"
+    JOIN_BACK_SCREEN = "JOIN_BACK_SCREEN"
+    HOST_BACK_SCREEN = "HOST_BACK_SCREEN"
     PLAY_JOIN_SCREEN = "PLAY_JOIN_SCREEN"
     PLAY_HOST_SCREEN = "PLAY_HOST_SCREEN"
     DAILY_BONUS_COUNTER = "DAILY_BONUS_COUNTER"
@@ -445,9 +446,13 @@ def current_state() -> CurrentState:
     if "lvl" in text.lower().replace("i", "l"):
         return CurrentState.HOST_SCREEN
 
-    text = get_text_in_img("back_box")
+    text = get_text_in_img("join_back_box")
     if "back" in text.lower():
-        return CurrentState.BACK_SCREEN
+        return CurrentState.JOIN_BACK_SCREEN
+
+    text = get_text_in_img("host_back_box")
+    if "back" in text.lower():
+        return CurrentState.HOST_BACK_SCREEN
 
     text = get_text_in_img("party_box")
     if "party" in text.lower():
@@ -532,10 +537,16 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         win.right - 0.35 * win.width,
         win.bottom - 0.4 * win.height,
     )
-    text_locations["back_box"] = (
+    text_locations["join_back_box"] = (
         win.left + 0.45 * win.width,
         win.top + 0.81 * win.height,
         win.right - 0.45 * win.width,
+        win.bottom - 0.12 * win.height,
+    )
+    text_locations["host_back_box"] = (
+        win.left + 0.55 * win.width,
+        win.top + 0.81 * win.height,
+        win.right - 0.35 * win.width,
         win.bottom - 0.12 * win.height,
     )
     text_locations["team_name"] = (
@@ -745,21 +756,27 @@ def main():
                     int(text_locations["result_box"][2]),
                     int(text_locations["result_box"][3]),
                 )
-            case CurrentState.BACK_SCREEN:
+            case CurrentState.JOIN_BACK_SCREEN:
                 click(
-                    int(text_locations["back_box"][0]),
-                    int(text_locations["back_box"][1]),
+                    int(text_locations["join_back_box"][0]),
+                    int(text_locations["join_back_box"][1]),
+                )
+                pyautogui.sleep(2)
+            case CurrentState.HOST_BACK_SCREEN:
+                click(
+                    int(text_locations["host_back_box"][0]),
+                    int(text_locations["host_back_box"][1]),
                 )
                 pyautogui.sleep(2)
             case CurrentState.CONTINUE:
                 click(
-                    int(text_locations["back_box"][0]),
-                    int(text_locations["back_box"][1]),
+                    int(text_locations["join_back_box"][0]),
+                    int(text_locations["join_back_box"][1]),
                 )
             case CurrentState.DAILY_BONUS_COUNTER:
                 click(
-                    int(text_locations["back_box"][0]),
-                    int(text_locations["back_box"][1]),
+                    int(text_locations["join_back_box"][0]),
+                    int(text_locations["join_back_box"][1]),
                 )
             case CurrentState.DAILY_BONUS:
                 if DAILY_SCREENSHOT:
@@ -770,8 +787,8 @@ def main():
                     )
 
                 click(
-                    int(text_locations["back_box"][0]),
-                    int(text_locations["back_box"][1]),
+                    int(text_locations["join_back_box"][0]),
+                    int(text_locations["join_back_box"][1]),
                 )
 
 
