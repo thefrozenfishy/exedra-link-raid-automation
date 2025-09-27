@@ -268,7 +268,9 @@ def start_play():
     difficulty = get_nrs_in_img("current_difficulty")
     if not difficulty.isdigit():
         difficulty = get_nrs_in_img("current_difficulty_single_digit")
-    select_correct_team(teams[int(difficulty)])
+    select_correct_team(
+        teams.get(int(difficulty) if difficulty.isdigit() else 0, default_team)
+    )
     click(*text_locations["play_button"])
     for _ in range(10):
         pyautogui.sleep(0.2)
@@ -341,7 +343,8 @@ def is_scroll_at_bottom():
             text_locations["scroll_bar"][3],
         )
     )
-    scroll_bar_img.save("debug/scroll_bar.png")
+    if DEBUG:
+        scroll_bar_img.save("debug/scroll_bar.png")
     arr = np.array(scroll_bar_img).astype(float) / 255.0
     avg_rgb = arr.mean(axis=(0, 1))  # [R, G, B] normalized
     r, g, b = avg_rgb
@@ -364,6 +367,7 @@ def claim_battles():
             return
 
         pydirectinput.click(*text_locations["scroll_location"])
+        pyautogui.scroll(-1)
         pyautogui.scroll(-1)
 
         scroll_is_at_bottom = is_scroll_at_bottom()
@@ -389,6 +393,7 @@ def start_join():
             return
 
         pydirectinput.click(*text_locations["scroll_location"])
+        pyautogui.scroll(-1)
         pyautogui.scroll(-1)
 
         scroll_is_at_bottom = is_scroll_at_bottom()
