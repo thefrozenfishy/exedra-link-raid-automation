@@ -18,6 +18,8 @@ import pytesseract
 from PIL import Image, ImageGrab
 from requests import get
 
+pydirectinput.FAILSAFE = False
+
 CONFIG_FILE = "link-raid-automation-settings.ini"
 
 ini_config = configparser.ConfigParser()
