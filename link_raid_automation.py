@@ -6,6 +6,7 @@ import re
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
+from random import random
 
 import keyboard
 import numpy as np
@@ -150,41 +151,16 @@ def get_game_window():
     return wins[0]
 
 
-def _get_data_in_img(name: str, cords: tuple[int, int, int, int], config: str) -> dict:
-    img = ImageGrab.grab(cords)
+def get_text_in_img(cords: str, config="", print_nr=None) -> str:
+    img = ImageGrab.grab(text_locations[cords])
     data = pytesseract.image_to_data(
         img, output_type=pytesseract.Output.DICT, config=config
     )
 
     if DEBUG:
+        name = f"{cords}_{print_nr:03}" if print_nr else cords
         img.save(f"debug/{name}.png")
         logger.debug("%s > %s", name, data["text"])
-    return data
-
-
-def get_data_in_img_with_offset(
-    x: int, y: int, offset: str, config: str, print_nr: int | None
-):
-    return _get_data_in_img(
-        f"{offset}_{print_nr:03}" if print_nr else offset,
-        (
-            x + text_locations[offset][0],
-            y + text_locations[offset][1],
-            x + text_locations[offset][2],
-            y + text_locations[offset][3],
-        ),
-        config,
-    )
-
-
-def get_data_in_img(cords: str, config: str):
-    return _get_data_in_img(cords, text_locations[cords], config)
-
-
-def get_text_in_img_with_offset(
-    x: int, y: int, offset: str, config="", print_nr=None
-) -> str:
-    data = get_data_in_img_with_offset(x, y, offset, config=config, print_nr=print_nr)
     return re.sub(r"[^A-Za-z0-9]", "", "".join(data["text"]).lower().replace(" ", ""))
 
 
@@ -197,18 +173,13 @@ def get_nrs_in_img(cords: str) -> str:
     )
 
 
-def get_text_in_img(cords: str, config="") -> str:
-    data = get_data_in_img(cords, config)
-    return re.sub(r"[^A-Za-z0-9]", "", "".join(data["text"]).lower().replace(" ", ""))
-
-
-def get_color_diff_range(x: int, y: int, offset: str) -> set[int]:
+def get_color_diff_range(offset: str) -> set[int]:
     colour_img = ImageGrab.grab(
         (
-            x + text_locations[offset][0],
-            y + text_locations[offset][1] + 20,
-            x + text_locations[offset][0] + 2,
-            y + text_locations[offset][1] + 22,
+            text_locations[offset][0] + 5,
+            text_locations[offset][1] + 10,
+            text_locations[offset][0] + 10,
+            text_locations[offset][1] + 15,
         )
     )
     arr = np.array(colour_img).astype(float) / 255.0
@@ -221,9 +192,12 @@ def get_color_diff_range(x: int, y: int, offset: str) -> set[int]:
     if DEBUG:
         colour_img.save(f"debug/colour_img_{h:.0f}_{s:.2f}_{v:.2f}.png")
 
-    if 230 < h < 250 and s < 0.05 and v > 0.75:
+    if 230 < h < 250 and s < 0.05:
         return set(range(17, 21))  # White
-    if 30 < h < 70 and s < 0.15 and 0.65 > v > 0.35:
+    if (30 < h < 70 and s < 0.15 and 0.65 > v > 0.35) or (
+        h < 30 and s < 0.1 and v < 0.3
+    ):
+        # Different colour in host and join screens for some reason
         return set(range(1, 5))  # Gray
     if (h < 20 or h > 340) and s > 0.3:
         return set(range(9, 13))  # Red
@@ -238,54 +212,47 @@ def get_color_diff_range(x: int, y: int, offset: str) -> set[int]:
     return {0}
 
 
-def find_coords_for_eligable_difficulty():
-    data = get_data_in_img("join_anchor_box", "")
-    for i, text in enumerate(data["text"]):
-        if not "player" in text.lower():
-            continue
-        x = text_locations["join_anchor_box"][0] + data["left"][i]
-        y = text_locations["join_anchor_box"][1] + data["top"][i] + data["height"][i]
-        eligable_nrs = get_color_diff_range(x, y, "join_lvl_offset")
-        eligable_nrs_str = "".join(set("".join(map(str, eligable_nrs))))
-        if 1 in eligable_nrs:
-            eligable_nrs_str += "ilI"
-        logger.debug("eligible NRs %s", eligable_nrs_str)
-        lvl = (
-            get_text_in_img_with_offset(
-                x,
-                y,
-                "join_lvl_offset",
-                config=tessaract_whitelist.format(eligable_nrs_str),
-                print_nr=join_nr,
-            )
-            .replace("i", "1")
-            .replace("I", "1")
-            .replace("l", "1")
+def find_coords_for_eligable_difficulty() -> bool:
+    eligable_nrs = get_color_diff_range("join_lvl")
+    eligable_nrs_str = "".join(set("".join(map(str, eligable_nrs))))
+    if 1 in eligable_nrs:
+        eligable_nrs_str += "ilI"
+    logger.debug("eligible NRs %s", eligable_nrs_str)
+    lvl = (
+        get_text_in_img(
+            "join_lvl",
+            config=tessaract_whitelist.format(eligable_nrs_str),
+            print_nr=join_nr,
         )
-        if not lvl.isdigit():
-            continue
-        lvl = int(lvl)
-        if JOIN_MAX_DIFFICULTY < lvl:
-            continue
-        username = get_text_in_img_with_offset(
-            x,
-            y,
-            "join_username_offset",
+        .replace("i", "1")
+        .replace("I", "1")
+        .replace("l", "1")
+    )
+    if not lvl.isdigit():
+        return False
+    lvl = int(lvl)
+    if lvl not in eligable_nrs and lvl + 10 in eligable_nrs:
+        lvl += 10
+    if lvl not in eligable_nrs and lvl - 10 in eligable_nrs:
+        lvl -= 10
+    logger.debug("Found lvl %d", lvl)
+    if JOIN_MAX_DIFFICULTY < lvl:
+        return False
+    for i in range(3):
+        username = get_text_in_img(f"join_username_{i}")
+        union = get_text_in_img(f"union_{i}")
+        logger.debug(
+            "User%d was found to be '%s' with '%s' union flag", i, username, union
         )
-        union = get_text_in_img_with_offset(
-            x,
-            y,
-            "union_offset",
-        )
-        if JOIN_FRIENDS and username in friends or "on" in union:
-            return x, y
+        if JOIN_FRIENDS and (username in friends or "on" in union.lower()):
+            return True
         if JOIN_COMMUNITY and username in community:
-            return x, y
-        if ONLY_JOIN_FRIENDS_AND_COMMUNITY:
-            continue
-        if lvl in LEVELS_TO_FIND:
-            return x, y
-    return 0, 0
+            return True
+    if ONLY_JOIN_FRIENDS_AND_COMMUNITY:
+        return False
+    if lvl in LEVELS_TO_FIND:
+        return True
+    return False
 
 
 def select_correct_team(team_name):
@@ -314,17 +281,51 @@ def set_correct_host_difficulty():
         if "3" in get_nrs_in_img("games_until_daily_bonus")
         else HOST_DIFF
     )
-    difficulty = ""
-    for _ in range(20):
-        difficulty = get_nrs_in_img("host_difficulty")
-        if not difficulty.isdigit():
+    lvl = ""
+    for _ in range(60):
+        eligable_nrs = get_color_diff_range("host_difficulty")
+        eligable_nrs_str = "".join(set("".join(map(str, eligable_nrs))))
+        if 1 in eligable_nrs:
+            eligable_nrs_str += "ilI"
+        logger.debug("eligible host NRs %s", eligable_nrs_str)
+        lvl = (
+            get_text_in_img(
+                "host_difficulty",
+                config=tessaract_whitelist.format(eligable_nrs_str),
+                print_nr=join_nr,
+            )
+            .replace("i", "1")
+            .replace("I", "1")
+            .replace("l", "1")
+        )
+        if not lvl.isdigit():
+            click(
+                *(
+                    text_locations[
+                        "host_decrement" if random() > 0.5 else "host_increment"
+                    ]
+                )
+            )
             continue
-        if int(difficulty) < target_diff:
+        lvl = int(lvl)
+        if lvl not in eligable_nrs and lvl + 10 in eligable_nrs:
+            lvl += 10
+        if lvl not in eligable_nrs and lvl - 10 in eligable_nrs:
+            lvl -= 10
+        if lvl < target_diff:
             click(*text_locations["host_increment"])
-        elif int(difficulty) > target_diff:
+        elif lvl > target_diff:
             click(*text_locations["host_decrement"])
-    if not difficulty.isdigit() or int(difficulty) != target_diff:
-        logging.error("Could not set correct host difficulty")
+        else:
+            break
+    if not lvl:
+        lvl = 0
+    if int(lvl) != target_diff:
+        logging.error(
+            "Could not set correct host difficulty, found %d but wanted %d",
+            lvl,
+            target_diff,
+        )
         raise ValueError("Could not set correct host difficulty")
 
 
@@ -346,6 +347,7 @@ def is_scroll_at_bottom():
     r, g, b = avg_rgb
 
     _, _, v = colorsys.rgb_to_hsv(r, g, b)
+    logger.debug("Scroll bar has v=%.2f", v)
     return v > 0.3
 
 
@@ -357,17 +359,11 @@ def claim_battles():
     i = 60
     while not scroll_is_at_bottom and i > 0:
         i -= 1
-        click(
-            text_locations["join_anchor_box"][0], text_locations["join_anchor_box"][1]
-        )
         if "end" in get_text_in_img("join_button_box"):
             click(*text_locations["join_button"])
             return
 
-        pydirectinput.moveTo(
-            text_locations["scroll_location"][0],
-            text_locations["scroll_location"][1],
-        )
+        pydirectinput.click(*text_locations["scroll_location"])
         pyautogui.scroll(-1)
 
         scroll_is_at_bottom = is_scroll_at_bottom()
@@ -386,20 +382,13 @@ def start_join():
     i = 60
     while not scroll_is_at_bottom and i > 0:
         i -= 1
-        x, y = find_coords_for_eligable_difficulty()
-        if x and y:
-            click(x, y)
-            pyautogui.sleep(0.5)
-
+        valid_match = find_coords_for_eligable_difficulty()
+        if valid_match:
             click(*text_locations["join_button"])
-
             join_nr += 1
             return
 
-        pydirectinput.moveTo(
-            text_locations["scroll_location"][0],
-            text_locations["scroll_location"][1],
-        )
+        pydirectinput.click(*text_locations["scroll_location"])
         pyautogui.scroll(-1)
 
         scroll_is_at_bottom = is_scroll_at_bottom()
@@ -428,52 +417,52 @@ class CurrentState(Enum):
 
 def current_state() -> CurrentState:
     text = get_text_in_img("result_box")
-    if "lvl" in text.lower().replace("i", "l"):
+    if "lvl" in text.replace("i", "l"):
         return CurrentState.RESULTS_SCREEN
 
     text = get_text_in_img("battle_already_ended")
-    if "battlehas" in text.lower():
+    if "battlehas" in text:
         return CurrentState.BATTLE_ALREADY_ENDED
 
     text = get_text_in_img("join_button_box")
-    if "joln" in text.lower().replace("i", "l"):
+    if "joln" in text.replace("i", "l"):
         return CurrentState.JOIN_SCREEN
-    if "etreat" in text.lower() or "ended" in text.lower():
+    if "etreat" in text or "ended" in text:
         return CurrentState.JOINED_BATTLES_SCREEN
 
-    text = get_text_in_img("daily_bonus_box").lower().replace("i", "l")
+    text = get_text_in_img("daily_bonus_box").replace("i", "l")
     if "dally" in text:
         if "rlng" in text:
             return CurrentState.REFILL_LP
         return CurrentState.DAILY_BONUS_COUNTER
 
-    text = get_text_in_img("host_diff_box")
-    if "lvl" in text.lower().replace("i", "l"):
+    text = get_text_in_img("round_box")
+    if "round" in text:
         return CurrentState.HOST_SCREEN
 
     text = get_text_in_img("join_back_box")
-    if "back" in text.lower():
+    if "back" in text:
         return CurrentState.JOIN_BACK_SCREEN
 
     text = get_text_in_img("host_back_box")
-    if "back" in text.lower():
+    if "back" in text:
         return CurrentState.HOST_BACK_SCREEN
 
     text = get_text_in_img("party_box")
-    if "party" in text.lower():
+    if "party" in text:
         text2 = get_text_in_img("play_box")
         if "play" in text2.lower():
             return CurrentState.PLAY_JOIN_SCREEN
         return CurrentState.PLAY_HOST_SCREEN
 
+    text = get_text_in_img("in_progress_box").lower().replace("i", "l")
+    if "vlewresults" in text:
+        return CurrentState.HOME_SCREEN_CAN_HOST
+
     text = get_text_in_img("can_host_box")
-    if "play" in text.lower():
+    if "play" in text:
         if not DO_HOST:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
-
-        text2 = get_text_in_img("in_progress_box")
-        if "vlewresults" in text2.lower().replace("i", "l"):
-            return CurrentState.HOME_SCREEN_CAN_HOST
 
         text3 = get_text_in_img("in_progress_box")
         if "progress" not in text3.lower() and not all(
@@ -483,11 +472,11 @@ def current_state() -> CurrentState:
         return CurrentState.HOME_SCREEN_CANNOT_HOST
 
     text = get_text_in_img("daily_reward_box")
-    if "ob" in text.lower().replace("i", "l"):
+    if "ob" in text:
         return CurrentState.DAILY_BONUS
 
     text = get_text_in_img("tap_to_continue")
-    if "contlnue" in text.lower().replace("i", "l"):
+    if "contlnue" in text.replace("i", "l"):
         return CurrentState.CONTINUE
 
     return CurrentState.NO_ACTION
@@ -634,7 +623,7 @@ The OCR has to 'see' the content of the game to determine what to do.""",
     )
     text_locations["scroll_location"] = (
         win.left + 2 * win.width // 3,
-        win.top + win.height // 2,
+        win.top + win.height // 4,
     )
     text_locations["like_box"] = (
         win.left + 0.12 * win.width,
@@ -642,35 +631,42 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         win.right - 0.83 * win.width,
         win.bottom - 0.77 * win.height,
     )
-    text_locations["join_anchor_box"] = (
-        win.left + 0.43 * win.width,
-        win.top + 0.29 * win.height,
-        win.right - 0.51 * win.width,
-        win.bottom - 0.6 * win.height,
+    text_locations["join_lvl"] = (
+        win.left + 0.73 * win.width,
+        win.top + 0.22 * win.height,
+        win.right - 0.24 * win.width,
+        win.bottom - 0.74 * win.height,
     )
-    text_locations["join_lvl_offset"] = (
-        0.072 * win.width,
-        -0.13 * win.height,
-        0.095 * win.width,
-        -0.08 * win.height,
+    text_locations["join_username_0"] = (
+        win.left + 0.73 * win.width,
+        win.top + 0.55 * win.height,
+        win.right - 0.1 * win.width,
+        win.bottom - 0.4 * win.height,
     )
-    text_locations["join_username_offset"] = (
-        -0.19 * win.width,
-        -0.02 * win.height,
-        -0.01 * win.width,
-        0.005 * win.height,
+    text_locations["join_username_1"] = (
+        win.left + 0.73 * win.width,
+        win.top + 0.64 * win.height,
+        win.right - 0.1 * win.width,
+        win.bottom - 0.31 * win.height,
     )
-    text_locations["union_offset"] = (
-        -0.05 * win.width,
-        -0.16 * win.height,
-        -0.01 * win.width,
-        -0.13 * win.height,
+    text_locations["join_username_2"] = (
+        win.left + 0.73 * win.width,
+        win.top + 0.73 * win.height,
+        win.right - 0.1 * win.width,
+        win.bottom - 0.22 * win.height,
     )
-    text_locations["host_diff_box"] = (
-        win.left + 0.68 * win.width,
-        win.top + 0.17 * win.height,
-        win.right - 0.22 * win.width,
-        win.bottom - 0.79 * win.height,
+    for i in range(3):
+        text_locations[f"union_{i}"] = (
+            text_locations[f"join_username_{i}"][0] + 0.03 * win.width,
+            text_locations[f"join_username_{i}"][1] - 0.03 * win.height,
+            text_locations[f"join_username_{i}"][2] - 0.08 * win.width,
+            text_locations[f"join_username_{i}"][3] - 0.04 * win.height,
+        )
+    text_locations["round_box"] = (
+        win.left + 0.54 * win.width,
+        win.top + 0.5 * win.height,
+        win.right - 0.34 * win.width,
+        win.bottom - 0.45 * win.height,
     )
     text_locations["host_button"] = (
         int(win.left + 0.73 * win.width),
