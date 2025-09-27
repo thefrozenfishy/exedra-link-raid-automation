@@ -15,7 +15,6 @@
   * ``auto_host`` Set this to true if you wish the game to automatically host games, false for the application to only join games.
   * ``host_diff`` Which difficulty you wish the game to host battles in.
   * ``first_host_of_the_day_diff`` If set the first host battle of the day will use this difficulty instead of ``host_diff``. 
-    * ``NOTE: Currently not implemented, I need daily reset!``
   * ``debug_mode`` Enable to save OCR screen grabs to a debug folder and log detailed.
   * ``document_daily_reward`` Take screenshot of the daily reward.
   * ``exe_name`` is the name of the exe as shown in task manager. Change if you renamed the exe or are using an emulator.
@@ -34,4 +33,3 @@
 
 * Add option to use rings for more LR
 * Love everyone mode! (Heart everyone if true, default true <3)
-* Actually implement first host of the day code

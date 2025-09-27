@@ -7,15 +7,13 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 
-# pylint: disable=no-member
-import cv2
 import keyboard
 import numpy as np
 import pyautogui
 import pydirectinput
 import pygetwindow
 import pytesseract
-from PIL import Image, ImageGrab
+from PIL import ImageGrab
 from requests import get
 
 pydirectinput.FAILSAFE = False
@@ -152,29 +150,12 @@ def get_game_window():
 
 def _get_data_in_img(name: str, cords: tuple[int, int, int, int], config: str) -> dict:
     img = ImageGrab.grab(cords)
-    gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
-    gray = cv2.bitwise_not(gray)
-    _, black_and_white = cv2.threshold(
-        gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
-    )
-
-    # Auto scale if image is too small
-    h, w = black_and_white.shape
-    min_size = 50
-    if h < min_size or w < min_size:
-        scale_factor = max(min_size / h, min_size / w)
-        new_w, new_h = int(w * scale_factor), int(h * scale_factor)
-        black_and_white = cv2.resize(
-            black_and_white, (new_w, new_h), interpolation=cv2.INTER_CUBIC
-        )
-
     data = pytesseract.image_to_data(
-        black_and_white, output_type=pytesseract.Output.DICT, config=config
+        img, output_type=pytesseract.Output.DICT, config=config
     )
 
     if DEBUG:
         img.save(f"debug/{name}.png")
-        Image.fromarray(black_and_white).save(f"debug/{name}_gray.png")
         logger.debug("%s > %s", name, data["text"])
     return data
 
@@ -266,6 +247,7 @@ def find_coords_for_eligable_difficulty():
         eligable_nrs_str = "".join(set("".join(map(str, eligable_nrs))))
         if 1 in eligable_nrs:
             eligable_nrs_str += "ilI"
+        logger.debug("eligible NRs %s", eligable_nrs_str)
         lvl = (
             get_text_in_img_with_offset(
                 x,
@@ -325,9 +307,11 @@ def start_play():
 
 
 def set_correct_host_difficulty():
-    # TODO: Make this work
-    # target_diff = FIRST_HOST_DIFF if first_of_the_day else HOST_DIFF
-    target_diff = HOST_DIFF
+    target_diff = (
+        FIRST_HOST_DIFF
+        if "3" in get_nrs_in_img("games_until_daily_bonus")
+        else HOST_DIFF
+    )
     difficulty = ""
     for _ in range(20):
         difficulty = get_nrs_in_img("host_difficulty")
@@ -337,7 +321,7 @@ def set_correct_host_difficulty():
             click(*text_locations["host_increment"])
         elif int(difficulty) > target_diff:
             click(*text_locations["host_decrement"])
-    if not difficulty.isdigit() or difficulty != target_diff:
+    if not difficulty.isdigit() or int(difficulty) != target_diff:
         logging.error("Could not set correct host difficulty")
         raise ValueError("Could not set correct host difficulty")
 
@@ -587,6 +571,12 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         win.top + 0.45 * win.height,
         win.right - 0.4 * win.width,
         win.bottom - 0.45 * win.height,
+    )
+    text_locations["games_until_daily_bonus"] = (
+        win.left + 0.64 * win.width,
+        win.top + 0.74 * win.height,
+        win.right - 0.34 * win.width,
+        win.bottom - 0.21 * win.height,
     )
     text_locations["battle_already_ended_ok"] = (
         int(win.left + 0.5 * win.width),
