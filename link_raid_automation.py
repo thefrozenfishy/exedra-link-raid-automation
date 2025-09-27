@@ -506,6 +506,17 @@ This is not a major issue, just be sure that no application is hiding Exedra fro
 The OCR has to 'see' the content of the game to determine what to do.""",
             exc_info=e,
         )
+    if DEBUG:
+        img = ImageGrab.grab(
+            (
+                win.left,
+                win.top,
+                win.right,
+                win.bottom,
+            )
+        )
+        img.save("debug/full_screencap.png")
+
     text_locations["result_box"] = (
         win.left + 0.23 * win.width,
         win.top + 0.785 * win.height,
