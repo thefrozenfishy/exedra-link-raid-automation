@@ -1,20 +1,22 @@
-import pytesseract
+import colorsys
+import configparser
+import logging
+import os
+import re
+from datetime import datetime
+from enum import Enum
+from pathlib import Path
+
+# pylint: disable=no-member
+import cv2
+import keyboard
+import numpy as np
 import pyautogui
 import pydirectinput
 import pygetwindow
-import keyboard
-import cv2
-import os
-import re
-import numpy as np
-from PIL import ImageGrab, Image
-from enum import Enum
-import configparser
-from datetime import datetime
-import logging
-from pathlib import Path
+import pytesseract
+from PIL import Image, ImageGrab
 from requests import get
-import colorsys
 
 CONFIG_FILE = "link-raid-automation-settings.ini"
 
@@ -176,10 +178,10 @@ def _get_data_in_img(name: str, cords: tuple[int, int, int, int], config: str) -
 
 
 def get_data_in_img_with_offset(
-    x: int, y: int, offset: str, config: str, join_nr: int | None
+    x: int, y: int, offset: str, config: str, print_nr: int | None
 ):
     return _get_data_in_img(
-        f"{offset}_{join_nr:03}" if join_nr else offset,
+        f"{offset}_{print_nr:03}" if print_nr else offset,
         (
             x + text_locations[offset][0],
             y + text_locations[offset][1],
@@ -195,9 +197,9 @@ def get_data_in_img(cords: str, config: str):
 
 
 def get_text_in_img_with_offset(
-    x: int, y: int, offset: str, config="", join_nr=None
+    x: int, y: int, offset: str, config="", print_nr=None
 ) -> str:
-    data = get_data_in_img_with_offset(x, y, offset, config=config, join_nr=join_nr)
+    data = get_data_in_img_with_offset(x, y, offset, config=config, print_nr=print_nr)
     return re.sub(r"[^A-Za-z0-9]", "", "".join(data["text"]).lower().replace(" ", ""))
 
 
@@ -219,9 +221,9 @@ def get_color_diff_range(x: int, y: int, offset: str) -> set[int]:
     colour_img = ImageGrab.grab(
         (
             x + text_locations[offset][0],
-            y + text_locations[offset][1] + 18,
-            x + text_locations[offset][0] + 2,
             y + text_locations[offset][1] + 20,
+            x + text_locations[offset][0] + 2,
+            y + text_locations[offset][1] + 22,
         )
     )
     arr = np.array(colour_img).astype(float) / 255.0
@@ -252,7 +254,6 @@ def get_color_diff_range(x: int, y: int, offset: str) -> set[int]:
 
 
 def find_coords_for_eligable_difficulty():
-    global join_nr
     data = get_data_in_img("join_anchor_box", "")
     for i, text in enumerate(data["text"]):
         if not "player" in text.lower():
@@ -269,7 +270,7 @@ def find_coords_for_eligable_difficulty():
                 y,
                 "join_lvl_offset",
                 config=tessaract_whitelist.format(eligable_nrs_str),
-                join_nr=join_nr,
+                print_nr=join_nr,
             )
             .replace("i", "1")
             .replace("I", "1")
