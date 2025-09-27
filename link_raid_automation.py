@@ -705,9 +705,9 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         int(win.top + 0.19 * win.height),
     )
     text_locations["current_difficulty"] = (
-        win.left + 0.44 * win.width,
+        win.left + 0.45 * win.width,
         win.top + 0.08 * win.height,
-        win.right - 0.52 * win.width,
+        win.right - 0.53 * win.width,
         win.bottom - 0.87 * win.height,
     )
     text_locations["current_difficulty_single_digit"] = (
