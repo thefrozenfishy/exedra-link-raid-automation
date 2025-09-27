@@ -29,6 +29,7 @@ defaults = {
     "first_host_of_the_day_diff": "8",
     "debug_mode": "false",
     "document_daily_reward": "true",
+    "refill_lp": "false",
     "exe_name": "MadokaExedra",
     "join_friends": "false",
     "join_community": "false",
@@ -78,6 +79,7 @@ else:
     FIRST_HOST_DIFF = HOST_DIFF
 
 DO_HOST = ini_config.getboolean("general", "auto_host")
+DO_REFILL = ini_config.getboolean("general", "refill_lp")
 
 DAILY_SCREENSHOT = ini_config.getboolean("general", "document_daily_reward")
 TARGET_WINDOW = ini_config.get("general", "exe_name")
@@ -417,6 +419,7 @@ class CurrentState(Enum):
     HOST_BACK_SCREEN = "HOST_BACK_SCREEN"
     PLAY_JOIN_SCREEN = "PLAY_JOIN_SCREEN"
     PLAY_HOST_SCREEN = "PLAY_HOST_SCREEN"
+    REFILL_LP = "REFILL_LP"
     DAILY_BONUS_COUNTER = "DAILY_BONUS_COUNTER"
     DAILY_BONUS = "DAILY_BONUS"
     BATTLE_ALREADY_ENDED = "BATTLE_ALREADY_ENDED"
@@ -438,8 +441,10 @@ def current_state() -> CurrentState:
     if "etreat" in text.lower() or "ended" in text.lower():
         return CurrentState.JOINED_BATTLES_SCREEN
 
-    text = get_text_in_img("daily_bonus_box")
-    if "dally" in text.lower().replace("i", "l"):
+    text = get_text_in_img("daily_bonus_box").lower().replace("i", "l")
+    if "dally" in text:
+        if "rlng" in text:
+            return CurrentState.REFILL_LP
         return CurrentState.DAILY_BONUS_COUNTER
 
     text = get_text_in_img("host_diff_box")
@@ -704,9 +709,9 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         int(win.top + 0.19 * win.height),
     )
     text_locations["current_difficulty"] = (
-        win.left + 0.45 * win.width,
+        win.left + 0.44 * win.width,
         win.top + 0.08 * win.height,
-        win.right - 0.532 * win.width,
+        win.right - 0.52 * win.width,
         win.bottom - 0.87 * win.height,
     )
     text_locations["current_difficulty_single_digit"] = (
@@ -734,6 +739,15 @@ def main():
                 claim_battles()
             case CurrentState.JOIN_SCREEN:
                 start_join()
+            case CurrentState.REFILL_LP:
+                if DO_REFILL:
+                    click(
+                        int(text_locations["host_back_box"][0]),
+                        int(text_locations["host_back_box"][1]),
+                    )
+                else:
+                    logger.info("Out of LP")
+                    return
             case CurrentState.HOST_SCREEN:
                 set_correct_host_difficulty()
                 click(*text_locations["host_button"])
