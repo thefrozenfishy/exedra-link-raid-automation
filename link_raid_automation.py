@@ -723,21 +723,23 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         for name, coords in text_locations.items():
             if len(coords) == 4:
                 x1, y1, x2, y2 = coords
-                colour = "red"
+                x1 -= win.left
+                x2 -= win.left
+                y1 -= win.top
+                y2 -= win.top
+                x = (x1 + x2) // 2
+                y = (y1 + y2) // 2
+                colour = "magenta"
+                draw.rectangle((x1, y1, x2, y2), outline=colour, width=2)
             else:
                 x, y = coords
-                x1 = x - 5
-                x2 = x + 5
-                y1 = y - 5
-                y2 = y + 5
-                colour = "blue"
-            x1 -= win.left
-            x2 -= win.left
-            y1 -= win.top
-            y2 -= win.top
+                x -= win.left
+                y -= win.top
+                colour = "cyan"
+                r = 5
+                draw.ellipse((x - r, y - r, x + r, y + r), outline=colour, width=10)
 
-            draw.rectangle((x1, y1, x2, y2), outline=colour, width=2)
-            draw.text(((x1 + x2) // 2, (y1 + y2) // 2), name, fill=colour)
+            draw.text((x + 4, y + 4), name, fill=colour)
         img.save("debug/full_screencap.png")
 
 
