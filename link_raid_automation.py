@@ -14,26 +14,35 @@ from datetime import datetime
 import logging
 from pathlib import Path
 from requests import get
+import colorsys
 
 CONFIG_FILE = "link-raid-automation-settings.ini"
 
 ini_config = configparser.ConfigParser()
 defaults = {
-    "host_team": "LR Auto 8",
-    "join_team": "LR Auto 9-12",
-    "join_diff": "9-12",
+    "default_team": "LR Auto",
+    "join_diff": "4-8",
+    "host_diff": "4",
+    "auto_host": "true",
+    "first_host_of_the_day_diff": "8",
     "debug_mode": "false",
     "document_daily_reward": "true",
     "exe_name": "MadokaExedra",
-    "max_scroll_attempts": "40",
-    "friends_only": "false",
-    "community_only": "false",
+    "join_friends": "false",
+    "join_community": "false",
+    "only_join_friends_and_community": "false",
+    "join_friends_and_community_max_difficulty": "",
 }
+join_team_override_defaults = {str(i): "" for i in range(1, 21)}
 
 ini_config.read(CONFIG_FILE)
 ini_config["general"] = {
     **defaults,
     **(ini_config["general"] if "general" in ini_config else {}),
+}
+ini_config["team_overrides"] = {
+    **join_team_override_defaults,
+    **(ini_config["team_overrides"] if "team_overrides" in ini_config else {}),
 }
 
 with open(CONFIG_FILE, "w", encoding="utf-8", newline="\n") as f:
@@ -43,21 +52,48 @@ DEBUG = ini_config.getboolean("general", "debug_mode")
 if DEBUG:
     os.makedirs("debug/logs", exist_ok=True)
 
-HOST_TEAM = ini_config.get("general", "host_team").replace(" ", "").lower()
-JOIN_TEAM = ini_config.get("general", "join_team").replace(" ", "").lower()
+default_team = ini_config.get("general", "default_team").replace(" ", "").lower()
 JOIN_DIFF = ini_config.get("general", "join_diff")
 if "-" in JOIN_DIFF:
     start, end = map(int, JOIN_DIFF.split("-"))
-    LEVELS_TO_FIND = list(map(str, range(start, end + 1)))
+    LEVELS_TO_FIND = list(range(start, end + 1))
 else:
-    LEVELS_TO_FIND = [JOIN_DIFF]
+    LEVELS_TO_FIND = [int(JOIN_DIFF)]
+
+join_max_text: str = ini_config.get(
+    "general", "join_friends_and_community_max_difficulty"
+)
+if join_max_text.isdigit():
+    JOIN_MAX_DIFFICULTY = int(join_max_text)
+else:
+    JOIN_MAX_DIFFICULTY = LEVELS_TO_FIND[-1]
+
+HOST_DIFF = ini_config.getint("general", "host_diff")
+first_host_text: str = ini_config.get("general", "first_host_of_the_day_diff")
+if first_host_text.isdigit():
+    FIRST_HOST_DIFF = int(first_host_text)
+else:
+    FIRST_HOST_DIFF = HOST_DIFF
+
+DO_HOST = ini_config.getboolean("general", "auto_host")
 
 DAILY_SCREENSHOT = ini_config.getboolean("general", "document_daily_reward")
 TARGET_WINDOW = ini_config.get("general", "exe_name")
-MAX_SCROLL_ATTEMPTS = ini_config.getint("general", "max_scroll_attempts")
 
-FRIENDS_ONLY = ini_config.getboolean("general", "friends_only")
-COMMUNITY_ONLY = ini_config.getboolean("general", "community_only")
+JOIN_FRIENDS = ini_config.getboolean("general", "join_friends")
+JOIN_COMMUNITY = ini_config.getboolean("general", "join_community")
+ONLY_JOIN_FRIENDS_AND_COMMUNITY = ini_config.getboolean(
+    "general", "only_join_friends_and_community"
+)
+
+teams = {
+    **{i: default_team for i in range(1, 21)},
+    **{
+        i: ini_config.get("team_overrides", str(i)).replace(" ", "").lower()
+        for i in range(1, 21)
+        if ini_config.get("team_overrides", str(i)).strip()
+    },
+}
 
 keyboard.add_hotkey("ctrl+shift+q", lambda: os._exit(0))
 
@@ -100,7 +136,7 @@ else:
     community = []
 community = {c for c in community if len(c) > 2}
 
-tessaract_number_only = "--psm 6 -c tessedit_char_whitelist=0123456789"
+tessaract_whitelist = "--psm 6 -c tessedit_char_whitelist={}"
 
 
 def get_game_window():
@@ -139,9 +175,11 @@ def _get_data_in_img(name: str, cords: tuple[int, int, int, int], config: str) -
     return data
 
 
-def get_data_in_img_with_offset(x: int, y: int, offset: str, config: str):
+def get_data_in_img_with_offset(
+    x: int, y: int, offset: str, config: str, join_nr: int | None
+):
     return _get_data_in_img(
-        offset,
+        f"{offset}_{join_nr:03}" if join_nr else offset,
         (
             x + text_locations[offset][0],
             y + text_locations[offset][1],
@@ -156,9 +194,20 @@ def get_data_in_img(cords: str, config: str):
     return _get_data_in_img(cords, text_locations[cords], config)
 
 
-def get_text_in_img_with_offset(x: int, y: int, offset: str, config="") -> str:
-    data = get_data_in_img_with_offset(x, y, offset, config=config)
+def get_text_in_img_with_offset(
+    x: int, y: int, offset: str, config="", join_nr=None
+) -> str:
+    data = get_data_in_img_with_offset(x, y, offset, config=config, join_nr=join_nr)
     return re.sub(r"[^A-Za-z0-9]", "", "".join(data["text"]).lower().replace(" ", ""))
+
+
+def get_nrs_in_img(cords: str) -> str:
+    return (
+        get_text_in_img(cords, config=tessaract_whitelist.format("0123456789ilI"))
+        .replace("i", "1")
+        .replace("I", "1")
+        .replace("l", "1")
+    )
 
 
 def get_text_in_img(cords: str, config="") -> str:
@@ -166,61 +215,212 @@ def get_text_in_img(cords: str, config="") -> str:
     return re.sub(r"[^A-Za-z0-9]", "", "".join(data["text"]).lower().replace(" ", ""))
 
 
+def get_color_diff_range(x: int, y: int, offset: str) -> set[int]:
+    colour_img = ImageGrab.grab(
+        (
+            x + text_locations[offset][0],
+            y + text_locations[offset][1] + 18,
+            x + text_locations[offset][0] + 2,
+            y + text_locations[offset][1] + 20,
+        )
+    )
+    arr = np.array(colour_img).astype(float) / 255.0
+    avg_rgb = arr.mean(axis=(0, 1))  # [R, G, B] normalized
+    r, g, b = avg_rgb
+
+    h, s, v = colorsys.rgb_to_hsv(r, g, b)
+    h *= 360
+
+    if DEBUG:
+        colour_img.save(f"debug/colour_img_{h:.0f}_{s:.2f}_{v:.2f}.png")
+
+    if 230 < h < 250 and s < 0.05 and v > 0.75:
+        return set(range(17, 21))  # White
+    if 30 < h < 70 and s < 0.15 and 0.65 > v > 0.35:
+        return set(range(1, 5))  # Gray
+    if (h < 20 or h > 340) and s > 0.3:
+        return set(range(9, 13))  # Red
+    if 80 < h < 160 and s > 0.15:
+        return set(range(5, 9))  # Green
+    if 230 < h < 320 and s > 0.15:
+        return set(range(13, 17))  # Purple
+
+    logger.error("HSV was H=%.0f, S=%.2f, V=%.2f", h, s, v)
+    if DEBUG:
+        raise ValueError()
+    return {0}
+
+
 def find_coords_for_eligable_difficulty():
+    global join_nr
     data = get_data_in_img("join_anchor_box", "")
     for i, text in enumerate(data["text"]):
         if not "player" in text.lower():
             continue
         x = text_locations["join_anchor_box"][0] + data["left"][i]
         y = text_locations["join_anchor_box"][1] + data["top"][i] + data["height"][i]
-        lvl = get_text_in_img_with_offset(
-            x, y, "join_lvl_offset", config=tessaract_number_only
-        )
-        if lvl in LEVELS_TO_FIND:
-            username = get_text_in_img_with_offset(
+        eligable_nrs = get_color_diff_range(x, y, "join_lvl_offset")
+        eligable_nrs_str = "".join(set("".join(map(str, eligable_nrs))))
+        if 1 in eligable_nrs:
+            eligable_nrs_str += "ilI"
+        lvl = (
+            get_text_in_img_with_offset(
                 x,
                 y,
-                "join_username_offset",
+                "join_lvl_offset",
+                config=tessaract_whitelist.format(eligable_nrs_str),
+                join_nr=join_nr,
             )
-            return x, y, username
-    return 0, 0, ""
+            .replace("i", "1")
+            .replace("I", "1")
+            .replace("l", "1")
+        )
+        if not lvl.isdigit():
+            continue
+        lvl = int(lvl)
+        if JOIN_MAX_DIFFICULTY < lvl:
+            continue
+        username = get_text_in_img_with_offset(
+            x,
+            y,
+            "join_username_offset",
+        )
+        union = get_text_in_img_with_offset(
+            x,
+            y,
+            "union_offset",
+        )
+        if JOIN_FRIENDS and username in friends or "on" in union:
+            return x, y
+        if JOIN_COMMUNITY and username in community:
+            return x, y
+        if ONLY_JOIN_FRIENDS_AND_COMMUNITY:
+            continue
+        if lvl in LEVELS_TO_FIND:
+            return x, y
+    return 0, 0
 
 
-def start_join():
-    for attempt in range(MAX_SCROLL_ATTEMPTS):
-        logger.debug("Scroll attempt %2d/%d", attempt + 1, MAX_SCROLL_ATTEMPTS)
-        x, y, username = find_coords_for_eligable_difficulty()
-        if x and y:
-            run = True
-            if FRIENDS_ONLY or COMMUNITY_ONLY:
-                logger.debug("Found player name: %s", username)
-                if not (
-                    (FRIENDS_ONLY and username in friends)
-                    or (COMMUNITY_ONLY and username in community)
-                ):
-                    run = False
+def select_correct_team(team_name):
+    for _ in range(10):
+        if team_name.lower() in get_text_in_img("team_name"):
+            return
+        click(*text_locations["next_team"])
+        pyautogui.sleep(0.2)
+    raise RuntimeError(f'Could not find team named "{team_name}"')
 
-            if run:
-                click(x, y)
-                pyautogui.sleep(0.5)
 
-                click(
-                    text_locations["join_button"][0], text_locations["join_button"][1]
-                )
-                return
+def start_play():
+    difficulty = get_nrs_in_img("current_difficulty")
+    if not difficulty.isdigit():
+        difficulty = get_nrs_in_img("current_difficulty_single_digit")
+    select_correct_team(teams[int(difficulty)])
+    click(*text_locations["play_button"])
+    for _ in range(10):
+        pyautogui.sleep(0.2)
+        click(*text_locations["play_button"])
+
+
+def set_correct_host_difficulty():
+    # TODO: Make this work
+    # target_diff = FIRST_HOST_DIFF if first_of_the_day else HOST_DIFF
+    target_diff = HOST_DIFF
+    difficulty = ""
+    for _ in range(20):
+        difficulty = get_nrs_in_img("host_difficulty")
+        if not difficulty.isdigit():
+            continue
+        if int(difficulty) < target_diff:
+            click(*text_locations["host_increment"])
+        elif int(difficulty) > target_diff:
+            click(*text_locations["host_decrement"])
+    if not difficulty.isdigit() or difficulty != target_diff:
+        logging.error("Could not set correct host difficulty")
+        raise ValueError("Could not set correct host difficulty")
+
+
+join_nr = 1
+
+
+def is_scroll_at_bottom():
+    scroll_bar_img = ImageGrab.grab(
+        (
+            text_locations["scroll_bar"][0],
+            text_locations["scroll_bar"][1],
+            text_locations["scroll_bar"][2],
+            text_locations["scroll_bar"][3],
+        )
+    )
+    scroll_bar_img.save("debug/scroll_bar.png")
+    arr = np.array(scroll_bar_img).astype(float) / 255.0
+    avg_rgb = arr.mean(axis=(0, 1))  # [R, G, B] normalized
+    r, g, b = avg_rgb
+
+    _, _, v = colorsys.rgb_to_hsv(r, g, b)
+    return v > 0.3
+
+
+def claim_battles():
+    scroll_is_at_bottom = False
+    current_battles = get_nrs_in_img("joined_battles")
+    if current_battles.isdigit() and int(current_battles) <= 3:
+        scroll_is_at_bottom = True
+    i = 60
+    while not scroll_is_at_bottom and i > 0:
+        i -= 1
+        click(
+            text_locations["join_anchor_box"][0], text_locations["join_anchor_box"][1]
+        )
+        if "end" in get_text_in_img("join_button_box"):
+            click(*text_locations["join_button"])
+            return
 
         pydirectinput.moveTo(
             text_locations["scroll_location"][0],
             text_locations["scroll_location"][1],
         )
         pyautogui.scroll(-1)
+
+        scroll_is_at_bottom = is_scroll_at_bottom()
+
+    click(*text_locations["join_battles_tab"])
+
+
+def start_join():
+    global join_nr
+
+    current_battles = get_nrs_in_img("joined_battles")
+    if current_battles.isdigit() and int(current_battles) == 10:
+        click(*text_locations["joined_battles_tab"])
+        return
+    scroll_is_at_bottom = False
+    i = 60
+    while not scroll_is_at_bottom and i > 0:
+        i -= 1
+        x, y = find_coords_for_eligable_difficulty()
+        if x and y:
+            click(x, y)
+            pyautogui.sleep(0.5)
+
+            click(*text_locations["join_button"])
+
+            join_nr += 1
+            return
+
+        pydirectinput.moveTo(
+            text_locations["scroll_location"][0],
+            text_locations["scroll_location"][1],
+        )
         pyautogui.scroll(-1)
 
-    click(text_locations["refresh_button"][0], text_locations["refresh_button"][1])
+        scroll_is_at_bottom = is_scroll_at_bottom()
+
+    click(*text_locations["refresh_button"])
 
 
 class CurrentState(Enum):
     JOIN_SCREEN = "JOIN_SCREEN"
+    JOINED_BATTLES_SCREEN = "JOINED_BATTLES_SCREEN"
     HOST_SCREEN = "HOST_SCREEN"
     HOME_SCREEN_CAN_HOST = "HOME_SCREEN_CAN_HOST"
     HOME_SCREEN_CANNOT_HOST = "HOME_SCREEN_CANNOT_HOST"
@@ -242,6 +442,8 @@ def current_state() -> CurrentState:
     text = get_text_in_img("join_button_box")
     if "joln" in text.lower().replace("i", "l"):
         return CurrentState.JOIN_SCREEN
+    if "etreat" in text.lower() or "ended" in text.lower():
+        return CurrentState.JOINED_BATTLES_SCREEN
 
     text = get_text_in_img("daily_bonus_box")
     if "dally" in text.lower().replace("i", "l"):
@@ -262,18 +464,18 @@ def current_state() -> CurrentState:
             return CurrentState.PLAY_JOIN_SCREEN
         return CurrentState.PLAY_HOST_SCREEN
 
-    text = get_text_in_img("like_box")
-    if text.isdigit():
-        text4 = get_text_in_img("in_progress_box")
-        if "vlewresults" in text4.lower().replace("i", "l"):
+    text = get_text_in_img("can_host_box")
+    if "play" in text.lower():
+        if not DO_HOST:
+            return CurrentState.HOME_SCREEN_CANNOT_HOST
+
+        text2 = get_text_in_img("in_progress_box")
+        if "vlewresults" in text2.lower().replace("i", "l"):
             return CurrentState.HOME_SCREEN_CAN_HOST
 
-        text2 = get_text_in_img("can_host_box")
         text3 = get_text_in_img("in_progress_box")
-        if (
-            "progress" not in text3.lower()
-            and "play" in text2.lower()
-            and not all(str(i) not in text2.removesuffix("6") for i in range(1, 7))
+        if "progress" not in text3.lower() and not all(
+            str(i) not in text.removesuffix("6") for i in range(1, 7)
         ):
             return CurrentState.HOME_SCREEN_CAN_HOST
         return CurrentState.HOME_SCREEN_CANNOT_HOST
@@ -313,6 +515,12 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         win.top + 0.785 * win.height,
         win.right - 0.725 * win.width,
         win.bottom - 0.172 * win.height,
+    )
+    text_locations["scroll_bar"] = (
+        win.left + 0.68 * win.width,
+        win.top + 0.85 * win.height,
+        win.right - 0.31 * win.width,
+        win.bottom - 0.12 * win.height,
     )
     text_locations["daily_bonus_box"] = (
         win.left + 0.3 * win.width,
@@ -363,8 +571,22 @@ The OCR has to 'see' the content of the game to determine what to do.""",
     text_locations["join_button_box"] = (
         win.left + 0.8 * win.width,
         win.top + 0.8 * win.height,
-        win.right - 0.12 * win.width,
+        win.right - 0.1 * win.width,
         win.bottom - 0.14 * win.height,
+    )
+    text_locations["joined_battles"] = (
+        win.left + 0.54 * win.width,
+        win.top + 0.05 * win.height,
+        win.right - 0.43 * win.width,
+        win.bottom - 0.85 * win.height,
+    )
+    text_locations["join_battles_tab"] = (
+        int(win.left + 0.2 * win.width),
+        int(win.top + 0.2 * win.height),
+    )
+    text_locations["joined_battles_tab"] = (
+        int(win.left + 0.2 * win.width),
+        int(win.top + 0.3 * win.height),
     )
     text_locations["play_button"] = (
         int(win.right - 0.4 * win.width),
@@ -392,21 +614,21 @@ The OCR has to 'see' the content of the game to determine what to do.""",
     )
     text_locations["like_box"] = (
         win.left + 0.12 * win.width,
-        win.top + 0.14 * win.height,
+        win.top + 0.18 * win.height,
         win.right - 0.83 * win.width,
-        win.bottom - 0.75 * win.height,
+        win.bottom - 0.77 * win.height,
     )
     text_locations["join_anchor_box"] = (
         win.left + 0.43 * win.width,
-        win.top + 0.3 * win.height,
+        win.top + 0.29 * win.height,
         win.right - 0.51 * win.width,
         win.bottom - 0.6 * win.height,
     )
     text_locations["join_lvl_offset"] = (
         0.072 * win.width,
-        -0.125 * win.height,
+        -0.13 * win.height,
         0.095 * win.width,
-        -0.095 * win.height,
+        -0.08 * win.height,
     )
     text_locations["join_username_offset"] = (
         -0.19 * win.width,
@@ -414,13 +636,19 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         -0.01 * win.width,
         0.005 * win.height,
     )
+    text_locations["union_offset"] = (
+        -0.05 * win.width,
+        -0.16 * win.height,
+        -0.01 * win.width,
+        -0.13 * win.height,
+    )
     text_locations["host_diff_box"] = (
         win.left + 0.68 * win.width,
         win.top + 0.17 * win.height,
         win.right - 0.22 * win.width,
         win.bottom - 0.79 * win.height,
     )
-    text_locations["host_box"] = (
+    text_locations["host_button"] = (
         int(win.left + 0.73 * win.width),
         int(win.top + 0.8 * win.height),
     )
@@ -442,23 +670,40 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         win.right - 0.4 * win.width,
         win.bottom - 0.05 * win.height,
     )
+    text_locations["host_difficulty"] = (
+        win.left + 0.73 * win.width,
+        win.top + 0.17 * win.height,
+        win.right - 0.22 * win.width,
+        win.bottom - 0.78 * win.height,
+    )
+    text_locations["host_decrement"] = (
+        int(win.left + 0.64 * win.width),
+        int(win.top + 0.19 * win.height),
+    )
+    text_locations["host_increment"] = (
+        int(win.left + 0.84 * win.width),
+        int(win.top + 0.19 * win.height),
+    )
+    text_locations["current_difficulty"] = (
+        win.left + 0.45 * win.width,
+        win.top + 0.08 * win.height,
+        win.right - 0.532 * win.width,
+        win.bottom - 0.87 * win.height,
+    )
+    text_locations["current_difficulty_single_digit"] = (
+        text_locations["current_difficulty"][0] + 3,
+        text_locations["current_difficulty"][1],
+        text_locations["current_difficulty"][2] - 3,
+        text_locations["current_difficulty"][3],
+    )
     text_locations["resolution"] = (win.width, win.height)
-
-
-def select_correct_team(team_name):
-    for _ in range(10):
-        if team_name.lower() in get_text_in_img("team_name"):
-            return
-        click(text_locations["next_team"][0], text_locations["next_team"][1])
-        pyautogui.sleep(0.2)
-    raise RuntimeError(f'Could not find team named "{team_name}"')
 
 
 def main():
     setup_text_locations()
     logger.info("starting with config: %s", dict(ini_config["general"]))
     logger.info(
-        "Considering %d friends and %s community members", len(friends), len(community)
+        "Considering %d friends and %d community members", len(friends), len(community)
     )
     logger.info("Press Ctrl+Shift+Q to terminate the program.")
     while True:
@@ -466,37 +711,23 @@ def main():
         state = current_state()
         logger.info("Current State: %s", state.name)
         match state:
+            case CurrentState.JOINED_BATTLES_SCREEN:
+                claim_battles()
             case CurrentState.JOIN_SCREEN:
                 start_join()
             case CurrentState.HOST_SCREEN:
-                click(
-                    text_locations["host_box"][0],
-                    text_locations["host_box"][1],
-                )
+                set_correct_host_difficulty()
+                click(*text_locations["host_button"])
             case CurrentState.HOME_SCREEN_CAN_HOST:
-                click(
-                    text_locations["host_screen_button"][0],
-                    text_locations["host_screen_button"][1],
-                )
+                click(*text_locations["host_screen_button"])
             case CurrentState.HOME_SCREEN_CANNOT_HOST:
-                click(
-                    text_locations["join_screen_button"][0],
-                    text_locations["join_screen_button"][1],
-                )
+                click(*text_locations["join_screen_button"])
             case CurrentState.PLAY_JOIN_SCREEN:
-                select_correct_team(JOIN_TEAM)
                 logger.info("Joining a game...")
-                click(
-                    text_locations["play_button"][0], text_locations["play_button"][1]
-                )
-                pyautogui.sleep(2)
+                start_play()
             case CurrentState.PLAY_HOST_SCREEN:
-                select_correct_team(HOST_TEAM)
                 logger.info("Hosting a game...")
-                click(
-                    text_locations["play_button"][0], text_locations["play_button"][1]
-                )
-                pyautogui.sleep(2)
+                start_play()
             case CurrentState.NO_ACTION:
                 pyautogui.sleep(5)
             case CurrentState.RESULTS_SCREEN:
