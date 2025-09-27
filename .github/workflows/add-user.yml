@@ -27,7 +27,5 @@ jobs:
       - name: Commit & push
         run: |
           git add community.txt
-          git -c user.name="Username Adder" \
-            -c user.email="username-adder-worker@users.noreply.github.com" \
-            commit -am "Add ${{ github.event.inputs.username }}" || echo "No changes to commit"
+          git -c user.name="Username Adder" -c user.email="username-adder-worker@users.noreply.github.com" commit -am "Add ${{ github.event.inputs.username }}" || echo "No changes to commit"
           git push
