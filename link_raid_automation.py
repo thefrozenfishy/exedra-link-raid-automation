@@ -431,6 +431,7 @@ class CurrentState(Enum):
     PLAY_HOST_SCREEN = "PLAY_HOST_SCREEN"
     DAILY_BONUS_COUNTER = "DAILY_BONUS_COUNTER"
     DAILY_BONUS = "DAILY_BONUS"
+    BATTLE_ALREADY_ENDED = "BATTLE_ALREADY_ENDED"
     CONTINUE = "CONTINUE"
 
 
@@ -438,6 +439,10 @@ def current_state() -> CurrentState:
     text = get_text_in_img("result_box")
     if "lvl" in text.lower().replace("i", "l"):
         return CurrentState.RESULTS_SCREEN
+
+    text = get_text_in_img("battle_already_ended")
+    if "battlehas" in text.lower():
+        return CurrentState.BATTLE_ALREADY_ENDED
 
     text = get_text_in_img("join_button_box")
     if "joln" in text.lower().replace("i", "l"):
@@ -573,6 +578,16 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         win.top + 0.8 * win.height,
         win.right - 0.1 * win.width,
         win.bottom - 0.14 * win.height,
+    )
+    text_locations["battle_already_ended"] = (
+        win.left + 0.4 * win.width,
+        win.top + 0.45 * win.height,
+        win.right - 0.4 * win.width,
+        win.bottom - 0.45 * win.height,
+    )
+    text_locations["battle_already_ended_ok"] = (
+        int(win.left + 0.5 * win.width),
+        int(win.top + 0.75 * win.height),
     )
     text_locations["joined_battles"] = (
         win.left + 0.54 * win.width,
@@ -720,6 +735,8 @@ def main():
                 click(*text_locations["host_button"])
             case CurrentState.HOME_SCREEN_CAN_HOST:
                 click(*text_locations["host_screen_button"])
+            case CurrentState.BATTLE_ALREADY_ENDED:
+                click(*text_locations["battle_already_ended_ok"])
             case CurrentState.HOME_SCREEN_CANNOT_HOST:
                 click(*text_locations["join_screen_button"])
             case CurrentState.PLAY_JOIN_SCREEN:

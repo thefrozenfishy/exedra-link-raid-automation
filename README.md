@@ -29,4 +29,4 @@
 
 * Add option to use rings for more LR
 * Love everyone mode! (Heart everyone if true, default true <3)
-* Handle "match has already been completed" error
+* Actually implement first host of the day code
