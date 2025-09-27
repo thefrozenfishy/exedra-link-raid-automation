@@ -14,7 +14,7 @@ import pyautogui
 import pydirectinput
 import pygetwindow
 import pytesseract
-from PIL import ImageGrab
+from PIL import ImageDraw, ImageGrab
 from requests import get
 
 pydirectinput.FAILSAFE = False
@@ -506,108 +506,98 @@ This is not a major issue, just be sure that no application is hiding Exedra fro
 The OCR has to 'see' the content of the game to determine what to do.""",
             exc_info=e,
         )
-    if DEBUG:
-        img = ImageGrab.grab(
-            (
-                win.left,
-                win.top,
-                win.right,
-                win.bottom,
-            )
-        )
-        img.save("debug/full_screencap.png")
 
     text_locations["result_box"] = (
-        win.left + 0.23 * win.width,
-        win.top + 0.785 * win.height,
-        win.right - 0.725 * win.width,
-        win.bottom - 0.172 * win.height,
+        int(win.left + 0.23 * win.width),
+        int(win.top + 0.785 * win.height),
+        int(win.right - 0.725 * win.width),
+        int(win.bottom - 0.172 * win.height),
     )
     text_locations["scroll_bar"] = (
-        win.left + 0.68 * win.width,
-        win.top + 0.85 * win.height,
-        win.right - 0.31 * win.width,
-        win.bottom - 0.12 * win.height,
+        int(win.left + 0.68 * win.width),
+        int(win.top + 0.85 * win.height),
+        int(win.right - 0.31 * win.width),
+        int(win.bottom - 0.12 * win.height),
     )
     text_locations["daily_bonus_box"] = (
-        win.left + 0.3 * win.width,
-        win.top + 0.1 * win.height,
-        win.right - 0.3 * win.width,
-        win.bottom - 0.7 * win.height,
+        int(win.left + 0.3 * win.width),
+        int(win.top + 0.1 * win.height),
+        int(win.right - 0.3 * win.width),
+        int(win.bottom - 0.7 * win.height),
     )
     text_locations["daily_reward_box"] = (
-        win.left + 0.4 * win.width,
-        win.top + 0.28 * win.height,
-        win.right - 0.4 * win.width,
-        win.bottom - 0.62 * win.height,
+        int(win.left + 0.4 * win.width),
+        int(win.top + 0.28 * win.height),
+        int(win.right - 0.4 * win.width),
+        int(win.bottom - 0.62 * win.height),
     )
     text_locations["daily_reward_pic_box"] = (
-        win.left + 0.35 * win.width,
-        win.top + 0.35 * win.height,
-        win.right - 0.35 * win.width,
-        win.bottom - 0.4 * win.height,
+        int(win.left + 0.35 * win.width),
+        int(win.top + 0.35 * win.height),
+        int(win.right - 0.35 * win.width),
+        int(win.bottom - 0.4 * win.height),
     )
     text_locations["join_back_box"] = (
-        win.left + 0.45 * win.width,
-        win.top + 0.81 * win.height,
-        win.right - 0.45 * win.width,
-        win.bottom - 0.12 * win.height,
+        int(win.left + 0.45 * win.width),
+        int(win.top + 0.81 * win.height),
+        int(win.right - 0.45 * win.width),
+        int(win.bottom - 0.12 * win.height),
     )
     text_locations["host_back_box"] = (
-        win.left + 0.55 * win.width,
-        win.top + 0.81 * win.height,
-        win.right - 0.35 * win.width,
-        win.bottom - 0.12 * win.height,
+        int(win.left + 0.55 * win.width),
+        int(win.top + 0.81 * win.height),
+        int(win.right - 0.35 * win.width),
+        int(win.bottom - 0.12 * win.height),
     )
     text_locations["team_name"] = (
-        win.left + 0.4 * win.width,
-        win.top + 0.44 * win.height,
-        win.right - 0.4 * win.width,
-        win.bottom - 0.5 * win.height,
+        int(win.left + 0.4 * win.width),
+        int(win.top + 0.44 * win.height),
+        int(win.right - 0.4 * win.width),
+        int(win.bottom - 0.5 * win.height),
     )
     text_locations["party_box"] = (
-        win.left + 0.29 * win.width,
-        win.top + 0.44 * win.height,
-        win.right - 0.65 * win.width,
-        win.bottom - 0.5 * win.height,
+        int(win.left + 0.29 * win.width),
+        int(win.top + 0.44 * win.height),
+        int(win.right - 0.65 * win.width),
+        int(win.bottom - 0.5 * win.height),
     )
     text_locations["play_box"] = (
-        win.left + 0.5 * win.width,
-        win.top + 0.79 * win.height,
-        win.right - 0.4 * win.width,
-        win.bottom - 0.15 * win.height,
+        int(win.left + 0.5 * win.width),
+        int(win.top + 0.79 * win.height),
+        int(win.right - 0.4 * win.width),
+        int(win.bottom - 0.15 * win.height),
     )
     text_locations["join_button"] = (
         int(win.right - 0.15 * win.width),
         int(win.bottom - 0.18 * win.height),
     )
     text_locations["join_button_box"] = (
-        win.left + 0.8 * win.width,
-        win.top + 0.8 * win.height,
-        win.right - 0.1 * win.width,
-        win.bottom - 0.14 * win.height,
+        int(win.left + 0.8 * win.width),
+        int(win.top + 0.8 * win.height),
+        int(win.right - 0.1 * win.width),
+        int(win.bottom - 0.14 * win.height),
     )
     text_locations["battle_already_ended"] = (
-        win.left + 0.4 * win.width,
-        win.top + 0.45 * win.height,
-        win.right - 0.4 * win.width,
-        win.bottom - 0.45 * win.height,
+        int(win.left + 0.4 * win.width),
+        int(win.top + 0.45 * win.height),
+        int(win.right - 0.4 * win.width),
+        int(win.bottom - 0.45 * win.height),
     )
     text_locations["games_until_daily_bonus"] = (
-        win.left + 0.64 * win.width,
-        win.top + 0.74 * win.height,
-        win.right - 0.34 * win.width,
-        win.bottom - 0.21 * win.height,
+        int(win.left + 0.64 * win.width),
+        int(win.top + 0.74 * win.height),
+        int(win.right - 0.34 * win.width),
+        int(win.bottom - 0.21 * win.height),
     )
     text_locations["battle_already_ended_ok"] = (
         int(win.left + 0.5 * win.width),
         int(win.top + 0.75 * win.height),
     )
     text_locations["joined_battles"] = (
-        win.left + 0.54 * win.width,
-        win.top + 0.05 * win.height,
-        win.right - 0.43 * win.width,
-        win.bottom - 0.85 * win.height,
+        int(win.left + 0.54 * win.width),
+        int(win.top + 0.05 * win.height),
+        int(win.right - 0.43 * win.width),
+        int(win.bottom - 0.85 * win.height),
     )
     text_locations["join_battles_tab"] = (
         int(win.left + 0.2 * win.width),
@@ -641,76 +631,70 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         win.left + 2 * win.width // 3,
         win.top + win.height // 4,
     )
-    text_locations["like_box"] = (
-        win.left + 0.12 * win.width,
-        win.top + 0.18 * win.height,
-        win.right - 0.83 * win.width,
-        win.bottom - 0.77 * win.height,
-    )
     text_locations["join_lvl"] = (
-        win.left + 0.73 * win.width,
-        win.top + 0.22 * win.height,
-        win.right - 0.24 * win.width,
-        win.bottom - 0.74 * win.height,
+        int(win.left + 0.73 * win.width),
+        int(win.top + 0.22 * win.height),
+        int(win.right - 0.24 * win.width),
+        int(win.bottom - 0.74 * win.height),
     )
     text_locations["join_username_0"] = (
-        win.left + 0.73 * win.width,
-        win.top + 0.55 * win.height,
-        win.right - 0.1 * win.width,
-        win.bottom - 0.4 * win.height,
+        int(win.left + 0.73 * win.width),
+        int(win.top + 0.55 * win.height),
+        int(win.right - 0.1 * win.width),
+        int(win.bottom - 0.4 * win.height),
     )
     text_locations["join_username_1"] = (
-        win.left + 0.73 * win.width,
-        win.top + 0.64 * win.height,
-        win.right - 0.1 * win.width,
-        win.bottom - 0.31 * win.height,
+        int(win.left + 0.73 * win.width),
+        int(win.top + 0.64 * win.height),
+        int(win.right - 0.1 * win.width),
+        int(win.bottom - 0.31 * win.height),
     )
     text_locations["join_username_2"] = (
-        win.left + 0.73 * win.width,
-        win.top + 0.73 * win.height,
-        win.right - 0.1 * win.width,
-        win.bottom - 0.22 * win.height,
+        int(win.left + 0.73 * win.width),
+        int(win.top + 0.73 * win.height),
+        int(win.right - 0.1 * win.width),
+        int(win.bottom - 0.22 * win.height),
     )
     for i in range(3):
         text_locations[f"union_{i}"] = (
-            text_locations[f"join_username_{i}"][0] + 0.03 * win.width,
-            text_locations[f"join_username_{i}"][1] - 0.03 * win.height,
-            text_locations[f"join_username_{i}"][2] - 0.08 * win.width,
-            text_locations[f"join_username_{i}"][3] - 0.04 * win.height,
+            int(text_locations[f"join_username_{i}"][0] + 0.03 * win.width),
+            int(text_locations[f"join_username_{i}"][1] - 0.03 * win.height),
+            int(text_locations[f"join_username_{i}"][2] - 0.08 * win.width),
+            int(text_locations[f"join_username_{i}"][3] - 0.04 * win.height),
         )
     text_locations["round_box"] = (
-        win.left + 0.54 * win.width,
-        win.top + 0.5 * win.height,
-        win.right - 0.34 * win.width,
-        win.bottom - 0.45 * win.height,
+        int(win.left + 0.54 * win.width),
+        int(win.top + 0.5 * win.height),
+        int(win.right - 0.34 * win.width),
+        int(win.bottom - 0.45 * win.height),
     )
     text_locations["host_button"] = (
         int(win.left + 0.73 * win.width),
         int(win.top + 0.8 * win.height),
     )
     text_locations["can_host_box"] = (
-        win.left + 0.32 * win.width,
-        win.top + 0.82 * win.height,
-        win.right - 0.57 * win.width,
-        win.bottom - 0.13 * win.height,
+        int(win.left + 0.32 * win.width),
+        int(win.top + 0.82 * win.height),
+        int(win.right - 0.57 * win.width),
+        int(win.bottom - 0.13 * win.height),
     )
     text_locations["in_progress_box"] = (
-        win.left + 0.3 * win.width,
-        win.top + 0.75 * win.height,
-        win.right - 0.55 * win.width,
-        win.bottom - 0.15 * win.height,
+        int(win.left + 0.3 * win.width),
+        int(win.top + 0.75 * win.height),
+        int(win.right - 0.55 * win.width),
+        int(win.bottom - 0.15 * win.height),
     )
     text_locations["tap_to_continue"] = (
-        win.left + 0.4 * win.width,
-        win.top + 0.85 * win.height,
-        win.right - 0.4 * win.width,
-        win.bottom - 0.05 * win.height,
+        int(win.left + 0.4 * win.width),
+        int(win.top + 0.85 * win.height),
+        int(win.right - 0.4 * win.width),
+        int(win.bottom - 0.05 * win.height),
     )
     text_locations["host_difficulty"] = (
-        win.left + 0.73 * win.width,
-        win.top + 0.17 * win.height,
-        win.right - 0.22 * win.width,
-        win.bottom - 0.78 * win.height,
+        int(win.left + 0.73 * win.width),
+        int(win.top + 0.17 * win.height),
+        int(win.right - 0.22 * win.width),
+        int(win.bottom - 0.78 * win.height),
     )
     text_locations["host_decrement"] = (
         int(win.left + 0.64 * win.width),
@@ -721,10 +705,10 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         int(win.top + 0.19 * win.height),
     )
     text_locations["current_difficulty"] = (
-        win.left + 0.45 * win.width,
-        win.top + 0.08 * win.height,
-        win.right - 0.53 * win.width,
-        win.bottom - 0.87 * win.height,
+        int(win.left + 0.45 * win.width),
+        int(win.top + 0.08 * win.height),
+        int(win.right - 0.53 * win.width),
+        int(win.bottom - 0.87 * win.height),
     )
     text_locations["current_difficulty_single_digit"] = (
         text_locations["current_difficulty"][0] + 3,
@@ -732,7 +716,29 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         text_locations["current_difficulty"][2] - 3,
         text_locations["current_difficulty"][3],
     )
-    text_locations["resolution"] = (win.width, win.height)
+
+    if DEBUG:
+        img = ImageGrab.grab((win.left, win.top, win.right, win.bottom))
+        draw = ImageDraw.Draw(img)
+        for name, coords in text_locations.items():
+            if len(coords) == 4:
+                x1, y1, x2, y2 = coords
+                colour = "red"
+            else:
+                x, y = coords
+                x1 = x - 5
+                x2 = x + 5
+                y1 = y - 5
+                y2 = y + 5
+                colour = "blue"
+            x1 -= win.left
+            x2 -= win.left
+            y1 -= win.top
+            y2 -= win.top
+
+            draw.rectangle((x1, y1, x2, y2), outline=colour, width=2)
+            draw.text(((x1 + x2) // 2, (y1 + y2) // 2), name, fill=colour)
+        img.save("debug/full_screencap.png")
 
 
 def main():
