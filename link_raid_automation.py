@@ -395,6 +395,7 @@ def start_join():
         pydirectinput.click(*text_locations["scroll_location"])
         pyautogui.scroll(-1)
         pyautogui.scroll(-1)
+        pyautogui.scroll(-1)
 
         scroll_is_at_bottom = is_scroll_at_bottom()
 
@@ -491,8 +492,9 @@ text_locations = {}
 
 
 def click(x: float | int, y: float | int):
+    curr = pyautogui.position()
     pydirectinput.click(int(x), int(y))
-    pyautogui.moveTo(10, 10)
+    pyautogui.moveTo(curr)
 
 
 def setup_text_locations():

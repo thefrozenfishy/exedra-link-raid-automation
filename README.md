@@ -34,3 +34,6 @@
 ## TODOs
 
 * Love everyone mode! (Heart everyone if true, default true <3)
+* Host override
+* Ca matching on name (difflib)
+* First host of the day override
