@@ -370,6 +370,7 @@ def claim_battles():
         pydirectinput.click(*text_locations["scroll_location"])
         pyautogui.scroll(-1)
         pyautogui.scroll(-1)
+        pyautogui.scroll(-1)
 
         scroll_is_at_bottom = is_scroll_at_bottom()
 
