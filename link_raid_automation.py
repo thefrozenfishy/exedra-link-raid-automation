@@ -151,6 +151,16 @@ def get_game_window():
     return wins[0]
 
 
+def normalize_1(s: str) -> str:
+    return (
+        s.replace("i", "1")
+        .replace("I", "1")
+        .replace("l", "1")
+        .replace("]", "1")
+        .replace("[", "1")
+    )
+
+
 def get_text_in_img(cords: str, config="", print_nr=None) -> str:
     img = ImageGrab.grab(text_locations[cords])
     data = pytesseract.image_to_data(
@@ -165,11 +175,8 @@ def get_text_in_img(cords: str, config="", print_nr=None) -> str:
 
 
 def get_nrs_in_img(cords: str) -> str:
-    return (
+    return normalize_1(
         get_text_in_img(cords, config=tessaract_whitelist.format("0123456789ilI"))
-        .replace("i", "1")
-        .replace("I", "1")
-        .replace("l", "1")
     )
 
 
@@ -218,15 +225,12 @@ def find_coords_for_eligable_difficulty() -> bool:
     if 1 in eligable_nrs:
         eligable_nrs_str += "ilI"
     logger.debug("eligible NRs %s", eligable_nrs_str)
-    lvl = (
+    lvl = normalize_1(
         get_text_in_img(
             "join_lvl",
             config=tessaract_whitelist.format(eligable_nrs_str),
             print_nr=join_nr,
         )
-        .replace("i", "1")
-        .replace("I", "1")
-        .replace("l", "1")
     )
     if not lvl.isdigit():
         return False
@@ -288,17 +292,14 @@ def set_correct_host_difficulty():
         eligable_nrs = get_color_diff_range("host_difficulty")
         eligable_nrs_str = "".join(set("".join(map(str, eligable_nrs))))
         if 1 in eligable_nrs:
-            eligable_nrs_str += "ilI"
+            eligable_nrs_str += "ilI]["
         logger.debug("eligible host NRs %s", eligable_nrs_str)
-        lvl = (
+        lvl = normalize_1(
             get_text_in_img(
                 "host_difficulty",
                 config=tessaract_whitelist.format(eligable_nrs_str),
                 print_nr=join_nr,
             )
-            .replace("i", "1")
-            .replace("I", "1")
-            .replace("l", "1")
         )
         if not lvl.isdigit():
             click(
@@ -423,22 +424,22 @@ class CurrentState(Enum):
 
 def current_state() -> CurrentState:
     text = get_text_in_img("result_box")
-    if "lvl" in text.replace("i", "l"):
+    if "1v1" in normalize_1(text):
         return CurrentState.RESULTS_SCREEN
 
-    text = get_text_in_img("battle_already_ended")
-    if "battlehas" in text:
+    text = normalize_1(get_text_in_img("battle_already_ended"))
+    if "batt1ehas" in text:
         return CurrentState.BATTLE_ALREADY_ENDED
 
-    text = get_text_in_img("join_button_box")
-    if "joln" in text.replace("i", "l"):
+    text = normalize_1(get_text_in_img("join_button_box"))
+    if "jo1n" in text:
         return CurrentState.JOIN_SCREEN
     if "etreat" in text or "ended" in text:
         return CurrentState.JOINED_BATTLES_SCREEN
 
-    text = get_text_in_img("daily_bonus_box").replace("i", "l")
-    if "dally" in text:
-        if "rlng" in text:
+    text = normalize_1(get_text_in_img("daily_bonus_box"))
+    if "da11y" in text:
+        if "r1ng" in text:
             return CurrentState.REFILL_LP
         return CurrentState.DAILY_BONUS_COUNTER
 
@@ -454,26 +455,24 @@ def current_state() -> CurrentState:
     if "back" in text:
         return CurrentState.HOST_BACK_SCREEN
 
-    text = get_text_in_img("party_box")
+    text = normalize_1(get_text_in_img("party_box"))
     if "party" in text:
         text2 = get_text_in_img("play_box")
-        if "play" in text2.lower():
+        if "p1ay" in text2.lower():
             return CurrentState.PLAY_JOIN_SCREEN
         return CurrentState.PLAY_HOST_SCREEN
 
-    text = get_text_in_img("in_progress_box").lower().replace("i", "l")
-    if "vlewresults" in text:
+    text = normalize_1(get_text_in_img("in_progress_box"))
+    if "v1ewresu1ts" in text:
         return CurrentState.HOME_SCREEN_CAN_HOST
 
-    text = get_text_in_img("can_host_box")
-    if "play" in text:
+    text = normalize_1(get_text_in_img("can_host_box"))
+    if "p1ay" in text:
         if not DO_HOST:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
 
-        text3 = get_text_in_img("in_progress_box")
-        if "progress" not in text3.lower() and not all(
-            str(i) not in text.removesuffix("6") for i in range(1, 7)
-        ):
+        progress_text = get_text_in_img("in_progress_box")
+        if "progress" not in progress_text.lower() and "06" not in text:
             return CurrentState.HOME_SCREEN_CAN_HOST
         return CurrentState.HOME_SCREEN_CANNOT_HOST
 
@@ -481,8 +480,8 @@ def current_state() -> CurrentState:
     if "ob" in text:
         return CurrentState.DAILY_BONUS
 
-    text = get_text_in_img("tap_to_continue")
-    if "contlnue" in text.replace("i", "l"):
+    text = normalize_1(get_text_in_img("tap_to_continue"))
+    if "cont1nue" in text:
         return CurrentState.CONTINUE
 
     return CurrentState.NO_ACTION
