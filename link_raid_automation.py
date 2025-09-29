@@ -163,10 +163,13 @@ def normalize_1(s: str) -> str:
 
 def get_text_in_img(cords: str, config="", print_nr=None) -> str:
     img = ImageGrab.grab(text_locations[cords])
-    data = pytesseract.image_to_data(
-        img, output_type=pytesseract.Output.DICT, config=config
-    )
-
+    try:
+        data = pytesseract.image_to_data(
+            img, output_type=pytesseract.Output.DICT, config=config
+        )
+    except pytesseract.TesseractNotFoundError as e:
+        input("Tesseract is not in path! Download it and restart your pc and try again...")
+        raise e
     if DEBUG:
         name = f"{cords}_{print_nr:03}" if print_nr else cords
         img.save(f"debug/{name}.png")
