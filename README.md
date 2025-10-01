@@ -33,9 +33,10 @@ The tool is able to swap between crys farming and link raids once running out of
 
 * ``swap_to_crys_farm_after_link_raid`` If you want the tool to swap to link raid once crys farming is done.
 * ``swap_to_link_raid_after_crys_farm`` If you want the tool to swap to crys farming once link raid is done.
-* ``team`` What team should be used in crys farm
-* ``element`` What element stage should be run in crys farm
-* ``refill_qp`` Use 8 cubes to refill QP daily
+* ``team`` What team should be used in crys farm.
+* ``element`` What element stage should be run in crys farm.
+* ``refill_qp`` Use 8 cubes to refill QP daily.
+* ``document_ex_drops`` Take screenshot of all dropped ex Crystalises.
 
 ## Bug notes
 

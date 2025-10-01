@@ -42,6 +42,7 @@ join_team_override_defaults = {str(i): "" for i in range(1, 21)}
 crys_defaults = {
     "swap_to_crys_farm_after_link_raid": "true",
     "swap_to_link_raid_after_crys_farm": "true",
+    "document_ex_drops": "true",
     "team": "Crys Farm",
     "element": "aqua",
     "refill_qp": "false",
@@ -105,6 +106,7 @@ valid_elements = ("flame", "aqua", "forest", "light", "dark", "void")
 if CRYS_ELEMENT not in valid_elements:
     input(f"ERROR: element must be one of {', '.join(valid_elements)}")
 DO_REFILL_QP = ini_config.getboolean("crystalis", "refill_qp")
+CRYS_EX_SCREENSHOT = ini_config.getboolean("crystalis", "document_ex_drops")
 
 DAILY_SCREENSHOT = ini_config.getboolean("general", "document_daily_reward")
 TARGET_WINDOW = ini_config.get("general", "exe_name")
@@ -192,7 +194,9 @@ def get_text_in_img(cords: str, config="", print_nr=None) -> str:
             img, output_type=pytesseract.Output.DICT, config=config
         )
     except pytesseract.TesseractNotFoundError as e:
-        input("Tesseract is not in path! Download it and restart your pc and try again...")
+        input(
+            "Tesseract is not in path! Download it and restart your pc and try again..."
+        )
         raise e
     if DEBUG:
         name = f"{cords}_{print_nr:03}" if print_nr else cords
@@ -456,6 +460,7 @@ class CurrentState(Enum):
     DAILY_BONUS_COUNTER = "DAILY_BONUS_COUNTER"
     DAILY_BONUS = "DAILY_BONUS"
     BATTLE_ALREADY_ENDED = "BATTLE_ALREADY_ENDED"
+    EX_SCREEN = "EX_SCREEN"
     CONTINUE = "CONTINUE"
 
 
@@ -523,6 +528,9 @@ def current_state() -> CurrentState:
     if "cont1nue" in normalize_1(get_text_in_img("tap_to_continue")):
         return CurrentState.CONTINUE
 
+    if "cont" in normalize_1(get_text_in_img("ex_continue_box")):
+        return CurrentState.EX_SCREEN
+
     return CurrentState.NO_ACTION
 
 
@@ -558,6 +566,12 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         int(win.top + 0.85 * win.height),
         int(win.right - 0.31 * win.width),
         int(win.bottom - 0.12 * win.height),
+    )
+    text_locations["ex_continue_box"] = (
+        int(win.left + 0.75 * win.width),
+        int(win.top + 0.85 * win.height),
+        int(win.right - 0.15 * win.width),
+        int(win.bottom - 0.1 * win.height),
     )
     text_locations["daily_bonus_box"] = (
         int(win.left + 0.3 * win.width),
@@ -840,9 +854,10 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         int(win.left + 0.85 * win.width),
         int(win.top + 0.5 * win.height),
     )
+    text_locations["screen"] = (win.left, win.top, win.right, win.bottom)
 
     if DEBUG:
-        img = ImageGrab.grab((win.left, win.top, win.right, win.bottom))
+        img = ImageGrab.grab(text_locations["screen"])
         draw = ImageDraw.Draw(img)
         for name, coords in text_locations.items():
             if len(coords) == 4:
@@ -997,6 +1012,18 @@ def main():
                     int(text_locations["join_back_box"][1]),
                 )
             case CurrentState.DAILY_BONUS_COUNTER:
+                click(
+                    int(text_locations["join_back_box"][0]),
+                    int(text_locations["join_back_box"][1]),
+                )
+            case CurrentState.EX_SCREEN:
+                if CRYS_EX_SCREENSHOT:
+                    img = ImageGrab.grab(text_locations["screen"])
+                    os.makedirs("ex_drops", exist_ok=True)
+                    img.save(
+                        f"ex_drops/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')}.png"
+                    )
+
                 click(
                     int(text_locations["join_back_box"][0]),
                     int(text_locations["join_back_box"][1]),
