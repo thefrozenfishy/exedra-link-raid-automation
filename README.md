@@ -16,7 +16,7 @@
   * ``host_diff`` Which difficulty you wish the game to host battles in.
   * ``first_host_of_the_day_diff`` If set the first host battle of the day will use this difficulty instead of ``host_diff``.
   * ``debug_mode`` Enable to save OCR screen grabs to a debug folder and log detailed.
-  * ``refill_lp`` Use 3 rings to refill 60 LP daily.
+  * ``refill_lp`` Use 3 rings to refill LP daily.
   * ``document_daily_reward`` Take screenshot of the daily reward.
   * ``exe_name`` is the name of the exe as shown in task manager. Change if you renamed the exe or are using an emulator.
   * ``join_friends`` Enable this to always join games where any of the top 3 players in a raid are in your local friends.txt file or your union, given that the difficulty is below ``join_friends_and_community_max_difficulty``.
@@ -26,6 +26,16 @@
   * ``only_join_friends_and_community`` Ignore all games that are not friends or community.
   * ``join_friends_and_community_max_difficulty`` The max difficulty to join friends and community stages in. Defaults to the highest difficulty given in ``join_diff``.
   * ``team_overrides`` If you for some difficulties wish to run other teams than ``default_team`` you can override it here.
+
+### Crystalis farming
+
+The tool is able to swap between crys farming and link raids once running out of QP or LP, allowing for the tool to completely farm both modes to depletion.
+
+* ``swap_to_crys_farm_after_link_raid`` If you want the tool to swap to link raid once crys farming is done.
+* ``swap_to_link_raid_after_crys_farm`` If you want the tool to swap to crys farming once link raid is done.
+* ``team`` What team should be used in crys farm
+* ``element`` What element stage should be run in crys farm
+* ``refill_qp`` Use 8 cubes to refill QP daily
 
 ## Bug notes
 

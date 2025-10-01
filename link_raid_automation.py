@@ -39,6 +39,14 @@ defaults = {
 }
 join_team_override_defaults = {str(i): "" for i in range(1, 21)}
 
+crys_defaults = {
+    "swap_to_crys_farm_after_link_raid": "true",
+    "swap_to_link_raid_after_crys_farm": "true",
+    "team": "Crys Farm",
+    "element": "aqua",
+    "refill_qp": "false",
+}
+
 ini_config.read(CONFIG_FILE)
 ini_config["general"] = {
     **defaults,
@@ -47,6 +55,10 @@ ini_config["general"] = {
 ini_config["team_overrides"] = {
     **join_team_override_defaults,
     **(ini_config["team_overrides"] if "team_overrides" in ini_config else {}),
+}
+ini_config["crystalis"] = {
+    **crys_defaults,
+    **(ini_config["crystalis"] if "crystalis" in ini_config else {}),
 }
 
 with open(CONFIG_FILE, "w", encoding="utf-8", newline="\n") as f:
@@ -80,7 +92,19 @@ else:
     FIRST_HOST_DIFF = HOST_DIFF
 
 DO_HOST = ini_config.getboolean("general", "auto_host")
-DO_REFILL = ini_config.getboolean("general", "refill_lp")
+DO_REFILL_LP = ini_config.getboolean("general", "refill_lp")
+LR_TO_CRYS_SWAP = ini_config.getboolean(
+    "crystalis", "swap_to_crys_farm_after_link_raid"
+)
+CRYS_TO_LR_SWAP = ini_config.getboolean(
+    "crystalis", "swap_to_link_raid_after_crys_farm"
+)
+CRYS_TEAM = ini_config.get("crystalis", "team").replace(" ", "").lower()
+CRYS_ELEMENT = ini_config.get("crystalis", "element").lower().strip()
+valid_elements = ("flame", "aqua", "forest", "light", "dark", "void")
+if CRYS_ELEMENT not in valid_elements:
+    input(f"ERROR: element must be one of {', '.join(valid_elements)}")
+DO_REFILL_QP = ini_config.getboolean("crystalis", "refill_qp")
 
 DAILY_SCREENSHOT = ini_config.getboolean("general", "document_daily_reward")
 TARGET_WINDOW = ini_config.get("general", "exe_name")
@@ -244,6 +268,8 @@ def find_coords_for_eligable_difficulty() -> bool:
         return False
     for i in range(3):
         username = get_text_in_img(f"join_username_{i}")
+        if not username.strip():
+            break
         union = get_text_in_img(f"union_{i}")
         logger.debug(
             "User%d was found to be '%s' with '%s' union flag", i, username, union
@@ -259,11 +285,13 @@ def find_coords_for_eligable_difficulty() -> bool:
     return False
 
 
-def select_correct_team(team_name):
-    for _ in range(10):
-        if team_name.lower() in get_text_in_img("team_name"):
+def select_correct_team(team_name, is_crys):
+    for _ in range(15):
+        if team_name.lower() in get_text_in_img(
+            "crys_team_name" if is_crys else "team_name"
+        ):
             return
-        click(*text_locations["next_team"])
+        click(*text_locations["crys_next_team" if is_crys else "next_team"])
         pyautogui.sleep(0.2)
     raise RuntimeError(f'Could not find team named "{team_name}"')
 
@@ -273,7 +301,8 @@ def start_play():
     if not difficulty.isdigit():
         difficulty = get_nrs_in_img("current_difficulty_single_digit")
     select_correct_team(
-        teams.get(int(difficulty) if difficulty.isdigit() else 0, default_team)
+        teams.get(int(difficulty) if difficulty.isdigit() else 0, default_team),
+        is_crys=False,
     )
     click(*text_locations["play_button"])
     for _ in range(10):
@@ -391,6 +420,7 @@ def start_join():
         valid_match = find_coords_for_eligable_difficulty()
         if valid_match:
             click(*text_locations["join_button"])
+            pyautogui.sleep(2)
             join_nr += 1
             return
 
@@ -412,11 +442,14 @@ class CurrentState(Enum):
     HOME_SCREEN_CANNOT_HOST = "HOME_SCREEN_CANNOT_HOST"
     NO_ACTION = "NO_ACTION"
     RESULTS_SCREEN = "RESULTS_SCREEN"
+    CRYS_RESULTS_SCREEN = "CRYS_RESULTS_SCREEN"
+    CRYS_RETRY_SCREEN = "CRYS_RETRY_SCREEN"
     JOIN_BACK_SCREEN = "JOIN_BACK_SCREEN"
     HOST_BACK_SCREEN = "HOST_BACK_SCREEN"
     PLAY_JOIN_SCREEN = "PLAY_JOIN_SCREEN"
     PLAY_HOST_SCREEN = "PLAY_HOST_SCREEN"
     REFILL_LP = "REFILL_LP"
+    REFILL_QP = "REFILL_QP"
     DAILY_BONUS_COUNTER = "DAILY_BONUS_COUNTER"
     DAILY_BONUS = "DAILY_BONUS"
     BATTLE_ALREADY_ENDED = "BATTLE_ALREADY_ENDED"
@@ -424,12 +457,18 @@ class CurrentState(Enum):
 
 
 def current_state() -> CurrentState:
-    text = get_text_in_img("result_box")
-    if "1v1" in normalize_1(text):
+    if "1v1" in normalize_1(get_text_in_img("result_box")):
         return CurrentState.RESULTS_SCREEN
 
-    text = normalize_1(get_text_in_img("battle_already_ended"))
-    if "batt1ehas" in text:
+    if "retry" in normalize_1(get_text_in_img("crys_retry_box")):
+        return CurrentState.CRYS_RETRY_SCREEN
+
+    if "bta1ned" in normalize_1(
+        get_text_in_img("crys_result_box")
+    ) or "esu1t" in normalize_1(get_text_in_img("crys_result_box2")):
+        return CurrentState.CRYS_RESULTS_SCREEN
+
+    if "batt1ehas" in normalize_1(get_text_in_img("battle_already_ended")):
         return CurrentState.BATTLE_ALREADY_ENDED
 
     text = normalize_1(get_text_in_img("join_button_box"))
@@ -442,18 +481,17 @@ def current_state() -> CurrentState:
     if "da11y" in text:
         if "r1ng" in text:
             return CurrentState.REFILL_LP
+        if "cube" in text:
+            return CurrentState.REFILL_QP
         return CurrentState.DAILY_BONUS_COUNTER
 
-    text = get_text_in_img("round_box")
-    if "round" in text:
+    if "round" in get_text_in_img("round_box"):
         return CurrentState.HOST_SCREEN
 
-    text = get_text_in_img("join_back_box")
-    if "back" in text:
+    if "back" in get_text_in_img("join_back_box"):
         return CurrentState.JOIN_BACK_SCREEN
 
-    text = get_text_in_img("host_back_box")
-    if "back" in text:
+    if "back" in get_text_in_img("host_back_box"):
         return CurrentState.HOST_BACK_SCREEN
 
     text = normalize_1(get_text_in_img("party_box"))
@@ -463,8 +501,7 @@ def current_state() -> CurrentState:
             return CurrentState.PLAY_JOIN_SCREEN
         return CurrentState.PLAY_HOST_SCREEN
 
-    text = normalize_1(get_text_in_img("in_progress_box"))
-    if "v1ewresu1ts" in text:
+    if "v1ewresu1ts" in normalize_1(get_text_in_img("in_progress_box")):
         return CurrentState.HOME_SCREEN_CAN_HOST
 
     text = normalize_1(get_text_in_img("can_host_box"))
@@ -477,12 +514,10 @@ def current_state() -> CurrentState:
             return CurrentState.HOME_SCREEN_CAN_HOST
         return CurrentState.HOME_SCREEN_CANNOT_HOST
 
-    text = get_text_in_img("daily_reward_box")
-    if "ob" in text:
+    if "ob" in get_text_in_img("daily_reward_box"):
         return CurrentState.DAILY_BONUS
 
-    text = normalize_1(get_text_in_img("tap_to_continue"))
-    if "cont1nue" in text:
+    if "cont1nue" in normalize_1(get_text_in_img("tap_to_continue")):
         return CurrentState.CONTINUE
 
     return CurrentState.NO_ACTION
@@ -527,6 +562,18 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         int(win.right - 0.3 * win.width),
         int(win.bottom - 0.7 * win.height),
     )
+    text_locations["lp_refills_remaining"] = (
+        int(win.left + 0.5 * win.width),
+        int(win.top + 0.55 * win.height),
+        int(win.right - 0.45 * win.width),
+        int(win.bottom - 0.4 * win.height),
+    )
+    text_locations["qp_refills_remaining"] = (
+        int(win.left + 0.5 * win.width),
+        int(win.top + 0.55 * win.height),
+        int(win.right - 0.45 * win.width),
+        int(win.bottom - 0.35 * win.height),
+    )
     text_locations["daily_reward_box"] = (
         int(win.left + 0.4 * win.width),
         int(win.top + 0.28 * win.height),
@@ -551,11 +598,23 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         int(win.right - 0.35 * win.width),
         int(win.bottom - 0.12 * win.height),
     )
+    text_locations["crys_retry_box"] = (
+        int(win.left + 0.85 * win.width),
+        int(win.top + 0.81 * win.height),
+        int(win.right - 0.05 * win.width),
+        int(win.bottom - 0.12 * win.height),
+    )
     text_locations["team_name"] = (
         int(win.left + 0.4 * win.width),
         int(win.top + 0.44 * win.height),
         int(win.right - 0.4 * win.width),
         int(win.bottom - 0.5 * win.height),
+    )
+    text_locations["crys_team_name"] = (
+        int(win.left + 0.4 * win.width),
+        int(win.top + 0.5 * win.height),
+        int(win.right - 0.4 * win.width),
+        int(win.bottom - 0.45 * win.height),
     )
     text_locations["party_box"] = (
         int(win.left + 0.29 * win.width),
@@ -628,6 +687,10 @@ The OCR has to 'see' the content of the game to determine what to do.""",
     text_locations["next_team"] = (
         int(win.left + 0.28 * win.width),
         int(win.top + 0.58 * win.height),
+    )
+    text_locations["crys_next_team"] = (
+        int(win.left + 0.28 * win.width),
+        int(win.top + 0.62 * win.height),
     )
     text_locations["scroll_location"] = (
         win.left + 2 * win.width // 3,
@@ -718,6 +781,62 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         text_locations["current_difficulty"][2] - 3,
         text_locations["current_difficulty"][3],
     )
+    text_locations["crys_result_box"] = (
+        int(win.left + 0.65 * win.width),
+        int(win.top + 0.3 * win.height),
+        int(win.right - 0.15 * win.width),
+        int(win.bottom - 0.6 * win.height),
+    )
+    text_locations["crys_result_box2"] = (
+        int(win.left + 0.65 * win.width),
+        int(win.top + 0.1 * win.height),
+        int(win.right - 0.15 * win.width),
+        int(win.bottom - 0.8 * win.height),
+    )
+    text_locations["menu_button"] = (
+        int(win.left + 0.95 * win.width),
+        int(win.top + 0.05 * win.height),
+    )
+    text_locations["quests_button"] = (
+        int(win.left + 0.9 * win.width),
+        int(win.top + 0.8 * win.height),
+    )
+    text_locations["upgrade_button"] = (
+        int(win.left + 0.55 * win.width),
+        int(win.top + 0.3 * win.height),
+    )
+    text_locations["raid_button"] = (
+        int(win.left + 0.7 * win.width),
+        int(win.top + 0.3 * win.height),
+    )
+    text_locations["crys_button"] = (
+        int(win.left + 0.75 * win.width),
+        int(win.top + 0.5 * win.height),
+    )
+    text_locations["flame_button"] = (
+        int(win.left + 0.1 * win.width),
+        int(win.top + 0.5 * win.height),
+    )
+    text_locations["aqua_button"] = (
+        int(win.left + 0.25 * win.width),
+        int(win.top + 0.5 * win.height),
+    )
+    text_locations["forest_button"] = (
+        int(win.left + 0.4 * win.width),
+        int(win.top + 0.5 * win.height),
+    )
+    text_locations["light_button"] = (
+        int(win.left + 0.55 * win.width),
+        int(win.top + 0.5 * win.height),
+    )
+    text_locations["dark_button"] = (
+        int(win.left + 0.7 * win.width),
+        int(win.top + 0.5 * win.height),
+    )
+    text_locations["void_button"] = (
+        int(win.left + 0.85 * win.width),
+        int(win.top + 0.5 * win.height),
+    )
 
     if DEBUG:
         img = ImageGrab.grab((win.left, win.top, win.right, win.bottom))
@@ -762,14 +881,69 @@ def main():
             case CurrentState.JOIN_SCREEN:
                 start_join()
             case CurrentState.REFILL_LP:
-                if DO_REFILL:
+                if (
+                    DO_REFILL_LP
+                    and not get_nrs_in_img("lp_refills_remaining").count("0") >= 2
+                ):
                     click(
                         int(text_locations["host_back_box"][0]),
                         int(text_locations["host_back_box"][1]),
                     )
                 else:
-                    logger.info("Out of LP")
-                    return
+                    if LR_TO_CRYS_SWAP:
+                        logger.info("Out of LP, swapping to crys farming")
+                        click(*text_locations["menu_button"])
+                        pyautogui.sleep(0.5)
+                        click(*text_locations["menu_button"])
+                        pyautogui.sleep(0.5)
+                        click(*text_locations["quests_button"])
+                        pyautogui.sleep(0.5)
+                        click(*text_locations["upgrade_button"])
+                        pyautogui.sleep(10)
+                        click(*text_locations["crys_button"])
+                        pyautogui.sleep(1.5)
+                        click(*text_locations[f"{CRYS_ELEMENT}_button"])
+                        pyautogui.sleep(0.5)
+                        select_correct_team(CRYS_TEAM, True)
+                        click(
+                            int(text_locations["join_back_box"][0]),
+                            int(text_locations["join_back_box"][1]),
+                        )
+                    else:
+                        logger.info(
+                            "Out of LP, swapping to crys farming is disabled. Quitting"
+                        )
+                        return
+            case CurrentState.REFILL_QP:
+                if (
+                    DO_REFILL_QP
+                    and not get_nrs_in_img("qp_refills_remaining").count("0") >= 2
+                ):
+                    click(
+                        int(text_locations["host_back_box"][0]),
+                        int(text_locations["host_back_box"][1]),
+                    )
+                else:
+                    print("b")
+                    if CRYS_TO_LR_SWAP:
+                        logger.info("Out of QP, swapping to link raid")
+                        click(
+                            int(text_locations["host_screen_button"][0]),
+                            int(text_locations["host_screen_button"][1]),
+                        )
+                        pyautogui.sleep(0.5)
+                        click(*text_locations["play_button"])
+                        pyautogui.sleep(5)
+                        click(*text_locations["menu_button"])
+                        pyautogui.sleep(0.5)
+                        click(*text_locations["quests_button"])
+                        pyautogui.sleep(0.5)
+                        click(*text_locations["raid_button"])
+                    else:
+                        logger.info(
+                            "Out of QP, swapping to link raid is disabled. Quitting"
+                        )
+                        return
             case CurrentState.HOST_SCREEN:
                 set_correct_host_difficulty()
                 click(*text_locations["host_button"])
@@ -788,6 +962,16 @@ def main():
             case CurrentState.NO_ACTION:
                 pyautogui.sleep(5)
             case CurrentState.RESULTS_SCREEN:
+                click(
+                    int(text_locations["result_box"][2]),
+                    int(text_locations["result_box"][3]),
+                )
+            case CurrentState.CRYS_RETRY_SCREEN:
+                click(
+                    int(text_locations["crys_retry_box"][2]),
+                    int(text_locations["crys_retry_box"][3]),
+                )
+            case CurrentState.CRYS_RESULTS_SCREEN:
                 click(
                     int(text_locations["result_box"][2]),
                     int(text_locations["result_box"][3]),
