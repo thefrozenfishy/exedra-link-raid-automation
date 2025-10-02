@@ -8,13 +8,14 @@ from enum import Enum
 from pathlib import Path
 from random import random
 
+import cv2
 import keyboard
 import numpy as np
 import pyautogui
 import pydirectinput
 import pygetwindow
 import pytesseract
-from PIL import ImageDraw, ImageGrab
+from PIL import Image, ImageDraw, ImageGrab
 from requests import get
 
 pydirectinput.FAILSAFE = False
@@ -187,11 +188,16 @@ def normalize_1(s: str) -> str:
     )
 
 
-def get_text_in_img(cords: str, config="", print_nr=None) -> str:
+def get_text_in_img(cords: str, config="", print_nr=None, make_bw=False) -> str:
     img = ImageGrab.grab(text_locations[cords])
+    if make_bw:
+        gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
+        _, img_data = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    else:
+        img_data = img
     try:
         data = pytesseract.image_to_data(
-            img, output_type=pytesseract.Output.DICT, config=config
+            img_data, output_type=pytesseract.Output.DICT, config=config
         )
     except pytesseract.TesseractNotFoundError as e:
         input(
@@ -201,6 +207,8 @@ def get_text_in_img(cords: str, config="", print_nr=None) -> str:
     if DEBUG:
         name = f"{cords}_{print_nr:03}" if print_nr else cords
         img.save(f"debug/{name}.png")
+        if make_bw:
+            Image.fromarray(img_data).save(f"debug/{name}_bw.png")
         logger.debug("%s > %s", name, data["text"])
     return re.sub(r"[^A-Za-z0-9]", "", "".join(data["text"]).lower().replace(" ", ""))
 
@@ -522,7 +530,7 @@ def current_state() -> CurrentState:
             return CurrentState.HOME_SCREEN_CAN_HOST
         return CurrentState.HOME_SCREEN_CANNOT_HOST
 
-    if "ob" in get_text_in_img("daily_reward_box"):
+    if "ob" in get_text_in_img("daily_reward_box", make_bw=True):
         return CurrentState.DAILY_BONUS
 
     if "cont1nue" in normalize_1(get_text_in_img("tap_to_continue")):
