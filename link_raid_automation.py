@@ -536,7 +536,7 @@ def current_state() -> CurrentState:
     if "cont1nue" in normalize_1(get_text_in_img("tap_to_continue")):
         return CurrentState.CONTINUE
 
-    if "cont" in normalize_1(get_text_in_img("ex_continue_box")):
+    if "cont" in normalize_1(get_text_in_img("crys_ex_continue_box")):
         return CurrentState.EX_SCREEN
 
     return CurrentState.NO_ACTION
@@ -575,7 +575,7 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         int(win.right - 0.31 * win.width),
         int(win.bottom - 0.12 * win.height),
     )
-    text_locations["ex_continue_box"] = (
+    text_locations["crys_ex_continue_box"] = (
         int(win.left + 0.75 * win.width),
         int(win.top + 0.85 * win.height),
         int(win.right - 0.15 * win.width),
@@ -593,7 +593,7 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         int(win.right - 0.45 * win.width),
         int(win.bottom - 0.4 * win.height),
     )
-    text_locations["qp_refills_remaining"] = (
+    text_locations["crys_qp_refills_remaining"] = (
         int(win.left + 0.5 * win.width),
         int(win.top + 0.55 * win.height),
         int(win.right - 0.45 * win.width),
@@ -838,27 +838,27 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         int(win.left + 0.75 * win.width),
         int(win.top + 0.5 * win.height),
     )
-    text_locations["flame_button"] = (
+    text_locations["crys_flame_button"] = (
         int(win.left + 0.1 * win.width),
         int(win.top + 0.5 * win.height),
     )
-    text_locations["aqua_button"] = (
+    text_locations["crys_aqua_button"] = (
         int(win.left + 0.25 * win.width),
         int(win.top + 0.5 * win.height),
     )
-    text_locations["forest_button"] = (
+    text_locations["crys_forest_button"] = (
         int(win.left + 0.4 * win.width),
         int(win.top + 0.5 * win.height),
     )
-    text_locations["light_button"] = (
+    text_locations["crys_light_button"] = (
         int(win.left + 0.55 * win.width),
         int(win.top + 0.5 * win.height),
     )
-    text_locations["dark_button"] = (
+    text_locations["crys_dark_button"] = (
         int(win.left + 0.7 * win.width),
         int(win.top + 0.5 * win.height),
     )
-    text_locations["void_button"] = (
+    text_locations["crys_void_button"] = (
         int(win.left + 0.85 * win.width),
         int(win.top + 0.5 * win.height),
     )
@@ -877,12 +877,16 @@ The OCR has to 'see' the content of the game to determine what to do.""",
                 x = (x1 + x2) // 2
                 y = (y1 + y2) // 2
                 colour = "magenta"
+                if name.startswith("crys_"):
+                    colour = "green"
                 draw.rectangle((x1, y1, x2, y2), outline=colour, width=2)
             else:
                 x, y = coords
                 x -= win.left
                 y -= win.top
                 colour = "cyan"
+                if name.startswith("crys_"):
+                    colour = "green"
                 r = 5
                 draw.ellipse((x - r, y - r, x + r, y + r), outline=colour, width=10)
 
@@ -928,7 +932,7 @@ def main():
                         pyautogui.sleep(10)
                         click(*text_locations["crys_button"])
                         pyautogui.sleep(1.5)
-                        click(*text_locations[f"{CRYS_ELEMENT}_button"])
+                        click(*text_locations[f"crys_{CRYS_ELEMENT}_button"])
                         pyautogui.sleep(0.5)
                         select_correct_team(CRYS_TEAM, True)
                         click(
@@ -943,7 +947,7 @@ def main():
             case CurrentState.REFILL_QP:
                 if (
                     DO_REFILL_QP
-                    and not get_nrs_in_img("qp_refills_remaining").count("0") >= 2
+                    and not get_nrs_in_img("crys_qp_refills_remaining").count("0") >= 2
                 ):
                     click(
                         int(text_locations["host_back_box"][0]),
