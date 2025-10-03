@@ -265,10 +265,11 @@ def find_coords_for_eligable_difficulty() -> bool:
     lvl = normalize_1(
         get_text_in_img(
             "join_lvl",
-            config=tessaract_whitelist.format(eligable_nrs_str),
+            config=tessaract_whitelist.format("Lvl" + eligable_nrs_str),
             print_nr=join_nr,
         )
     )
+    lvl = lvl.removeprefix("1v1").removeprefix(".")
     if not lvl.isdigit():
         return False
     lvl = int(lvl)
@@ -281,12 +282,13 @@ def find_coords_for_eligable_difficulty() -> bool:
         return False
     for i in range(3):
         username = get_text_in_img(f"join_username_{i}")
-        if not username.strip():
-            break
         union = get_text_in_img(f"union_{i}")
         logger.debug(
             "User%d was found to be '%s' with '%s' union flag", i, username, union
         )
+
+        if not username.strip() and not union.strip():
+            break
         if JOIN_FRIENDS and (username in friends or "on" in union.lower()):
             return True
         if JOIN_COMMUNITY and username in community:
@@ -720,7 +722,7 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         win.top + win.height // 4,
     )
     text_locations["join_lvl"] = (
-        int(win.left + 0.73 * win.width),
+        int(win.left + 0.7 * win.width),
         int(win.top + 0.22 * win.height),
         int(win.right - 0.24 * win.width),
         int(win.bottom - 0.74 * win.height),
