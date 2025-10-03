@@ -253,8 +253,6 @@ def get_color_diff_range(offset: str) -> set[int]:
         return set(range(13, 17))  # Purple
 
     logger.error("HSV was H=%.0f, S=%.2f, V=%.2f", h, s, v)
-    if DEBUG:
-        raise ValueError()
     return {0}
 
 
@@ -820,7 +818,7 @@ The OCR has to 'see' the content of the game to determine what to do.""",
     )
     text_locations["menu_button"] = (
         int(win.left + 0.95 * win.width),
-        int(win.top + 0.05 * win.height),
+        int(win.top + 0.08 * win.height),
     )
     text_locations["quests_button"] = (
         int(win.left + 0.9 * win.width),
@@ -994,8 +992,8 @@ def main():
                 )
             case CurrentState.CRYS_RETRY_SCREEN:
                 click(
-                    int(text_locations["crys_retry_box"][2]),
-                    int(text_locations["crys_retry_box"][3]),
+                    int(text_locations["crys_retry_box"][0]),
+                    int(text_locations["crys_retry_box"][1]),
                 )
             case CurrentState.CRYS_RESULTS_SCREEN:
                 click(
