@@ -289,7 +289,7 @@ def find_coords_for_eligable_difficulty() -> bool:
 
         if not username.strip() and not union.strip():
             break
-        if JOIN_FRIENDS and (username in friends or "on" in union.lower()):
+        if JOIN_FRIENDS and (username in friends or "union" in union.lower()):
             return True
         if JOIN_COMMUNITY and username in community:
             return True
