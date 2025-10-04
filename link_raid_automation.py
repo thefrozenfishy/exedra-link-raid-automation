@@ -301,7 +301,7 @@ def find_coords_for_eligable_difficulty() -> bool:
 
 
 def select_correct_team(team_name, is_crys):
-    for _ in range(15):
+    for _ in range(100):
         if team_name.lower() in get_text_in_img(
             "crys_team_name" if is_crys else "team_name"
         ):
