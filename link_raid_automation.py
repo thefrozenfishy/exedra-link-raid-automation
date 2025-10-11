@@ -130,7 +130,20 @@ teams = {
     },
 }
 
+running = True
+
+
+def toggle_running():
+    global running
+    if running:
+        logger.debug("Pausing")
+    else:
+        logger.debug("Resuming")
+    running = not running
+
+
 keyboard.add_hotkey("ctrl+shift+q", lambda: os._exit(0))
+keyboard.add_hotkey("ctrl+shift+e", toggle_running)
 
 log_formatter = logging.Formatter(
     "%(asctime)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S"
@@ -927,9 +940,12 @@ def main():
         "Considering %d friends and %d community members", len(friends), len(community)
     )
     logger.info("Press Ctrl+Shift+Q to terminate the program.")
-    logger.debug(f"Current version {__version__}")
+    logger.info("Press Ctrl+Shift+E to pause the program.")
+    logger.debug("Current version %s", __version__)
     while True:
         pyautogui.sleep(1)
+        if not running:
+            continue
         state = current_state()
         logger.info("Current State: %s", state.name)
         match state:
