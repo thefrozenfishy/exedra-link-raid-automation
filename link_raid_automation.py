@@ -267,7 +267,7 @@ def get_color_diff_range(offset: str) -> set[int]:
     if 230 < h < 250 and s < 0.05:
         return set(range(17, 21))  # White
     if (30 < h < 70 and s < 0.15 and 0.65 > v > 0.35) or (
-        h < 30 and s < 0.1 and v < 0.3
+        h < 50 and s < 0.1 and v < 0.3
     ):
         # Different colour in host and join screens for some reason
         return set(range(1, 5))  # Gray
@@ -279,8 +279,6 @@ def get_color_diff_range(offset: str) -> set[int]:
         return set(range(13, 17))  # Purple
 
     logger.error("HSV was H=%.0f, S=%.2f, V=%.2f", h, s, v)
-    if DEBUG:
-        raise KeyError("Unknown HSV")
     return {0}
 
 
@@ -549,16 +547,15 @@ def current_state() -> CurrentState:
             return CurrentState.PLAY_JOIN_SCREEN
         return CurrentState.PLAY_HOST_SCREEN
 
-    if "v1ewresu1ts" in normalize_1(get_text_in_img("in_progress_box")):
+    in_progress_text = normalize_1(get_text_in_img("in_progress_box"))
+    if "v1ewresu1ts" in in_progress_text:
         return CurrentState.HOME_SCREEN_CAN_HOST
 
     text = normalize_1(get_text_in_img("can_host_box"))
     if "p1ay" in text:
         if not DO_HOST:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
-
-        progress_text = get_text_in_img("in_progress_box")
-        if "progress" not in progress_text.lower() and "06" not in text:
+        if "progress" not in in_progress_text and "06" not in text:
             return CurrentState.HOME_SCREEN_CAN_HOST
         return CurrentState.HOME_SCREEN_CANNOT_HOST
 
@@ -799,9 +796,9 @@ The OCR has to 'see' the content of the game to determine what to do.""",
 
     text_locations["round_box"] = (
         int(client_left + 0.54 * client_width),
-        int(client_top + 0.5 * client_height),
+        int(client_top + 0.48 * client_height),
         int(client_right - 0.34 * client_width),
-        int(client_bottom - 0.45 * client_height),
+        int(client_bottom - 0.47 * client_height),
     )
     text_locations["host_button"] = (
         int(client_left + 0.73 * client_width),
@@ -841,9 +838,9 @@ The OCR has to 'see' the content of the game to determine what to do.""",
     )
     text_locations["current_difficulty"] = (
         int(client_left + 0.45 * client_width),
-        int(client_top + 0.08 * client_height),
+        int(client_top + 0.04 * client_height),
         int(client_right - 0.53 * client_width),
-        int(client_bottom - 0.87 * client_height),
+        int(client_bottom - 0.91 * client_height),
     )
     text_locations["current_difficulty_single_digit"] = (
         text_locations["current_difficulty"][0] + 3,
