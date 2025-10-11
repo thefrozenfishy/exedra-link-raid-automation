@@ -310,7 +310,7 @@ def find_coords_for_eligable_difficulty() -> bool:
         for i in range(3):
             is_union = "union" in get_text_in_img(f"union_{i}").lower()
             if is_union and JOIN_FRIENDS:
-                logger.debug("User%d was found to be union member", i)
+                logger.info("Joining union member")
                 return True
 
             username = get_text_in_img(
@@ -321,8 +321,10 @@ def find_coords_for_eligable_difficulty() -> bool:
             if not username.strip():
                 break
             if JOIN_FRIENDS and username in friends:
+                logger.info("Joining friend %s", username)
                 return True
             if JOIN_COMMUNITY and username in community:
+                logger.info("Joining community member %s", username)
                 return True
     if ONLY_JOIN_FRIENDS_AND_COMMUNITY:
         return False
