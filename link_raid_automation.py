@@ -459,6 +459,7 @@ class CurrentState(Enum):
     RESULTS_SCREEN = "RESULTS_SCREEN"
     CRYS_RESULTS_SCREEN = "CRYS_RESULTS_SCREEN"
     CRYS_RETRY_SCREEN = "CRYS_RETRY_SCREEN"
+    CRYS_FAILED = "CRYS_FAILED"
     JOIN_BACK_SCREEN = "JOIN_BACK_SCREEN"
     HOST_BACK_SCREEN = "HOST_BACK_SCREEN"
     PLAY_JOIN_SCREEN = "PLAY_JOIN_SCREEN"
@@ -473,6 +474,9 @@ class CurrentState(Enum):
 
 
 def current_state() -> CurrentState:
+    back_text = get_text_in_img(
+        "host_back_box"
+    )  # Do this fetch first to avoid race condition
     if "1v1" in normalize_1(get_text_in_img("result_box")):
         return CurrentState.RESULTS_SCREEN
 
@@ -501,13 +505,16 @@ def current_state() -> CurrentState:
             return CurrentState.REFILL_QP
         return CurrentState.DAILY_BONUS_COUNTER
 
+    if "fa11ed" in text:
+        return CurrentState.CRYS_FAILED
+
     if "round" in get_text_in_img("round_box"):
         return CurrentState.HOST_SCREEN
 
     if "back" in get_text_in_img("join_back_box"):
         return CurrentState.JOIN_BACK_SCREEN
 
-    if "back" in get_text_in_img("host_back_box"):
+    if "back" in back_text:
         return CurrentState.HOST_BACK_SCREEN
 
     text = normalize_1(get_text_in_img("party_box"))
@@ -957,10 +964,7 @@ def main():
                     print("b")
                     if CRYS_TO_LR_SWAP:
                         logger.info("Out of QP, swapping to link raid")
-                        click(
-                            int(text_locations["host_screen_button"][0]),
-                            int(text_locations["host_screen_button"][1]),
-                        )
+                        click(*text_locations["host_screen_button"])
                         pyautogui.sleep(0.5)
                         click(*text_locations["play_button"])
                         pyautogui.sleep(5)
@@ -991,6 +995,8 @@ def main():
                 start_play()
             case CurrentState.NO_ACTION:
                 pyautogui.sleep(5)
+            case CurrentState.CRYS_FAILED:
+                click(*text_locations["host_screen_button"])
             case CurrentState.RESULTS_SCREEN:
                 click(
                     int(text_locations["result_box"][2]),
