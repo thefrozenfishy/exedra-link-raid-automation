@@ -27,6 +27,12 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Set version in script
+        shell: pwsh
+        run: |
+          $version = "v${{ github.run_number }}"
+          (Get-Content link_raid_automation.py) -replace '__version__ = "vDEV"', "__version__ = `"$version`"" | Set-Content link_raid_automation.py
+
       - name: Create tag
         run: |
           git -c user.name="${{ github.actor }}" -c user.email="${{ github.actor }}@users.noreply.github.com" tag -a "version-${{ github.run_number }}" -m "version ${{ github.run_number }}"

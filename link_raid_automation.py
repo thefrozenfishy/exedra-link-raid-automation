@@ -21,6 +21,7 @@ from requests import get
 
 pyautogui.FAILSAFE = False
 pydirectinput.FAILSAFE = False
+__version__ = "vDEV"
 
 CONFIG_FILE = "link-raid-automation-settings.ini"
 
@@ -926,6 +927,7 @@ def main():
         "Considering %d friends and %d community members", len(friends), len(community)
     )
     logger.info("Press Ctrl+Shift+Q to terminate the program.")
+    logger.debug(f"Current version {__version__}")
     while True:
         pyautogui.sleep(1)
         state = current_state()
