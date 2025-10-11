@@ -8,3 +8,4 @@ pygetwindow
 pyinstaller
 keyboard
 requests
+pywin32

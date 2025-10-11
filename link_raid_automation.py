@@ -15,9 +15,11 @@ import pyautogui
 import pydirectinput
 import pygetwindow
 import pytesseract
+import win32gui
 from PIL import Image, ImageDraw, ImageGrab
 from requests import get
 
+pyautogui.FAILSAFE = False
 pydirectinput.FAILSAFE = False
 
 CONFIG_FILE = "link-raid-automation-settings.ini"
@@ -129,7 +131,9 @@ teams = {
 
 keyboard.add_hotkey("ctrl+shift+q", lambda: os._exit(0))
 
-log_formatter = logging.Formatter("%(asctime)s - %(message)s", "%Y-%m-%d %H:%M:%S")
+log_formatter = logging.Formatter(
+    "%(asctime)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S"
+)
 logger = logging.getLogger("lr_automation")
 logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 
@@ -220,12 +224,20 @@ def get_nrs_in_img(cords: str) -> str:
 
 
 def get_color_diff_range(offset: str) -> set[int]:
+    mid_x = (
+        text_locations[offset][0]
+        + abs(text_locations[offset][0] - text_locations[offset][2]) // 2
+    )
+    mid_y = (
+        text_locations[offset][1]
+        + abs(text_locations[offset][1] - text_locations[offset][3]) // 2
+    )
     colour_img = ImageGrab.grab(
         (
-            text_locations[offset][0] + 5,
-            text_locations[offset][1] + 10,
-            text_locations[offset][0] + 10,
-            text_locations[offset][1] + 15,
+            mid_x,
+            mid_y - 10,
+            mid_x + 10,
+            mid_y + 5,
         )
     )
     arr = np.array(colour_img).astype(float) / 255.0
@@ -253,6 +265,8 @@ def get_color_diff_range(offset: str) -> set[int]:
         return set(range(13, 17))  # Purple
 
     logger.error("HSV was H=%.0f, S=%.2f, V=%.2f", h, s, v)
+    if DEBUG:
+        raise KeyError("Unknown HSV")
     return {0}
 
 
@@ -280,19 +294,24 @@ def find_coords_for_eligable_difficulty() -> bool:
     logger.debug("Found lvl %d", lvl)
     if JOIN_MAX_DIFFICULTY < lvl:
         return False
-    for i in range(3):
-        username = get_text_in_img(f"join_username_{i}")
-        union = get_text_in_img(f"union_{i}")
-        logger.debug(
-            "User%d was found to be '%s' with '%s' union flag", i, username, union
-        )
+    if JOIN_FRIENDS or JOIN_COMMUNITY:
+        for i in range(3):
+            is_union = "union" in get_text_in_img(f"union_{i}").lower()
+            if is_union and JOIN_FRIENDS:
+                logger.debug("User%d was found to be union member", i)
+                return True
 
-        if not username.strip() and not union.strip():
-            break
-        if JOIN_FRIENDS and (username in friends or "union" in union.lower()):
-            return True
-        if JOIN_COMMUNITY and username in community:
-            return True
+            username = get_text_in_img(
+                f"player_{'with' if is_union else 'without'}_union_{i}"
+            )
+            logger.debug("User%d was found to be '%s'", i, username)
+
+            if not username.strip():
+                break
+            if JOIN_FRIENDS and username in friends:
+                return True
+            if JOIN_COMMUNITY and username in community:
+                return True
     if ONLY_JOIN_FRIENDS_AND_COMMUNITY:
         return False
     if lvl in LEVELS_TO_FIND:
@@ -560,6 +579,18 @@ def click(x: float | int, y: float | int):
 
 def setup_text_locations():
     win = get_game_window()
+    hwnd = win._hWnd
+    client_rect = win32gui.GetClientRect(hwnd)
+    left_top = win32gui.ClientToScreen(hwnd, (0, 0))
+    right_bottom = win32gui.ClientToScreen(hwnd, (client_rect[2], client_rect[3]))
+    client_left, client_top = left_top
+    client_right, client_bottom = right_bottom
+
+    client_width = client_right - client_left
+    client_height = client_bottom - client_top
+
+    logger.debug("Client area resolution is %dx%d", client_width, client_height)
+
     try:
         win.activate()
     except Exception as e:
@@ -571,241 +602,248 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         )
 
     text_locations["result_box"] = (
-        int(win.left + 0.23 * win.width),
-        int(win.top + 0.785 * win.height),
-        int(win.right - 0.725 * win.width),
-        int(win.bottom - 0.172 * win.height),
+        int(client_left + 0.23 * client_width),
+        int(client_top + 0.785 * client_height),
+        int(client_right - 0.725 * client_width),
+        int(client_bottom - 0.172 * client_height),
     )
     text_locations["scroll_bar"] = (
-        int(win.left + 0.68 * win.width),
-        int(win.top + 0.85 * win.height),
-        int(win.right - 0.31 * win.width),
-        int(win.bottom - 0.12 * win.height),
+        int(client_left + 0.68 * client_width),
+        int(client_top + 0.85 * client_height),
+        int(client_right - 0.31 * client_width),
+        int(client_bottom - 0.12 * client_height),
     )
     text_locations["crys_ex_continue_box"] = (
-        int(win.left + 0.75 * win.width),
-        int(win.top + 0.85 * win.height),
-        int(win.right - 0.15 * win.width),
-        int(win.bottom - 0.1 * win.height),
+        int(client_left + 0.75 * client_width),
+        int(client_top + 0.85 * client_height),
+        int(client_right - 0.15 * client_width),
+        int(client_bottom - 0.1 * client_height),
     )
     text_locations["daily_bonus_box"] = (
-        int(win.left + 0.3 * win.width),
-        int(win.top + 0.1 * win.height),
-        int(win.right - 0.3 * win.width),
-        int(win.bottom - 0.7 * win.height),
+        int(client_left + 0.3 * client_width),
+        int(client_top + 0.1 * client_height),
+        int(client_right - 0.3 * client_width),
+        int(client_bottom - 0.7 * client_height),
     )
     text_locations["lp_refills_remaining"] = (
-        int(win.left + 0.5 * win.width),
-        int(win.top + 0.55 * win.height),
-        int(win.right - 0.45 * win.width),
-        int(win.bottom - 0.4 * win.height),
+        int(client_left + 0.5 * client_width),
+        int(client_top + 0.55 * client_height),
+        int(client_right - 0.45 * client_width),
+        int(client_bottom - 0.4 * client_height),
     )
     text_locations["crys_qp_refills_remaining"] = (
-        int(win.left + 0.5 * win.width),
-        int(win.top + 0.55 * win.height),
-        int(win.right - 0.45 * win.width),
-        int(win.bottom - 0.35 * win.height),
+        int(client_left + 0.5 * client_width),
+        int(client_top + 0.55 * client_height),
+        int(client_right - 0.45 * client_width),
+        int(client_bottom - 0.35 * client_height),
     )
     text_locations["daily_reward_box"] = (
-        int(win.left + 0.4 * win.width),
-        int(win.top + 0.28 * win.height),
-        int(win.right - 0.4 * win.width),
-        int(win.bottom - 0.62 * win.height),
+        int(client_left + 0.4 * client_width),
+        int(client_top + 0.28 * client_height),
+        int(client_right - 0.4 * client_width),
+        int(client_bottom - 0.62 * client_height),
     )
     text_locations["daily_reward_pic_box"] = (
-        int(win.left + 0.35 * win.width),
-        int(win.top + 0.35 * win.height),
-        int(win.right - 0.35 * win.width),
-        int(win.bottom - 0.4 * win.height),
+        int(client_left + 0.35 * client_width),
+        int(client_top + 0.35 * client_height),
+        int(client_right - 0.35 * client_width),
+        int(client_bottom - 0.4 * client_height),
     )
     text_locations["join_back_box"] = (
-        int(win.left + 0.45 * win.width),
-        int(win.top + 0.81 * win.height),
-        int(win.right - 0.45 * win.width),
-        int(win.bottom - 0.12 * win.height),
+        int(client_left + 0.45 * client_width),
+        int(client_top + 0.81 * client_height),
+        int(client_right - 0.45 * client_width),
+        int(client_bottom - 0.12 * client_height),
     )
     text_locations["host_back_box"] = (
-        int(win.left + 0.55 * win.width),
-        int(win.top + 0.81 * win.height),
-        int(win.right - 0.35 * win.width),
-        int(win.bottom - 0.12 * win.height),
+        int(client_left + 0.55 * client_width),
+        int(client_top + 0.81 * client_height),
+        int(client_right - 0.35 * client_width),
+        int(client_bottom - 0.12 * client_height),
     )
     text_locations["crys_retry_box"] = (
-        int(win.left + 0.85 * win.width),
-        int(win.top + 0.81 * win.height),
-        int(win.right - 0.05 * win.width),
-        int(win.bottom - 0.12 * win.height),
+        int(client_left + 0.85 * client_width),
+        int(client_top + 0.81 * client_height),
+        int(client_right - 0.05 * client_width),
+        int(client_bottom - 0.12 * client_height),
     )
     text_locations["team_name"] = (
-        int(win.left + 0.4 * win.width),
-        int(win.top + 0.44 * win.height),
-        int(win.right - 0.4 * win.width),
-        int(win.bottom - 0.5 * win.height),
+        int(client_left + 0.4 * client_width),
+        int(client_top + 0.44 * client_height),
+        int(client_right - 0.4 * client_width),
+        int(client_bottom - 0.5 * client_height),
     )
     text_locations["crys_team_name"] = (
-        int(win.left + 0.4 * win.width),
-        int(win.top + 0.5 * win.height),
-        int(win.right - 0.4 * win.width),
-        int(win.bottom - 0.45 * win.height),
+        int(client_left + 0.46 * client_width),
+        int(client_top + 0.45 * client_height),
+        int(client_right - 0.4 * client_width),
+        int(client_bottom - 0.45 * client_height),
     )
     text_locations["party_box"] = (
-        int(win.left + 0.29 * win.width),
-        int(win.top + 0.44 * win.height),
-        int(win.right - 0.65 * win.width),
-        int(win.bottom - 0.5 * win.height),
+        int(client_left + 0.29 * client_width),
+        int(client_top + 0.44 * client_height),
+        int(client_right - 0.65 * client_width),
+        int(client_bottom - 0.5 * client_height),
     )
     text_locations["play_box"] = (
-        int(win.left + 0.5 * win.width),
-        int(win.top + 0.79 * win.height),
-        int(win.right - 0.4 * win.width),
-        int(win.bottom - 0.15 * win.height),
+        int(client_left + 0.5 * client_width),
+        int(client_top + 0.79 * client_height),
+        int(client_right - 0.4 * client_width),
+        int(client_bottom - 0.15 * client_height),
     )
     text_locations["join_button"] = (
-        int(win.right - 0.15 * win.width),
-        int(win.bottom - 0.18 * win.height),
+        int(client_right - 0.15 * client_width),
+        int(client_bottom - 0.18 * client_height),
     )
     text_locations["join_button_box"] = (
-        int(win.left + 0.8 * win.width),
-        int(win.top + 0.8 * win.height),
-        int(win.right - 0.1 * win.width),
-        int(win.bottom - 0.14 * win.height),
+        int(client_left + 0.8 * client_width),
+        int(client_top + 0.8 * client_height),
+        int(client_right - 0.1 * client_width),
+        int(client_bottom - 0.14 * client_height),
     )
     text_locations["battle_already_ended"] = (
-        int(win.left + 0.4 * win.width),
-        int(win.top + 0.45 * win.height),
-        int(win.right - 0.4 * win.width),
-        int(win.bottom - 0.45 * win.height),
+        int(client_left + 0.4 * client_width),
+        int(client_top + 0.45 * client_height),
+        int(client_right - 0.4 * client_width),
+        int(client_bottom - 0.45 * client_height),
     )
     text_locations["games_until_daily_bonus"] = (
-        int(win.left + 0.64 * win.width),
-        int(win.top + 0.74 * win.height),
-        int(win.right - 0.34 * win.width),
-        int(win.bottom - 0.21 * win.height),
+        int(client_left + 0.64 * client_width),
+        int(client_top + 0.74 * client_height),
+        int(client_right - 0.34 * client_width),
+        int(client_bottom - 0.21 * client_height),
     )
     text_locations["battle_already_ended_ok"] = (
-        int(win.left + 0.5 * win.width),
-        int(win.top + 0.75 * win.height),
+        int(client_left + 0.5 * client_width),
+        int(client_top + 0.75 * client_height),
     )
     text_locations["joined_battles"] = (
-        int(win.left + 0.54 * win.width),
-        int(win.top + 0.05 * win.height),
-        int(win.right - 0.43 * win.width),
-        int(win.bottom - 0.85 * win.height),
+        int(client_left + 0.54 * client_width),
+        int(client_top + 0.05 * client_height),
+        int(client_right - 0.43 * client_width),
+        int(client_bottom - 0.85 * client_height),
     )
     text_locations["join_battles_tab"] = (
-        int(win.left + 0.2 * win.width),
-        int(win.top + 0.2 * win.height),
+        int(client_left + 0.2 * client_width),
+        int(client_top + 0.2 * client_height),
     )
     text_locations["joined_battles_tab"] = (
-        int(win.left + 0.2 * win.width),
-        int(win.top + 0.3 * win.height),
+        int(client_left + 0.2 * client_width),
+        int(client_top + 0.3 * client_height),
     )
     text_locations["play_button"] = (
-        int(win.right - 0.4 * win.width),
-        int(win.bottom - 0.18 * win.height),
+        int(client_right - 0.4 * client_width),
+        int(client_bottom - 0.18 * client_height),
     )
     text_locations["refresh_button"] = (
-        int(win.left + 0.31 * win.width),
-        int(win.top + 0.09 * win.height),
+        int(client_left + 0.31 * client_width),
+        int(client_top + 0.09 * client_height),
     )
     text_locations["join_screen_button"] = (
-        int(win.left + 0.7 * win.width),
-        int(win.top + 0.82 * win.height),
+        int(client_left + 0.7 * client_width),
+        int(client_top + 0.82 * client_height),
     )
     text_locations["host_screen_button"] = (
-        int(win.left + 0.3 * win.width),
-        int(win.top + 0.8 * win.height),
+        int(client_left + 0.3 * client_width),
+        int(client_top + 0.8 * client_height),
     )
     text_locations["next_team"] = (
-        int(win.left + 0.28 * win.width),
-        int(win.top + 0.58 * win.height),
+        int(client_left + 0.28 * client_width),
+        int(client_top + 0.58 * client_height),
     )
     text_locations["crys_next_team"] = (
-        int(win.left + 0.28 * win.width),
-        int(win.top + 0.62 * win.height),
+        int(client_left + 0.28 * client_width),
+        int(client_top + 0.62 * client_height),
     )
     text_locations["scroll_location"] = (
-        win.left + 2 * win.width // 3,
-        win.top + win.height // 4,
+        client_left + 2 * client_width // 3,
+        client_top + client_height // 4,
     )
     text_locations["join_lvl"] = (
-        int(win.left + 0.7 * win.width),
-        int(win.top + 0.22 * win.height),
-        int(win.right - 0.24 * win.width),
-        int(win.bottom - 0.74 * win.height),
+        int(client_left + 0.705 * client_width),
+        int(client_top + 0.18 * client_height),
+        int(client_right - 0.235 * client_width),
+        int(client_bottom - 0.78 * client_height),
     )
-    text_locations["join_username_0"] = (
-        int(win.left + 0.73 * win.width),
-        int(win.top + 0.55 * win.height),
-        int(win.right - 0.1 * win.width),
-        int(win.bottom - 0.4 * win.height),
+    text_locations["union_0"] = (
+        int(client_left + 0.76 * client_width),
+        int(client_top + 0.51 * client_height),
+        int(client_right - 0.18 * client_width),
+        int(client_bottom - 0.46 * client_height),
     )
-    text_locations["join_username_1"] = (
-        int(win.left + 0.73 * win.width),
-        int(win.top + 0.64 * win.height),
-        int(win.right - 0.1 * win.width),
-        int(win.bottom - 0.31 * win.height),
+    text_locations["union_1"] = (
+        int(client_left + 0.76 * client_width),
+        int(client_top + 0.60 * client_height),
+        int(client_right - 0.18 * client_width),
+        int(client_bottom - 0.37 * client_height),
     )
-    text_locations["join_username_2"] = (
-        int(win.left + 0.73 * win.width),
-        int(win.top + 0.73 * win.height),
-        int(win.right - 0.1 * win.width),
-        int(win.bottom - 0.22 * win.height),
+    text_locations["union_2"] = (
+        int(client_left + 0.76 * client_width),
+        int(client_top + 0.69 * client_height),
+        int(client_right - 0.18 * client_width),
+        int(client_bottom - 0.28 * client_height),
     )
     for i in range(3):
-        text_locations[f"union_{i}"] = (
-            int(text_locations[f"join_username_{i}"][0] + 0.03 * win.width),
-            int(text_locations[f"join_username_{i}"][1] - 0.03 * win.height),
-            int(text_locations[f"join_username_{i}"][2] - 0.08 * win.width),
-            int(text_locations[f"join_username_{i}"][3] - 0.04 * win.height),
+        text_locations[f"player_with_union_{i}"] = (
+            int(text_locations[f"union_{i}"][0] - 0.02 * client_width),
+            int(text_locations[f"union_{i}"][1] + 0.025 * client_height),
+            int(text_locations[f"union_{i}"][2] + 0.15 * client_width),
+            int(text_locations[f"union_{i}"][3] + 0.05 * client_height),
         )
+        text_locations[f"player_without_union_{i}"] = (
+            int(text_locations[f"union_{i}"][0] - 0.02 * client_width),
+            int(text_locations[f"union_{i}"][1] + 0.01 * client_height),
+            int(text_locations[f"union_{i}"][2] + 0.15 * client_width),
+            int(text_locations[f"union_{i}"][3] + 0.03 * client_height),
+        )
+
     text_locations["round_box"] = (
-        int(win.left + 0.54 * win.width),
-        int(win.top + 0.5 * win.height),
-        int(win.right - 0.34 * win.width),
-        int(win.bottom - 0.45 * win.height),
+        int(client_left + 0.54 * client_width),
+        int(client_top + 0.5 * client_height),
+        int(client_right - 0.34 * client_width),
+        int(client_bottom - 0.45 * client_height),
     )
     text_locations["host_button"] = (
-        int(win.left + 0.73 * win.width),
-        int(win.top + 0.8 * win.height),
+        int(client_left + 0.73 * client_width),
+        int(client_top + 0.8 * client_height),
     )
     text_locations["can_host_box"] = (
-        int(win.left + 0.32 * win.width),
-        int(win.top + 0.82 * win.height),
-        int(win.right - 0.57 * win.width),
-        int(win.bottom - 0.13 * win.height),
+        int(client_left + 0.32 * client_width),
+        int(client_top + 0.82 * client_height),
+        int(client_right - 0.57 * client_width),
+        int(client_bottom - 0.13 * client_height),
     )
     text_locations["in_progress_box"] = (
-        int(win.left + 0.3 * win.width),
-        int(win.top + 0.75 * win.height),
-        int(win.right - 0.55 * win.width),
-        int(win.bottom - 0.15 * win.height),
+        int(client_left + 0.3 * client_width),
+        int(client_top + 0.75 * client_height),
+        int(client_right - 0.55 * client_width),
+        int(client_bottom - 0.15 * client_height),
     )
     text_locations["tap_to_continue"] = (
-        int(win.left + 0.4 * win.width),
-        int(win.top + 0.85 * win.height),
-        int(win.right - 0.4 * win.width),
-        int(win.bottom - 0.05 * win.height),
+        int(client_left + 0.4 * client_width),
+        int(client_top + 0.85 * client_height),
+        int(client_right - 0.4 * client_width),
+        int(client_bottom - 0.05 * client_height),
     )
     text_locations["host_difficulty"] = (
-        int(win.left + 0.73 * win.width),
-        int(win.top + 0.17 * win.height),
-        int(win.right - 0.22 * win.width),
-        int(win.bottom - 0.78 * win.height),
+        int(client_left + 0.73 * client_width),
+        int(client_top + 0.13 * client_height),
+        int(client_right - 0.18 * client_width),
+        int(client_bottom - 0.83 * client_height),
     )
     text_locations["host_decrement"] = (
-        int(win.left + 0.64 * win.width),
-        int(win.top + 0.19 * win.height),
+        int(client_left + 0.64 * client_width),
+        int(client_top + 0.19 * client_height),
     )
     text_locations["host_increment"] = (
-        int(win.left + 0.84 * win.width),
-        int(win.top + 0.19 * win.height),
+        int(client_left + 0.84 * client_width),
+        int(client_top + 0.19 * client_height),
     )
     text_locations["current_difficulty"] = (
-        int(win.left + 0.45 * win.width),
-        int(win.top + 0.08 * win.height),
-        int(win.right - 0.53 * win.width),
-        int(win.bottom - 0.87 * win.height),
+        int(client_left + 0.45 * client_width),
+        int(client_top + 0.08 * client_height),
+        int(client_right - 0.53 * client_width),
+        int(client_bottom - 0.87 * client_height),
     )
     text_locations["current_difficulty_single_digit"] = (
         text_locations["current_difficulty"][0] + 3,
@@ -814,62 +852,62 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         text_locations["current_difficulty"][3],
     )
     text_locations["crys_result_box"] = (
-        int(win.left + 0.65 * win.width),
-        int(win.top + 0.3 * win.height),
-        int(win.right - 0.15 * win.width),
-        int(win.bottom - 0.6 * win.height),
+        int(client_left + 0.65 * client_width),
+        int(client_top + 0.3 * client_height),
+        int(client_right - 0.15 * client_width),
+        int(client_bottom - 0.6 * client_height),
     )
     text_locations["crys_result_box2"] = (
-        int(win.left + 0.65 * win.width),
-        int(win.top + 0.1 * win.height),
-        int(win.right - 0.15 * win.width),
-        int(win.bottom - 0.8 * win.height),
+        int(client_left + 0.65 * client_width),
+        int(client_top + 0.1 * client_height),
+        int(client_right - 0.15 * client_width),
+        int(client_bottom - 0.8 * client_height),
     )
     text_locations["menu_button"] = (
-        int(win.left + 0.95 * win.width),
-        int(win.top + 0.08 * win.height),
+        int(client_left + 0.95 * client_width),
+        int(client_top + 0.08 * client_height),
     )
     text_locations["quests_button"] = (
-        int(win.left + 0.9 * win.width),
-        int(win.top + 0.8 * win.height),
+        int(client_left + 0.9 * client_width),
+        int(client_top + 0.8 * client_height),
     )
     text_locations["upgrade_button"] = (
-        int(win.left + 0.55 * win.width),
-        int(win.top + 0.3 * win.height),
+        int(client_left + 0.55 * client_width),
+        int(client_top + 0.3 * client_height),
     )
     text_locations["raid_button"] = (
-        int(win.left + 0.7 * win.width),
-        int(win.top + 0.3 * win.height),
+        int(client_left + 0.7 * client_width),
+        int(client_top + 0.3 * client_height),
     )
     text_locations["crys_button"] = (
-        int(win.left + 0.75 * win.width),
-        int(win.top + 0.5 * win.height),
+        int(client_left + 0.75 * client_width),
+        int(client_top + 0.5 * client_height),
     )
     text_locations["crys_flame_button"] = (
-        int(win.left + 0.1 * win.width),
-        int(win.top + 0.5 * win.height),
+        int(client_left + 0.1 * client_width),
+        int(client_top + 0.5 * client_height),
     )
     text_locations["crys_aqua_button"] = (
-        int(win.left + 0.25 * win.width),
-        int(win.top + 0.5 * win.height),
+        int(client_left + 0.25 * client_width),
+        int(client_top + 0.5 * client_height),
     )
     text_locations["crys_forest_button"] = (
-        int(win.left + 0.4 * win.width),
-        int(win.top + 0.5 * win.height),
+        int(client_left + 0.4 * client_width),
+        int(client_top + 0.5 * client_height),
     )
     text_locations["crys_light_button"] = (
-        int(win.left + 0.55 * win.width),
-        int(win.top + 0.5 * win.height),
+        int(client_left + 0.55 * client_width),
+        int(client_top + 0.5 * client_height),
     )
     text_locations["crys_dark_button"] = (
-        int(win.left + 0.7 * win.width),
-        int(win.top + 0.5 * win.height),
+        int(client_left + 0.7 * client_width),
+        int(client_top + 0.5 * client_height),
     )
     text_locations["crys_void_button"] = (
-        int(win.left + 0.85 * win.width),
-        int(win.top + 0.5 * win.height),
+        int(client_left + 0.85 * client_width),
+        int(client_top + 0.5 * client_height),
     )
-    text_locations["screen"] = (win.left, win.top, win.right, win.bottom)
+    text_locations["screen"] = (client_left, client_top, client_right, client_bottom)
 
     if DEBUG:
         img = ImageGrab.grab(text_locations["screen"])
@@ -877,10 +915,10 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         for name, coords in text_locations.items():
             if len(coords) == 4:
                 x1, y1, x2, y2 = coords
-                x1 -= win.left
-                x2 -= win.left
-                y1 -= win.top
-                y2 -= win.top
+                x1 -= client_left
+                x2 -= client_left
+                y1 -= client_top
+                y2 -= client_top
                 x = (x1 + x2) // 2
                 y = (y1 + y2) // 2
                 colour = "magenta"
@@ -889,8 +927,8 @@ The OCR has to 'see' the content of the game to determine what to do.""",
                 draw.rectangle((x1, y1, x2, y2), outline=colour, width=2)
             else:
                 x, y = coords
-                x -= win.left
-                y -= win.top
+                x -= client_left
+                y -= client_top
                 colour = "cyan"
                 if name.startswith("crys_"):
                     colour = "green"
