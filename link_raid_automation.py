@@ -493,19 +493,11 @@ class CurrentState(Enum):
 
 
 def current_state() -> CurrentState:
-    back_text = get_text_in_img(
-        "host_back_box"
-    )  # Do this fetch first to avoid race condition
-    if "1v1" in normalize_1(get_text_in_img("result_box")):
+    if "next" in get_text_in_img("next_box"):
         return CurrentState.RESULTS_SCREEN
 
     if "retry" in normalize_1(get_text_in_img("crys_retry_box")):
         return CurrentState.CRYS_RETRY_SCREEN
-
-    if "bta1ned" in normalize_1(
-        get_text_in_img("crys_result_box")
-    ) or "esu1t" in normalize_1(get_text_in_img("crys_result_box2")):
-        return CurrentState.CRYS_RESULTS_SCREEN
 
     if "batt1ehas" in normalize_1(get_text_in_img("battle_already_ended")):
         return CurrentState.BATTLE_ALREADY_ENDED
@@ -533,7 +525,7 @@ def current_state() -> CurrentState:
     if "back" in get_text_in_img("join_back_box"):
         return CurrentState.JOIN_BACK_SCREEN
 
-    if "back" in back_text:
+    if "back" in get_text_in_img("host_back_box"):
         return CurrentState.HOST_BACK_SCREEN
 
     text = normalize_1(get_text_in_img("party_box"))
@@ -601,12 +593,6 @@ The OCR has to 'see' the content of the game to determine what to do.""",
             exc_info=e,
         )
 
-    text_locations["result_box"] = (
-        int(client_left + 0.23 * client_width),
-        int(client_top + 0.785 * client_height),
-        int(client_right - 0.725 * client_width),
-        int(client_bottom - 0.172 * client_height),
-    )
     text_locations["scroll_bar"] = (
         int(client_left + 0.68 * client_width),
         int(client_top + 0.85 * client_height),
@@ -662,9 +648,9 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         int(client_bottom - 0.12 * client_height),
     )
     text_locations["crys_retry_box"] = (
-        int(client_left + 0.85 * client_width),
+        int(client_left + 0.87 * client_width),
         int(client_top + 0.81 * client_height),
-        int(client_right - 0.05 * client_width),
+        int(client_right - 0.06 * client_width),
         int(client_bottom - 0.12 * client_height),
     )
     text_locations["team_name"] = (
@@ -851,18 +837,6 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         text_locations["current_difficulty"][2] - 3,
         text_locations["current_difficulty"][3],
     )
-    text_locations["crys_result_box"] = (
-        int(client_left + 0.65 * client_width),
-        int(client_top + 0.3 * client_height),
-        int(client_right - 0.15 * client_width),
-        int(client_bottom - 0.6 * client_height),
-    )
-    text_locations["crys_result_box2"] = (
-        int(client_left + 0.65 * client_width),
-        int(client_top + 0.1 * client_height),
-        int(client_right - 0.15 * client_width),
-        int(client_bottom - 0.8 * client_height),
-    )
     text_locations["menu_button"] = (
         int(client_left + 0.95 * client_width),
         int(client_top + 0.08 * client_height),
@@ -906,6 +880,12 @@ The OCR has to 'see' the content of the game to determine what to do.""",
     text_locations["crys_void_button"] = (
         int(client_left + 0.85 * client_width),
         int(client_top + 0.5 * client_height),
+    )
+    text_locations["next_box"] = (
+        int(client_left + 0.95 * client_width),
+        int(client_top + 0.95 * client_height),
+        int(client_right),
+        int(client_bottom),
     )
     text_locations["screen"] = (client_left, client_top, client_right, client_bottom)
 
@@ -1037,8 +1017,8 @@ def main():
                 click(*text_locations["host_screen_button"])
             case CurrentState.RESULTS_SCREEN:
                 click(
-                    int(text_locations["result_box"][2]),
-                    int(text_locations["result_box"][3]),
+                    int(text_locations["join_back_box"][2]),
+                    int(text_locations["join_back_box"][3]),
                 )
             case CurrentState.CRYS_RETRY_SCREEN:
                 click(
@@ -1047,8 +1027,8 @@ def main():
                 )
             case CurrentState.CRYS_RESULTS_SCREEN:
                 click(
-                    int(text_locations["result_box"][2]),
-                    int(text_locations["result_box"][3]),
+                    int(text_locations["join_back_box"][2]),
+                    int(text_locations["join_back_box"][3]),
                 )
             case CurrentState.JOIN_BACK_SCREEN:
                 click(
@@ -1061,7 +1041,6 @@ def main():
                     int(text_locations["host_back_box"][0]),
                     int(text_locations["host_back_box"][1]),
                 )
-                pyautogui.sleep(2)
             case CurrentState.CONTINUE:
                 click(
                     int(text_locations["join_back_box"][0]),
