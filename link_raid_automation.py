@@ -189,6 +189,20 @@ community = {c for c in community if len(c) > 2}
 tessaract_whitelist = "--psm 6 -c tessedit_char_whitelist={}"
 
 
+def check_git_version_match():
+    git_version = get(
+        "https://api.github.com/repos/thefrozenfishy/exedra-link-raid-automation/releases/latest",
+        timeout=10,
+    )
+    if git_version.status_code == 200:
+        data = git_version.json()
+        version = data["tag_name"].lstrip("version-")
+        if f"v{version}" != __version__:
+            logger.warning(
+                "New version available: v%s, you are on %s", version, __version__
+            )
+
+
 def get_game_window():
     wins = pygetwindow.getWindowsWithTitle(TARGET_WINDOW)
     if not wins:
@@ -349,7 +363,7 @@ def start_play():
     if not difficulty.isdigit():
         difficulty = get_nrs_in_img("current_difficulty_single_digit")
     select_correct_team(
-        teams.get(int(difficulty) if difficulty.isdigit() else 0, default_team),
+        teams.get(int(difficulty) % 100 if difficulty.isdigit() else 0, default_team),
         is_crys=False,
     )
     click(*text_locations["play_button"])
@@ -497,6 +511,7 @@ class CurrentState(Enum):
     DAILY_BONUS_COUNTER = "DAILY_BONUS_COUNTER"
     DAILY_BONUS = "DAILY_BONUS"
     BATTLE_ALREADY_ENDED = "BATTLE_ALREADY_ENDED"
+    CURRENTLY_HOSTING_SCREEN = "CURRENTLY_HOSTING_SCREEN"
     EX_SCREEN = "EX_SCREEN"
     CONTINUE = "CONTINUE"
 
@@ -552,7 +567,7 @@ def current_state() -> CurrentState:
     if "p1ay" in text:
         if not DO_HOST:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
-        if "progress" in in_progress_text:
+        if "1n" in in_progress_text:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
         if "0" in text:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
@@ -566,6 +581,9 @@ def current_state() -> CurrentState:
 
     if "cont" in normalize_1(get_text_in_img("crys_ex_continue_box")):
         return CurrentState.EX_SCREEN
+
+    if "retreat" in get_text_in_img("retreat_box"):
+        return CurrentState.CURRENTLY_HOSTING_SCREEN
 
     return CurrentState.NO_ACTION
 
@@ -608,6 +626,12 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         int(client_top + 0.85 * client_height),
         int(client_right - 0.305 * client_width),
         int(client_bottom - 0.12 * client_height),
+    )
+    text_locations["retreat_box"] = (
+        int(client_left + 0.78 * client_width),
+        int(client_top + 0.83 * client_height),
+        int(client_right - 0.12 * client_width),
+        int(client_bottom - 0.1 * client_height),
     )
     text_locations["crys_ex_continue_box"] = (
         int(client_left + 0.75 * client_width),
@@ -838,7 +862,7 @@ The OCR has to 'see' the content of the game to determine what to do.""",
     text_locations["current_difficulty"] = (
         int(client_left + 0.45 * client_width),
         int(client_top + 0.04 * client_height),
-        int(client_right - 0.53 * client_width),
+        int(client_right - 0.525 * client_width),
         int(client_bottom - 0.91 * client_height),
     )
     text_locations["current_difficulty_single_digit"] = (
@@ -862,6 +886,10 @@ The OCR has to 'see' the content of the game to determine what to do.""",
     text_locations["raid_button"] = (
         int(client_left + 0.7 * client_width),
         int(client_top + 0.3 * client_height),
+    )
+    text_locations["hosting_back_button"] = (
+        int(client_left + 0.05 * client_width),
+        int(client_top + 0.05 * client_height),
     )
     text_locations["crys_button"] = (
         int(client_left + 0.75 * client_width),
@@ -940,6 +968,7 @@ def main():
     logger.info("Press Ctrl+Shift+Q to terminate the program.")
     logger.info("Press Ctrl+Shift+E to pause the program.")
     logger.debug("Current version %s", __version__)
+    check_git_version_match()
     while True:
         pyautogui.sleep(1)
         if not running:
@@ -1062,6 +1091,8 @@ def main():
                     int(text_locations["join_back_box"][0]),
                     int(text_locations["join_back_box"][1]),
                 )
+            case CurrentState.CURRENTLY_HOSTING_SCREEN:
+                click(*text_locations["hosting_back_button"])
             case CurrentState.DAILY_BONUS_COUNTER:
                 click(
                     int(text_locations["join_back_box"][0]),
