@@ -429,27 +429,24 @@ def is_scroll_at_bottom():
 
     _, _, v = colorsys.rgb_to_hsv(r, g, b)
     logger.debug("Scroll bar has v=%.2f", v)
-    return v > 0.3
+    return v >= 0.3
 
 
 def claim_battles():
-    scroll_is_at_bottom = False
     current_battles = get_nrs_in_img("joined_battles")
-    if current_battles.isdigit() and int(current_battles) <= 3:
-        scroll_is_at_bottom = True
-    i = 60
-    while not scroll_is_at_bottom and i > 0:
-        i -= 1
-        if "end" in get_text_in_img("join_button_box"):
-            click(*text_locations["join_button"])
-            return
+    if not (current_battles.isdigit() and int(current_battles) <= 3):
+        for _ in range(60):
+            if "end" in get_text_in_img("join_button_box"):
+                click(*text_locations["join_button"])
+                return
 
-        pydirectinput.click(*text_locations["scroll_location"])
-        pyautogui.scroll(-1)
-        pyautogui.scroll(-1)
-        pyautogui.scroll(-1)
+            pydirectinput.click(*text_locations["scroll_location"])
+            pyautogui.scroll(-1)
+            pyautogui.scroll(-1)
+            pyautogui.scroll(-1)
 
-        scroll_is_at_bottom = is_scroll_at_bottom()
+            if is_scroll_at_bottom():
+                break
 
     click(*text_locations["join_battles_tab"])
 
@@ -461,10 +458,7 @@ def start_join():
     if current_battles.isdigit() and int(current_battles) == 10:
         click(*text_locations["joined_battles_tab"])
         return
-    scroll_is_at_bottom = False
-    i = 60
-    while not scroll_is_at_bottom and i > 0:
-        i -= 1
+    for _ in range(60):
         valid_match = find_coords_for_eligable_difficulty()
         if valid_match:
             click(*text_locations["join_button"])
@@ -477,7 +471,8 @@ def start_join():
         pyautogui.scroll(-1)
         pyautogui.scroll(-1)
 
-        scroll_is_at_bottom = is_scroll_at_bottom()
+        if is_scroll_at_bottom():
+            break
 
     click(*text_locations["refresh_button"])
 
@@ -557,9 +552,11 @@ def current_state() -> CurrentState:
     if "p1ay" in text:
         if not DO_HOST:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
-        if "progress" not in in_progress_text and "06" not in text:
-            return CurrentState.HOME_SCREEN_CAN_HOST
-        return CurrentState.HOME_SCREEN_CANNOT_HOST
+        if "progress" in in_progress_text:
+            return CurrentState.HOME_SCREEN_CANNOT_HOST
+        if "0" in text:
+            return CurrentState.HOME_SCREEN_CANNOT_HOST
+        return CurrentState.HOME_SCREEN_CAN_HOST
 
     if "ob" in get_text_in_img("daily_reward_box", make_bw=True):
         return CurrentState.DAILY_BONUS
@@ -607,9 +604,9 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         )
 
     text_locations["scroll_bar"] = (
-        int(client_left + 0.68 * client_width),
+        int(client_left + 0.685 * client_width),
         int(client_top + 0.85 * client_height),
-        int(client_right - 0.31 * client_width),
+        int(client_right - 0.305 * client_width),
         int(client_bottom - 0.12 * client_height),
     )
     text_locations["crys_ex_continue_box"] = (
@@ -736,7 +733,7 @@ The OCR has to 'see' the content of the game to determine what to do.""",
     )
     text_locations["refresh_button"] = (
         int(client_left + 0.31 * client_width),
-        int(client_top + 0.09 * client_height),
+        int(client_top + 0.03 * client_height),
     )
     text_locations["join_screen_button"] = (
         int(client_left + 0.7 * client_width),
@@ -936,7 +933,9 @@ def main():
     setup_text_locations()
     logger.info("starting with config: %s", dict(ini_config["general"]))
     logger.info(
-        "Considering %d friends and %d community members", len(friends), len(community)
+        "Considering %s friends and %s community members",
+        len(friends) if JOIN_FRIENDS else "no",
+        len(community) if JOIN_COMMUNITY else "no",
     )
     logger.info("Press Ctrl+Shift+Q to terminate the program.")
     logger.info("Press Ctrl+Shift+E to pause the program.")
