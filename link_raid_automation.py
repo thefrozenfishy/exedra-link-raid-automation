@@ -359,12 +359,16 @@ def select_correct_team(team_name, is_crys):
 
 
 def start_play():
-    difficulty = get_nrs_in_img("current_difficulty")
-    if not difficulty.isdigit():
-        difficulty = get_nrs_in_img("current_difficulty_single_digit")
-    select_correct_team(
-        teams.get(int(difficulty) % 100 if difficulty.isdigit() else 0, default_team),
-        is_crys=False,
+    single_digit_diff = get_nrs_in_img("current_difficulty_single_digit")
+    multi_digit_diff = get_nrs_in_img("current_difficulty")
+    diff = 0
+    if single_digit_diff.isdigit() and int(single_digit_diff) < 10:
+        diff = int(single_digit_diff)
+    elif multi_digit_diff.isdigit() and int(multi_digit_diff) >= 10:
+        diff = int(multi_digit_diff) % 100
+    select_correct_team(teams.get(diff, default_team), is_crys=False)
+    logger.debug(
+        "Starting play at difficulty %d using %s", diff, teams.get(diff, default_team)
     )
     click(*text_locations["play_button"])
     for _ in range(10):
@@ -517,9 +521,6 @@ class CurrentState(Enum):
 
 
 def current_state() -> CurrentState:
-    if "next" in get_text_in_img("next_box"):
-        return CurrentState.RESULTS_SCREEN
-
     if "retry" in normalize_1(get_text_in_img("crys_retry_box")):
         return CurrentState.CRYS_RETRY_SCREEN
 
@@ -584,6 +585,9 @@ def current_state() -> CurrentState:
 
     if "retreat" in get_text_in_img("retreat_box"):
         return CurrentState.CURRENTLY_HOSTING_SCREEN
+
+    if "next" in get_text_in_img("next_box"):
+        return CurrentState.RESULTS_SCREEN
 
     return CurrentState.NO_ACTION
 
@@ -860,7 +864,7 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         int(client_top + 0.19 * client_height),
     )
     text_locations["current_difficulty"] = (
-        int(client_left + 0.45 * client_width),
+        int(client_left + 0.452 * client_width),
         int(client_top + 0.04 * client_height),
         int(client_right - 0.525 * client_width),
         int(client_bottom - 0.91 * client_height),
