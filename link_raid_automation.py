@@ -210,13 +210,15 @@ def get_game_window():
     return wins[0]
 
 
-def normalize_1(s: str) -> str:
+def normalize_1_and_0(s: str) -> str:
     return (
         s.replace("i", "1")
         .replace("I", "1")
         .replace("l", "1")
         .replace("]", "1")
         .replace("[", "1")
+        .replace("O", "0")
+        .replace("o", "0")
     )
 
 
@@ -246,8 +248,8 @@ def get_text_in_img(cords: str, config="", print_nr=None, make_bw=False) -> str:
 
 
 def get_nrs_in_img(cords: str) -> str:
-    return normalize_1(
-        get_text_in_img(cords, config=tessaract_whitelist.format("0123456789ilI"))
+    return normalize_1_and_0(
+        get_text_in_img(cords, config=tessaract_whitelist.format("0oO123456789ilI"))
     )
 
 
@@ -302,7 +304,7 @@ def find_coords_for_eligable_difficulty() -> bool:
     if 1 in eligable_nrs:
         eligable_nrs_str += "ilI"
     logger.debug("eligible NRs %s", eligable_nrs_str)
-    lvl = normalize_1(
+    lvl = normalize_1_and_0(
         get_text_in_img(
             "join_lvl",
             config=tessaract_whitelist.format("Lvl" + eligable_nrs_str),
@@ -389,7 +391,7 @@ def set_correct_host_difficulty():
         if 1 in eligable_nrs:
             eligable_nrs_str += "ilI]["
         logger.debug("eligible host NRs %s", eligable_nrs_str)
-        lvl = normalize_1(
+        lvl = normalize_1_and_0(
             get_text_in_img(
                 "host_difficulty",
                 config=tessaract_whitelist.format(eligable_nrs_str),
@@ -521,19 +523,27 @@ class CurrentState(Enum):
 
 
 def current_state() -> CurrentState:
-    if "retry" in normalize_1(get_text_in_img("crys_retry_box")):
+    if "1v1" in normalize_1_and_0(get_text_in_img("result_box")):
+        return CurrentState.RESULTS_SCREEN
+
+    if "retry" in normalize_1_and_0(get_text_in_img("crys_retry_box")):
         return CurrentState.CRYS_RETRY_SCREEN
 
-    if "batt1ehas" in normalize_1(get_text_in_img("battle_already_ended")):
+    if "bta1ned" in normalize_1_and_0(
+        get_text_in_img("crys_result_box")
+    ) or "esu1t" in normalize_1_and_0(get_text_in_img("crys_result_box2")):
+        return CurrentState.CRYS_RESULTS_SCREEN
+
+    if "batt1ehas" in normalize_1_and_0(get_text_in_img("battle_already_ended")):
         return CurrentState.BATTLE_ALREADY_ENDED
 
-    text = normalize_1(get_text_in_img("join_button_box"))
-    if "jo1n" in text:
+    text = normalize_1_and_0(get_text_in_img("join_button_box"))
+    if "j01n" in text:
         return CurrentState.JOIN_SCREEN
     if "etreat" in text or "ended" in text:
         return CurrentState.JOINED_BATTLES_SCREEN
 
-    text = normalize_1(get_text_in_img("daily_bonus_box"))
+    text = normalize_1_and_0(get_text_in_img("daily_bonus_box"))
     if "da11y" in text:
         if "r1ng" in text:
             return CurrentState.REFILL_LP
@@ -553,18 +563,18 @@ def current_state() -> CurrentState:
     if "back" in get_text_in_img("host_back_box"):
         return CurrentState.HOST_BACK_SCREEN
 
-    text = normalize_1(get_text_in_img("party_box"))
+    text = normalize_1_and_0(get_text_in_img("party_box"))
     if "party" in text:
         text2 = get_text_in_img("play_box")
         if "p1ay" in text2.lower():
             return CurrentState.PLAY_JOIN_SCREEN
         return CurrentState.PLAY_HOST_SCREEN
 
-    in_progress_text = normalize_1(get_text_in_img("in_progress_box"))
+    in_progress_text = normalize_1_and_0(get_text_in_img("in_progress_box"))
     if "v1ewresu1ts" in in_progress_text:
         return CurrentState.HOME_SCREEN_CAN_HOST
 
-    text = normalize_1(get_text_in_img("can_host_box"))
+    text = normalize_1_and_0(get_text_in_img("can_host_box"))
     if "p1ay" in text:
         if not DO_HOST:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
@@ -574,13 +584,13 @@ def current_state() -> CurrentState:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
         return CurrentState.HOME_SCREEN_CAN_HOST
 
-    if "ob" in get_text_in_img("daily_reward_box", make_bw=True):
+    if "0b" in get_text_in_img("daily_reward_box", make_bw=True):
         return CurrentState.DAILY_BONUS
 
-    if "cont1nue" in normalize_1(get_text_in_img("tap_to_continue")):
+    if "c0nt1nue" in normalize_1_and_0(get_text_in_img("tap_to_continue")):
         return CurrentState.CONTINUE
 
-    if "cont" in normalize_1(get_text_in_img("crys_ex_continue_box")):
+    if "c0nt" in normalize_1_and_0(get_text_in_img("crys_ex_continue_box")):
         return CurrentState.EX_SCREEN
 
     if "retreat" in get_text_in_img("retreat_box"):
@@ -625,6 +635,12 @@ The OCR has to 'see' the content of the game to determine what to do.""",
             exc_info=e,
         )
 
+    text_locations["result_box"] = (
+        int(client_left + 0.23 * client_width),
+        int(client_top + 0.785 * client_height),
+        int(client_right - 0.725 * client_width),
+        int(client_bottom - 0.172 * client_height),
+    )
     text_locations["scroll_bar"] = (
         int(client_left + 0.685 * client_width),
         int(client_top + 0.85 * client_height),
@@ -874,6 +890,18 @@ The OCR has to 'see' the content of the game to determine what to do.""",
         text_locations["current_difficulty"][1],
         text_locations["current_difficulty"][2] - 3,
         text_locations["current_difficulty"][3],
+    )
+    text_locations["crys_result_box"] = (
+        int(client_left + 0.65 * client_width),
+        int(client_top + 0.3 * client_height),
+        int(client_right - 0.15 * client_width),
+        int(client_bottom - 0.6 * client_height),
+    )
+    text_locations["crys_result_box2"] = (
+        int(client_left + 0.65 * client_width),
+        int(client_top + 0.1 * client_height),
+        int(client_right - 0.15 * client_width),
+        int(client_bottom - 0.8 * client_height),
     )
     text_locations["menu_button"] = (
         int(client_left + 0.95 * client_width),
