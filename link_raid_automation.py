@@ -611,7 +611,7 @@ def click(x: float | int, y: float | int):
     pyautogui.moveTo(curr)
 
 
-def setup_text_locations():
+def setup_text_locations(first_time: bool):
     win = get_game_window()
     hwnd = win._hWnd
     client_rect = win32gui.GetClientRect(hwnd)
@@ -625,15 +625,16 @@ def setup_text_locations():
 
     logger.debug("Client area resolution is %dx%d", client_width, client_height)
 
-    try:
-        win.activate()
-    except Exception as e:
-        logger.exception(
-            """Could not activate window!
-This is not a major issue, just be sure that no application is hiding Exedra from view. 
-The OCR has to 'see' the content of the game to determine what to do.""",
-            exc_info=e,
-        )
+    if first_time:
+        try:
+            win.activate()
+        except Exception as e:
+            logger.exception(
+                """Could not activate window!
+    This is not a major issue, just be sure that no application is hiding Exedra from view. 
+    The OCR has to 'see' the content of the game to determine what to do.""",
+                exc_info=e,
+            )
 
     text_locations["result_box"] = (
         int(client_left + 0.23 * client_width),
@@ -959,7 +960,7 @@ The OCR has to 'see' the content of the game to determine what to do.""",
     )
     text_locations["screen"] = (client_left, client_top, client_right, client_bottom)
 
-    if DEBUG:
+    if DEBUG and first_time:
         img = ImageGrab.grab(text_locations["screen"])
         draw = ImageDraw.Draw(img)
         for name, coords in text_locations.items():
@@ -990,7 +991,6 @@ The OCR has to 'see' the content of the game to determine what to do.""",
 
 
 def main():
-    setup_text_locations()
     logger.info("starting with config: %s", dict(ini_config["general"]))
     logger.info(
         "Considering %s friends and %s community members",
@@ -1001,10 +1001,14 @@ def main():
     logger.info("Press Ctrl+Shift+E to pause the program.")
     logger.debug("Current version %s", __version__)
     check_git_version_match()
+    i = 0
     while True:
         pyautogui.sleep(1)
         if not running:
             continue
+        if i % 10 == 0:
+            setup_text_locations(i == 0)
+        i += 1
         state = current_state()
         logger.info("Current State: %s", state.name)
         match state:
