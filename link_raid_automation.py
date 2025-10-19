@@ -759,9 +759,9 @@ The OCR has to 'see' the content of the game to determine what to do.""",
     )
     text_locations["joined_battles"] = (
         int(client_left + 0.54 * client_width),
-        int(client_top + 0.05 * client_height),
+        int(client_top + 0.02 * client_height),
         int(client_right - 0.43 * client_width),
-        int(client_bottom - 0.85 * client_height),
+        int(client_bottom - 0.92 * client_height),
     )
     text_locations["join_battles_tab"] = (
         int(client_left + 0.2 * client_width),
