@@ -136,9 +136,9 @@ running = True
 def toggle_running():
     global running
     if running:
-        logger.debug("Pausing")
+        logger.info("Pausing")
     else:
-        logger.debug("Resuming")
+        logger.info("Resuming")
     running = not running
 
 
