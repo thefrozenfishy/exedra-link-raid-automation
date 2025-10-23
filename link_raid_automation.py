@@ -584,7 +584,7 @@ def current_state() -> CurrentState:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
         return CurrentState.HOME_SCREEN_CAN_HOST
 
-    if "0b" in get_text_in_img("daily_reward_box", make_bw=True):
+    if "0b" in normalize_1_and_0(get_text_in_img("daily_reward_box", make_bw=True)):
         return CurrentState.DAILY_BONUS
 
     if "c0nt1nue" in normalize_1_and_0(get_text_in_img("tap_to_continue")):
@@ -880,10 +880,16 @@ def setup_text_locations(first_time: bool):
         int(client_left + 0.84 * client_width),
         int(client_top + 0.19 * client_height),
     )
+    # Spindle:
+    #  int(client_left + 0.452 * client_width),
+    #  int(client_right - 0.525 * client_width),
+    # Horse:
+    #  int(client_left + 0.387 * client_width),
+    #  int(client_right - 0.59 * client_width),
     text_locations["current_difficulty"] = (
-        int(client_left + 0.452 * client_width),
+        int(client_left + 0.387 * client_width),
         int(client_top + 0.04 * client_height),
-        int(client_right - 0.525 * client_width),
+        int(client_right - 0.59 * client_width),
         int(client_bottom - 0.91 * client_height),
     )
     text_locations["current_difficulty_single_digit"] = (
