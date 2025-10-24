@@ -2,7 +2,7 @@
 
 ## Requires
 
-* Tesseract OCR installed and added to PATH. <https://github.com/tesseract-ocr/tesseract/releases>
+* [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki) installed and added to PATH.
 
 ## Usage
 
