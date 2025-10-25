@@ -10,7 +10,8 @@
 * Download exe from releases and run. Keep in mind the window needs to be visible for the OCR to function properly, similar to the crys farm tool.
 * The file will run infinitely, hosting whenever able, otherwise joining the first battle it finds in your desired range.
 * Configure settings in `link-raid-automation-settings.ini`. This file is created automatically on first run with default settings.
-  * ``default_team`` Team name to use when doing Link Raid.
+  * ``default_team`` Team name to use when doing Link Raid. 
+    * Note: this _must_ match a team name you have. Do note that numbers and only small letters are more likely to be read wrong, prefer using capitalized words without numbers for the best experience.
   * ``join_diff`` for multiple difficulties to be chosen by writing e.g. "9-12" meaning 9 to 12 inclusive.  
   * ``auto_host`` Set this to true if you wish the game to automatically host games, false for the application to only join games.
   * ``host_diff`` Which difficulty you wish the game to host battles in.
@@ -34,6 +35,7 @@ The tool is able to swap between crys farming and link raids once running out of
 * ``swap_to_crys_farm_after_link_raid`` If you want the tool to swap to link raid once crys farming is done.
 * ``swap_to_link_raid_after_crys_farm`` If you want the tool to swap to crys farming once link raid is done.
 * ``team`` What team should be used in crys farm.
+  * Note: this _must_ match a team name you have. Do note that numbers and only small letters are more likely to be read wrong, prefer using capitalized words without numbers for the best experience.
 * ``element`` What element stage should be run in crys farm.
   * The valid elements are: ``flame``, ``aqua``, ``forest``, ``light``, ``dark`` and ``void``. 
 * ``refill_qp`` Use 8 cubes to refill QP daily.

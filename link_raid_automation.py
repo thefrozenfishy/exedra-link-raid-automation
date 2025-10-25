@@ -357,6 +357,8 @@ def select_correct_team(team_name, is_crys):
             return
         click(*text_locations["crys_next_team" if is_crys else "next_team"])
         pyautogui.sleep(0.2)
+
+    input(f'Your team "{team_name}" could not be found! Make sure it exists.')
     raise RuntimeError(f'Could not find team named "{team_name}"')
 
 
