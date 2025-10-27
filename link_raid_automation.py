@@ -186,7 +186,7 @@ else:
     community = []
 community = {c for c in community if len(c) > 2}
 
-tessaract_whitelist = "--psm 6 -c tessedit_char_whitelist={}"
+TESSARACT_WHITELIST = "--psm 6 -c tessedit_char_whitelist={}"
 
 
 def check_git_version_match():
@@ -249,7 +249,7 @@ def get_text_in_img(cords: str, config="", print_nr=None, make_bw=False) -> str:
 
 def get_nrs_in_img(cords: str) -> str:
     return normalize_1_and_0(
-        get_text_in_img(cords, config=tessaract_whitelist.format("0oO123456789ilI"))
+        get_text_in_img(cords, config=TESSARACT_WHITELIST.format("0oO123456789ilI"))
     )
 
 
@@ -307,7 +307,7 @@ def find_coords_for_eligable_difficulty() -> bool:
     lvl = normalize_1_and_0(
         get_text_in_img(
             "join_lvl",
-            config=tessaract_whitelist.format("Lvl" + eligable_nrs_str),
+            config=TESSARACT_WHITELIST.format("Lvl" + eligable_nrs_str),
             print_nr=join_nr,
         )
     )
@@ -396,7 +396,7 @@ def set_correct_host_difficulty():
         lvl = normalize_1_and_0(
             get_text_in_img(
                 "host_difficulty",
-                config=tessaract_whitelist.format(eligable_nrs_str),
+                config=TESSARACT_WHITELIST.format(eligable_nrs_str),
                 print_nr=join_nr,
             )
         )
@@ -586,19 +586,17 @@ def current_state() -> CurrentState:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
         return CurrentState.HOME_SCREEN_CAN_HOST
 
-    if "0b" in normalize_1_and_0(get_text_in_img("daily_reward_box", make_bw=True)):
-        return CurrentState.DAILY_BONUS
-
     if "c0nt1nue" in normalize_1_and_0(get_text_in_img("tap_to_continue")):
         return CurrentState.CONTINUE
-
-    if "c0nt" in normalize_1_and_0(get_text_in_img("crys_ex_continue_box")):
-        return CurrentState.EX_SCREEN
 
     if "retreat" in get_text_in_img("retreat_box"):
         return CurrentState.CURRENTLY_HOSTING_SCREEN
 
     if "next" in get_text_in_img("next_box"):
+        if "0b" in normalize_1_and_0(get_text_in_img("daily_reward_box", make_bw=True)):
+            return CurrentState.DAILY_BONUS
+        if "c0nt" in normalize_1_and_0(get_text_in_img("crys_ex_continue_box")):
+            return CurrentState.EX_SCREEN
         return CurrentState.RESULTS_SCREEN
 
     return CurrentState.NO_ACTION
