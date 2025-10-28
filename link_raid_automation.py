@@ -592,11 +592,12 @@ def current_state() -> CurrentState:
     if "retreat" in get_text_in_img("retreat_box"):
         return CurrentState.CURRENTLY_HOSTING_SCREEN
 
+    if "c0nt" in normalize_1_and_0(get_text_in_img("crys_ex_continue_box")):
+        return CurrentState.EX_SCREEN
+
     if "next" in get_text_in_img("next_box"):
         if "0b" in normalize_1_and_0(get_text_in_img("daily_reward_box", make_bw=True)):
             return CurrentState.DAILY_BONUS
-        if "c0nt" in normalize_1_and_0(get_text_in_img("crys_ex_continue_box")):
-            return CurrentState.EX_SCREEN
         return CurrentState.RESULTS_SCREEN
 
     return CurrentState.NO_ACTION
