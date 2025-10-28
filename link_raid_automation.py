@@ -596,7 +596,7 @@ def current_state() -> CurrentState:
         return CurrentState.EX_SCREEN
 
     if "next" in get_text_in_img("next_box"):
-        if "0b" in normalize_1_and_0(get_text_in_img("daily_reward_box", make_bw=True)):
+        if "c0nt1n" in normalize_1_and_0(get_text_in_img("join_back_box")):
             return CurrentState.DAILY_BONUS
         return CurrentState.RESULTS_SCREEN
 
@@ -678,12 +678,6 @@ def setup_text_locations(first_time: bool):
         int(client_top + 0.55 * client_height),
         int(client_right - 0.45 * client_width),
         int(client_bottom - 0.35 * client_height),
-    )
-    text_locations["daily_reward_box"] = (
-        int(client_left + 0.4 * client_width),
-        int(client_top + 0.28 * client_height),
-        int(client_right - 0.4 * client_width),
-        int(client_bottom - 0.62 * client_height),
     )
     text_locations["daily_reward_pic_box"] = (
         int(client_left + 0.35 * client_width),
