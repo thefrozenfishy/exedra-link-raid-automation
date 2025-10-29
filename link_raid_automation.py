@@ -804,20 +804,20 @@ def setup_text_locations(first_time: bool):
     text_locations["union_0"] = (
         int(client_left + 0.76 * client_width),
         int(client_top + 0.51 * client_height),
-        int(client_right - 0.18 * client_width),
-        int(client_bottom - 0.46 * client_height),
+        int(client_right - 0.175 * client_width),
+        int(client_bottom - 0.455 * client_height),
     )
     text_locations["union_1"] = (
         int(client_left + 0.76 * client_width),
         int(client_top + 0.60 * client_height),
-        int(client_right - 0.18 * client_width),
-        int(client_bottom - 0.37 * client_height),
+        int(client_right - 0.175 * client_width),
+        int(client_bottom - 0.365 * client_height),
     )
     text_locations["union_2"] = (
         int(client_left + 0.76 * client_width),
         int(client_top + 0.69 * client_height),
-        int(client_right - 0.18 * client_width),
-        int(client_bottom - 0.28 * client_height),
+        int(client_right - 0.175 * client_width),
+        int(client_bottom - 0.275 * client_height),
     )
     for i in range(3):
         text_locations[f"player_with_union_{i}"] = (
