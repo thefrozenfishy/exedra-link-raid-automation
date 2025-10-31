@@ -51,3 +51,5 @@ The tool is able to swap between crys farming and link raids once running out of
 * Host override
 * Ca matching on name (difflib)
 * First host of the day override
+* Make the tool report daily reward for reward probability calculations
+  
