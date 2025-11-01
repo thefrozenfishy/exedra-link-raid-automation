@@ -9,3 +9,4 @@ pyinstaller
 keyboard
 requests
 pywin32
+python-Levenshtein

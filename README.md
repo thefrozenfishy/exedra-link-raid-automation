@@ -27,6 +27,7 @@
   * ``only_join_friends_and_community`` Ignore all games that are not friends or community.
   * ``join_friends_and_community_max_difficulty`` The max difficulty to join friends and community stages in. Defaults to the highest difficulty given in ``join_diff``.
   * ``team_overrides`` If you for some difficulties wish to run other teams than ``default_team`` you can override it here.
+  * ``love_everyone`` ♥ everyone in your matches
 
 ### Crystalis farming
 
@@ -44,10 +45,3 @@ The tool is able to swap between crys farming and link raids once running out of
 ## Bug notes
 
 * The OCR is a bit touchy, so some actions like scrolling manually in the join list or various resolutions can mess things up. just changing screens will resolve any issue. I run Windowed 1024x576, so that's the best tested resolution.
-
-## TODOs
-
-* Love everyone mode! (Heart everyone if true, default true <3)
-* Host override
-* Ca matching on name (difflib)
-* First host of the day override

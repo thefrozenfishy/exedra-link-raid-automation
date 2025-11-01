@@ -4,6 +4,7 @@ import logging
 import os
 import re
 from datetime import datetime
+from difflib import SequenceMatcher
 from enum import Enum
 from pathlib import Path
 from random import random
@@ -16,6 +17,7 @@ import pydirectinput
 import pygetwindow
 import pytesseract
 import win32gui
+from Levenshtein import distance as lev_distance
 from PIL import Image, ImageDraw, ImageGrab
 from requests import get
 
@@ -40,6 +42,7 @@ defaults = {
     "join_community": "false",
     "only_join_friends_and_community": "false",
     "join_friends_and_community_max_difficulty": "",
+    "love_everyone": "true",
 }
 join_team_override_defaults = {str(i): "" for i in range(1, 21)}
 
@@ -96,6 +99,7 @@ if first_host_text.isdigit():
 else:
     FIRST_HOST_DIFF = HOST_DIFF
 
+DO_LOVE = ini_config.getboolean("general", "love_everyone")
 DO_HOST = ini_config.getboolean("general", "auto_host")
 DO_REFILL_LP = ini_config.getboolean("general", "refill_lp")
 LR_TO_CRYS_SWAP = ini_config.getboolean(
@@ -187,6 +191,19 @@ else:
 community = {c for c in community if len(c) > 2}
 
 TESSARACT_WHITELIST = "--psm 6 -c tessedit_char_whitelist={}"
+
+
+def is_close_name(name, candidates):
+    if len(name) < 3:
+        return False
+    for cand in candidates:
+        max_dist = 1 if len(cand) <= 7 else 2
+        if lev_distance(name, cand) > max_dist:
+            continue
+        if SequenceMatcher(None, name, cand).ratio() < 0.85:
+            continue
+        return True
+    return False
 
 
 def check_git_version_match():
@@ -336,10 +353,10 @@ def find_coords_for_eligable_difficulty() -> bool:
 
             if not username.strip():
                 break
-            if JOIN_FRIENDS and username in friends:
+            if JOIN_FRIENDS and is_close_name(username, friends):
                 logger.info("Joining friend %s", username)
                 return True
-            if JOIN_COMMUNITY and username in community:
+            if JOIN_COMMUNITY and is_close_name(username, community):
                 logger.info("Joining community member %s", username)
                 return True
     if ONLY_JOIN_FRIENDS_AND_COMMUNITY:
@@ -604,6 +621,14 @@ def current_state() -> CurrentState:
 
 
 text_locations = {}
+
+
+def love_everyone():
+    if not DO_LOVE:
+        return
+    for i in range(6):
+        click(*text_locations[f"love_button_{i}"])
+        pyautogui.sleep(2)
 
 
 def click(x: float | int, y: float | int):
@@ -953,6 +978,15 @@ def setup_text_locations(first_time: bool):
         int(client_left + 0.85 * client_width),
         int(client_top + 0.5 * client_height),
     )
+    for i in range(3):
+        text_locations[f"love_button_{i*2}"] = (
+            int(client_left + 0.47 * client_width),
+            int(client_top + (0.3 + 0.2 * i) * client_height),
+        )
+        text_locations[f"love_button_{i*2+1}"] = (
+            int(client_left + 0.93 * client_width),
+            int(client_top + (0.3 + 0.2 * i) * client_height),
+        )
     text_locations["next_box"] = (
         int(client_left + 0.95 * client_width),
         int(client_top + 0.95 * client_height),
@@ -1113,12 +1147,14 @@ def main():
                     int(text_locations["join_back_box"][3]),
                 )
             case CurrentState.JOIN_BACK_SCREEN:
+                love_everyone()
                 click(
                     int(text_locations["join_back_box"][0]),
                     int(text_locations["join_back_box"][1]),
                 )
                 pyautogui.sleep(2)
             case CurrentState.HOST_BACK_SCREEN:
+                love_everyone()
                 click(
                     int(text_locations["host_back_box"][0]),
                     int(text_locations["host_back_box"][1]),
