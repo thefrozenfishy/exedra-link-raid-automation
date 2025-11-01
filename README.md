@@ -45,3 +45,7 @@ The tool is able to swap between crys farming and link raids once running out of
 ## Bug notes
 
 * The OCR is a bit touchy, so some actions like scrolling manually in the join list or various resolutions can mess things up. just changing screens will resolve any issue. I run Windowed 1024x576, so that's the best tested resolution.
+
+## TODOs
+
+* Make the tool report daily reward for reward probability calculations
