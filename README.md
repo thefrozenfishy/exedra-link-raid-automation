@@ -27,7 +27,8 @@
   * ``only_join_friends_and_community`` Ignore all games that are not friends or community.
   * ``join_friends_and_community_max_difficulty`` The max difficulty to join friends and community stages in. Defaults to the highest difficulty given in ``join_diff``.
   * ``team_overrides`` If you for some difficulties wish to run other teams than ``default_team`` you can override it here.
-  * ``love_everyone`` ♥ everyone in your matches
+  * ``love_everyone`` ♥ everyone in your matches.
+  * ``automatically_turn_on_auto`` Turns on full auto if it detects the game is in manual, useful if you have a tendency to leave the script without checking if the game is actually doing anything.
 
 ### Crystalis farming
 

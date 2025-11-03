@@ -43,6 +43,7 @@ defaults = {
     "only_join_friends_and_community": "false",
     "join_friends_and_community_max_difficulty": "",
     "love_everyone": "true",
+    "automatically_turn_on_auto": "false",
 }
 join_team_override_defaults = {str(i): "" for i in range(1, 21)}
 
@@ -101,6 +102,7 @@ else:
 
 DO_LOVE = ini_config.getboolean("general", "love_everyone")
 DO_HOST = ini_config.getboolean("general", "auto_host")
+ENABLE_AUTO = ini_config.getboolean("general", "automatically_turn_on_auto")
 DO_REFILL_LP = ini_config.getboolean("general", "refill_lp")
 LR_TO_CRYS_SWAP = ini_config.getboolean(
     "crystalis", "swap_to_crys_farm_after_link_raid"
@@ -518,6 +520,7 @@ def start_join():
 
 class CurrentState(Enum):
     JOIN_SCREEN = "JOIN_SCREEN"
+    NO_JOINS_FOUND = "NO_JOINS_FOUND"
     JOINED_BATTLES_SCREEN = "JOINED_BATTLES_SCREEN"
     HOST_SCREEN = "HOST_SCREEN"
     HOME_SCREEN_CAN_HOST = "HOME_SCREEN_CAN_HOST"
@@ -538,6 +541,7 @@ class CurrentState(Enum):
     BATTLE_ALREADY_ENDED = "BATTLE_ALREADY_ENDED"
     CURRENTLY_HOSTING_SCREEN = "CURRENTLY_HOSTING_SCREEN"
     EX_SCREEN = "EX_SCREEN"
+    BATTLE_ON_MANUAL = "BATTLE_ON_MANUAL"
     CONTINUE = "CONTINUE"
 
 
@@ -617,6 +621,12 @@ def current_state() -> CurrentState:
             return CurrentState.DAILY_BONUS
         return CurrentState.RESULTS_SCREEN
 
+    if "backup" in get_text_in_img("no_join_available"):
+        return CurrentState.NO_JOINS_FOUND
+
+    if "au" in get_text_in_img("current_play_mode"):
+        return CurrentState.BATTLE_ON_MANUAL
+
     return CurrentState.NO_ACTION
 
 
@@ -629,6 +639,10 @@ def love_everyone():
     for i in range(6):
         click(*text_locations[f"love_button_{i}"])
         pyautogui.sleep(2)
+
+
+def click_box(x1: float | int, y1: float | int, x2: float | int, y2: float | int):
+    click((x1 + x2) / 2, (y1 + y2) / 2)
 
 
 def click(x: float | int, y: float | int):
@@ -826,6 +840,12 @@ def setup_text_locations(first_time: bool):
         int(client_right - 0.235 * client_width),
         int(client_bottom - 0.78 * client_height),
     )
+    text_locations["no_join_available"] = (
+        int(client_left + 0.5 * client_width),
+        int(client_top + 0.42 * client_height),
+        int(client_right - 0.3 * client_width),
+        int(client_bottom - 0.48 * client_height),
+    )
     text_locations["union_0"] = (
         int(client_left + 0.76 * client_width),
         int(client_top + 0.51 * client_height),
@@ -929,6 +949,12 @@ def setup_text_locations(first_time: bool):
         int(client_top + 0.1 * client_height),
         int(client_right - 0.15 * client_width),
         int(client_bottom - 0.8 * client_height),
+    )
+    text_locations["current_play_mode"] = (
+        int(client_left + 0.81 * client_width),
+        int(client_top + 0.03 * client_height),
+        int(client_right - 0.15 * client_width),
+        int(client_bottom - 0.9 * client_height),
     )
     text_locations["menu_button"] = (
         int(client_left + 0.95 * client_width),
@@ -1121,6 +1147,10 @@ def main():
                 click(*text_locations["battle_already_ended_ok"])
             case CurrentState.HOME_SCREEN_CANNOT_HOST:
                 click(*text_locations["join_screen_button"])
+            case CurrentState.BATTLE_ON_MANUAL:
+                if ENABLE_AUTO:
+                    click_box(*text_locations["current_play_mode"])
+                    click_box(*text_locations["current_play_mode"])
             case CurrentState.PLAY_JOIN_SCREEN:
                 logger.info("Joining a game...")
                 start_play()
@@ -1166,6 +1196,8 @@ def main():
                 )
             case CurrentState.CURRENTLY_HOSTING_SCREEN:
                 click(*text_locations["hosting_back_button"])
+            case CurrentState.NO_JOINS_FOUND:
+                click(*text_locations["refresh_button"])
             case CurrentState.DAILY_BONUS_COUNTER:
                 click(
                     int(text_locations["join_back_box"][0]),
