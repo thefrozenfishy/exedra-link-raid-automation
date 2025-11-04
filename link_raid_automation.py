@@ -638,7 +638,7 @@ def love_everyone():
         return
     for i in range(6):
         click(*text_locations[f"love_button_{i}"])
-        pyautogui.sleep(2)
+        pyautogui.sleep(2.5)
 
 
 def click_box(x1: float | int, y1: float | int, x2: float | int, y2: float | int):
