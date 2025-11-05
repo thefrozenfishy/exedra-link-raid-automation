@@ -8,7 +8,7 @@
 ## Usage
 
 * This assumes your game runs in 16:9 aspect ratio. I have not tested on emulator myself so do tell if it doesn't work
-* Download exe from releases and run. Keep in mind the window needs to be visible for the OCR to function properly, similar to the crys farm tool.
+* Download exe from [releases](https://github.com/thefrozenfishy/exedra-link-raid-automation/releases) and run. Keep in mind the window needs to be visible on the screen for the OCR to function properly.
 * The file will run infinitely, hosting whenever able, otherwise joining the first battle it finds in your desired range.
 * Configure settings in `link-raid-automation-settings.ini`. This file is created automatically on first run with default settings.
   * ``default_team`` Team name to use when doing Link Raid.
