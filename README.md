@@ -3,6 +3,7 @@
 ## Requires
 
 * [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki) installed and added to PATH.
+* Download the exe file of this tool from [releases](https://github.com/thefrozenfishy/exedra-link-raid-automation/releases)
 
 ## Usage
 
