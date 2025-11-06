@@ -926,10 +926,13 @@ def setup_text_locations(first_time: bool):
     # Horse:
     #  int(client_left + 0.387 * client_width),
     #  int(client_right - 0.59 * client_width),
+    # Wheel:
+    #  int(client_left + 0.36 * client_width),
+    #  int(client_right - 0.62 * client_width),
     text_locations["current_difficulty"] = (
-        int(client_left + 0.387 * client_width),
+        int(client_left + 0.36 * client_width),
         int(client_top + 0.04 * client_height),
-        int(client_right - 0.59 * client_width),
+        int(client_right - 0.62 * client_width),
         int(client_bottom - 0.91 * client_height),
     )
     text_locations["current_difficulty_single_digit"] = (
