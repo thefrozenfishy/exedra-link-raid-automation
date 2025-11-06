@@ -44,6 +44,7 @@ defaults = {
     "join_friends_and_community_max_difficulty": "",
     "love_everyone": "true",
     "automatically_turn_on_auto": "false",
+    "boss": "Wheel",
 }
 join_team_override_defaults = {str(i): "" for i in range(1, 21)}
 
@@ -120,6 +121,7 @@ CRYS_EX_SCREENSHOT = ini_config.getboolean("crystalis", "document_ex_drops")
 
 DAILY_SCREENSHOT = ini_config.getboolean("general", "document_daily_reward")
 TARGET_WINDOW = ini_config.get("general", "exe_name")
+CURRENT_BOSS = ini_config.get("general", "boss").strip().lower()
 
 JOIN_FRIENDS = ini_config.getboolean("general", "join_friends")
 JOIN_COMMUNITY = ini_config.getboolean("general", "join_community")
@@ -920,19 +922,24 @@ def setup_text_locations(first_time: bool):
         int(client_left + 0.84 * client_width),
         int(client_top + 0.19 * client_height),
     )
-    # Spindle:
-    #  int(client_left + 0.452 * client_width),
-    #  int(client_right - 0.525 * client_width),
-    # Horse:
-    #  int(client_left + 0.387 * client_width),
-    #  int(client_right - 0.59 * client_width),
-    # Wheel:
-    #  int(client_left + 0.36 * client_width),
-    #  int(client_right - 0.62 * client_width),
+    match CURRENT_BOSS:
+        case "spindle":
+            diff_left = 0.452
+            diff_right = 0.525
+        case "horse":
+            diff_left = 0.387
+            diff_right = 0.59
+        case "wheel":
+            diff_left = 0.36
+            diff_right = 0.62
+        case _:
+            logger.error("Unknown boss '%s', using Wheel coords", CURRENT_BOSS)
+            diff_left = 0.36
+            diff_right = 0.62
     text_locations["current_difficulty"] = (
-        int(client_left + 0.36 * client_width),
+        int(client_left + diff_left * client_width),
         int(client_top + 0.04 * client_height),
-        int(client_right - 0.62 * client_width),
+        int(client_right - diff_right * client_width),
         int(client_bottom - 0.91 * client_height),
     )
     text_locations["current_difficulty_single_digit"] = (
