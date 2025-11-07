@@ -150,8 +150,43 @@ def toggle_running():
     running = not running
 
 
+def take_debug_screencap():
+    client_left = text_locations["screen"][0]
+    client_top = text_locations["screen"][1]
+    img = ImageGrab.grab(text_locations["screen"])
+    draw = ImageDraw.Draw(img)
+    for name, coords in text_locations.items():
+        if len(coords) == 4:
+            x1, y1, x2, y2 = coords
+            x1 -= client_left
+            x2 -= client_left
+            y1 -= client_top
+            y2 -= client_top
+            x = (x1 + x2) // 2
+            y = (y1 + y2) // 2
+            colour = "magenta"
+            if name.startswith("crys_"):
+                colour = "green"
+            draw.rectangle((x1, y1, x2, y2), outline=colour, width=2)
+        else:
+            x, y = coords
+            x -= client_left
+            y -= client_top
+            colour = "cyan"
+            if name.startswith("crys_"):
+                colour = "green"
+            r = 5
+            draw.ellipse((x - r, y - r, x + r, y + r), outline=colour, width=10)
+
+        draw.text((x + 4, y + 4), name, fill=colour)
+    img.save("debug/full_screencap.png")
+
+    get_text_in_img("screen")
+
+
 keyboard.add_hotkey("ctrl+shift+q", lambda: os._exit(0))
 keyboard.add_hotkey("ctrl+shift+e", toggle_running)
+keyboard.add_hotkey("ctrl+shift+p", take_debug_screencap)
 
 log_formatter = logging.Formatter(
     "%(asctime)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S"
@@ -274,7 +309,7 @@ def get_nrs_in_img(cords: str) -> str:
     )
 
 
-def get_color_diff_range(offset: str) -> set[int]:
+def get_color_diff_range(offset: str) -> tuple[float, float, float]:
     mid_x = (
         text_locations[offset][0]
         + abs(text_locations[offset][0] - text_locations[offset][2]) // 2
@@ -297,10 +332,13 @@ def get_color_diff_range(offset: str) -> set[int]:
 
     h, s, v = colorsys.rgb_to_hsv(r, g, b)
     h *= 360
-
     if DEBUG:
         colour_img.save(f"debug/colour_img_{h:.0f}_{s:.2f}_{v:.2f}.png")
 
+    return h, s, v
+
+
+def translate_hsv_to_difficulty_range(h, s, v) -> set[int]:
     if 230 < h < 250 and s < 0.05:
         return set(range(17, 21))  # White
     if (30 < h < 70 and s < 0.15 and 0.65 > v > 0.35) or (
@@ -320,7 +358,7 @@ def get_color_diff_range(offset: str) -> set[int]:
 
 
 def find_coords_for_eligable_difficulty() -> bool:
-    eligable_nrs = get_color_diff_range("join_lvl")
+    eligable_nrs = translate_hsv_to_difficulty_range(*get_color_diff_range("join_lvl"))
     eligable_nrs_str = "".join(set("".join(map(str, eligable_nrs))))
     if 1 in eligable_nrs:
         eligable_nrs_str += "ilI"
@@ -409,7 +447,9 @@ def set_correct_host_difficulty():
     )
     lvl = ""
     for _ in range(60):
-        eligable_nrs = get_color_diff_range("host_difficulty")
+        eligable_nrs = translate_hsv_to_difficulty_range(
+            *get_color_diff_range("host_difficulty")
+        )
         eligable_nrs_str = "".join(set("".join(map(str, eligable_nrs))))
         if 1 in eligable_nrs:
             eligable_nrs_str += "ilI]["
@@ -536,6 +576,8 @@ class CurrentState(Enum):
     HOST_BACK_SCREEN = "HOST_BACK_SCREEN"
     PLAY_JOIN_SCREEN = "PLAY_JOIN_SCREEN"
     PLAY_HOST_SCREEN = "PLAY_HOST_SCREEN"
+    CRYS_SELECT_SCREEN = "CRYS_SELECT_SCREEN"
+    CRYS_TEAM_SELECT_SCREEN = "CRYS_TEAM_SELECT_SCREEN"
     REFILL_LP = "REFILL_LP"
     REFILL_QP = "REFILL_QP"
     DAILY_BONUS_COUNTER = "DAILY_BONUS_COUNTER"
@@ -626,7 +668,15 @@ def current_state() -> CurrentState:
     if "backup" in get_text_in_img("no_join_available"):
         return CurrentState.NO_JOINS_FOUND
 
-    if "au" in get_text_in_img("current_play_mode"):
+    if "rysta" in get_text_in_img("crys_quest_team_select"):
+        return CurrentState.CRYS_TEAM_SELECT_SCREEN
+
+    if "xtra" in get_text_in_img("crys_diff", make_bw=True):
+        return CurrentState.CRYS_SELECT_SCREEN
+
+    *_, v = get_color_diff_range("current_play_mode")
+    logger.debug("Current play mode v=%.2f", v)
+    if 0.38 < v < 0.4:
         return CurrentState.BATTLE_ON_MANUAL
 
     return CurrentState.NO_ACTION
@@ -683,6 +733,12 @@ def setup_text_locations(first_time: bool):
         int(client_top + 0.785 * client_height),
         int(client_right - 0.725 * client_width),
         int(client_bottom - 0.172 * client_height),
+    )
+    text_locations["crys_diff"] = (
+        int(client_left + 0.23 * client_width),
+        int(client_top + 0.825 * client_height),
+        int(client_right - 0.715 * client_width),
+        int(client_bottom - 0.13 * client_height),
     )
     text_locations["scroll_bar"] = (
         int(client_left + 0.685 * client_width),
@@ -960,11 +1016,17 @@ def setup_text_locations(first_time: bool):
         int(client_right - 0.15 * client_width),
         int(client_bottom - 0.8 * client_height),
     )
+    text_locations["crys_quest_team_select"] = (
+        int(client_left + 0.36 * client_width),
+        int(client_top + 0.04 * client_height),
+        int(client_right - 0.36 * client_width),
+        int(client_bottom - 0.91 * client_height),
+    )
     text_locations["current_play_mode"] = (
-        int(client_left + 0.81 * client_width),
-        int(client_top + 0.03 * client_height),
-        int(client_right - 0.15 * client_width),
-        int(client_bottom - 0.9 * client_height),
+        int(client_left + 0.83 * client_width),
+        int(client_top + 0.06 * client_height),
+        int(client_right - 0.165 * client_width),
+        int(client_bottom - 0.93 * client_height),
     )
     text_locations["menu_button"] = (
         int(client_left + 0.95 * client_width),
@@ -1032,33 +1094,7 @@ def setup_text_locations(first_time: bool):
     text_locations["screen"] = (client_left, client_top, client_right, client_bottom)
 
     if DEBUG and first_time:
-        img = ImageGrab.grab(text_locations["screen"])
-        draw = ImageDraw.Draw(img)
-        for name, coords in text_locations.items():
-            if len(coords) == 4:
-                x1, y1, x2, y2 = coords
-                x1 -= client_left
-                x2 -= client_left
-                y1 -= client_top
-                y2 -= client_top
-                x = (x1 + x2) // 2
-                y = (y1 + y2) // 2
-                colour = "magenta"
-                if name.startswith("crys_"):
-                    colour = "green"
-                draw.rectangle((x1, y1, x2, y2), outline=colour, width=2)
-            else:
-                x, y = coords
-                x -= client_left
-                y -= client_top
-                colour = "cyan"
-                if name.startswith("crys_"):
-                    colour = "green"
-                r = 5
-                draw.ellipse((x - r, y - r, x + r, y + r), outline=colour, width=10)
-
-            draw.text((x + 4, y + 4), name, fill=colour)
-        img.save("debug/full_screencap.png")
+        take_debug_screencap()
 
 
 def main():
@@ -1108,19 +1144,19 @@ def main():
                         click(*text_locations["upgrade_button"])
                         pyautogui.sleep(10)
                         click(*text_locations["crys_button"])
-                        pyautogui.sleep(1.5)
-                        click(*text_locations[f"crys_{CRYS_ELEMENT}_button"])
-                        pyautogui.sleep(0.5)
-                        select_correct_team(CRYS_TEAM, True)
-                        click(
-                            int(text_locations["join_back_box"][0]),
-                            int(text_locations["join_back_box"][1]),
-                        )
                     else:
                         logger.info(
                             "Out of LP, swapping to crys farming is disabled. Quitting"
                         )
                         return
+            case CurrentState.CRYS_SELECT_SCREEN:
+                click(*text_locations[f"crys_{CRYS_ELEMENT}_button"])
+            case CurrentState.CRYS_TEAM_SELECT_SCREEN:
+                select_correct_team(CRYS_TEAM, True)
+                click(
+                    int(text_locations["join_back_box"][0]),
+                    int(text_locations["join_back_box"][1]),
+                )
             case CurrentState.REFILL_QP:
                 if (
                     DO_REFILL_QP
