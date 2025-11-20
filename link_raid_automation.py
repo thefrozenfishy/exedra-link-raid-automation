@@ -278,7 +278,7 @@ def normalize_1_and_0(s: str) -> str:
     )
 
 
-def get_text_in_img(cords: str, config="", print_nr=None, make_bw=False) -> str:
+def get_text_in_img(cords: str, config="", make_bw=False) -> str:
     img = ImageGrab.grab(text_locations[cords])
     if make_bw:
         gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
@@ -295,11 +295,10 @@ def get_text_in_img(cords: str, config="", print_nr=None, make_bw=False) -> str:
         )
         raise e
     if DEBUG:
-        name = f"{cords}_{print_nr:03}" if print_nr else cords
-        img.save(f"debug/{name}.png")
+        img.save(f"debug/{cords}.png")
         if make_bw:
-            Image.fromarray(img_data).save(f"debug/{name}_bw.png")
-        logger.debug("%s > %s", name, data["text"])
+            Image.fromarray(img_data).save(f"debug/{cords}_bw.png")
+        logger.debug("%s > %s", cords, data["text"])
     return re.sub(r"[^A-Za-z0-9]", "", "".join(data["text"]).lower().replace(" ", ""))
 
 
@@ -332,8 +331,6 @@ def get_color_diff_range(offset: str) -> tuple[float, float, float]:
 
     h, s, v = colorsys.rgb_to_hsv(r, g, b)
     h *= 360
-    if DEBUG:
-        colour_img.save(f"debug/colour_img_{h:.0f}_{s:.2f}_{v:.2f}.png")
 
     return h, s, v
 
@@ -367,7 +364,6 @@ def find_coords_for_eligable_difficulty() -> bool:
         get_text_in_img(
             "join_lvl",
             config=TESSARACT_WHITELIST.format("Lvl" + eligable_nrs_str),
-            print_nr=join_nr,
         )
     )
     lvl = lvl.removeprefix("1v1").removeprefix(".")
@@ -458,7 +454,6 @@ def set_correct_host_difficulty():
             get_text_in_img(
                 "host_difficulty",
                 config=TESSARACT_WHITELIST.format(eligable_nrs_str),
-                print_nr=join_nr,
             )
         )
         if not lvl.isdigit():
@@ -632,7 +627,7 @@ def current_state() -> CurrentState:
 
     text = normalize_1_and_0(get_text_in_img("party_box"))
     if "party" in text:
-        text2 = get_text_in_img("play_box")
+        text2 = normalize_1_and_0(get_text_in_img("play_box"))
         if "p1ay" in text2.lower():
             return CurrentState.PLAY_JOIN_SCREEN
         return CurrentState.PLAY_HOST_SCREEN
@@ -979,6 +974,9 @@ def setup_text_locations(first_time: bool):
         int(client_top + 0.19 * client_height),
     )
     match CURRENT_BOSS:
+        case "sandbox":
+            diff_left = 0.45
+            diff_right = 0.53
         case "spindle":
             diff_left = 0.452
             diff_right = 0.525
