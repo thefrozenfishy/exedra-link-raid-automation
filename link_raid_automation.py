@@ -80,11 +80,13 @@ if DEBUG:
 
 default_team = ini_config.get("general", "default_team").replace(" ", "").lower()
 JOIN_DIFF = ini_config.get("general", "join_diff")
-if "-" in JOIN_DIFF:
-    start, end = map(int, JOIN_DIFF.split("-"))
-    LEVELS_TO_FIND = list(range(start, end + 1))
-else:
-    LEVELS_TO_FIND = [int(JOIN_DIFF)]
+LEVELS_TO_FIND = []
+for diffs in JOIN_DIFF.split(","):
+    if "-" in diffs:
+        start, end = map(int, diffs.split("-"))
+        LEVELS_TO_FIND += list(range(start, end + 1))
+    else:
+        LEVELS_TO_FIND.append(int(diffs))
 
 join_max_text: str = ini_config.get(
     "general", "join_friends_and_community_max_difficulty"
@@ -1096,7 +1098,10 @@ def setup_text_locations(first_time: bool):
 
 
 def main():
-    logger.info("starting with config: %s", dict(ini_config["general"]))
+    logger.info(
+        "starting with config: %s",
+        {**dict(ini_config["general"]), **{"lvls": str(LEVELS_TO_FIND)}},
+    )
     logger.info(
         "Considering %s friends and %s community members",
         len(friends) if JOIN_FRIENDS else "no",

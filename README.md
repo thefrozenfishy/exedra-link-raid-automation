@@ -13,7 +13,7 @@
 * Configure settings in `link-raid-automation-settings.ini`. This file is created automatically on first run with default settings.
   * ``default_team`` Team name to use when doing Link Raid.
     * Note: this _must_ match a team name you have. Do note that numbers and only small letters are more likely to be read wrong, prefer using capitalized words without numbers for the best experience.
-  * ``join_diff`` for multiple difficulties to be chosen by writing e.g. "9-12" meaning 9 to 12 inclusive.  
+  * ``join_diff`` for multiple difficulties to be chosen by writing e.g. "4,8-12" meaning 4 and 8 to 12 inclusive.  
   * ``auto_host`` Set this to true if you wish the game to automatically host games, false for the application to only join games.
   * ``host_diff`` Which difficulty you wish the game to host battles in.
   * ``first_host_of_the_day_diff`` If set the first host battle of the day will use this difficulty instead of ``host_diff``.
