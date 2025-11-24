@@ -333,6 +333,8 @@ def get_color_diff_range(offset: str) -> tuple[float, float, float]:
 
     h, s, v = colorsys.rgb_to_hsv(r, g, b)
     h *= 360
+    if DEBUG:
+        colour_img.save(f"debug/{offset}.png")
 
     return h, s, v
 
@@ -673,7 +675,7 @@ def current_state() -> CurrentState:
 
     *_, v = get_color_diff_range("current_play_mode")
     logger.debug("Current play mode v=%.2f", v)
-    if 0.38 < v < 0.4:
+    if 0.38 < v < 0.42:
         return CurrentState.BATTLE_ON_MANUAL
 
     return CurrentState.NO_ACTION
