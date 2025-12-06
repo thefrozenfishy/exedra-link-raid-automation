@@ -675,7 +675,7 @@ def current_state() -> CurrentState:
 
     *_, v = get_color_diff_range("current_play_mode")
     logger.debug("Current play mode v=%.2f", v)
-    if 0.38 < v < 0.45:
+    if 0.37 < v < 0.45:
         return CurrentState.BATTLE_ON_MANUAL
 
     return CurrentState.NO_ACTION
@@ -1178,6 +1178,12 @@ def main():
                         click(*text_locations["host_screen_button"])
                         pyautogui.sleep(0.5)
                         click(*text_locations["play_button"])
+                        pyautogui.sleep(0.5)
+                        click(*text_locations["hosting_back_button"])
+                        pyautogui.sleep(0.5)
+                        click(*text_locations["hosting_back_button"])
+                        pyautogui.sleep(0.5)
+                        click(*text_locations["hosting_back_button"])
                         pyautogui.sleep(5)
                         click(*text_locations["menu_button"])
                         pyautogui.sleep(0.5)
