@@ -584,6 +584,7 @@ class CurrentState(Enum):
     BATTLE_ALREADY_ENDED = "BATTLE_ALREADY_ENDED"
     CURRENTLY_HOSTING_SCREEN = "CURRENTLY_HOSTING_SCREEN"
     EX_SCREEN = "EX_SCREEN"
+    TOWER_NEXT_SCREEN = "TOWER_NEXT_SCREEN"
     BATTLE_ON_MANUAL = "BATTLE_ON_MANUAL"
     CONTINUE = "CONTINUE"
 
@@ -606,6 +607,8 @@ def current_state() -> CurrentState:
     text = normalize_1_and_0(get_text_in_img("join_button_box"))
     if "j01n" in text:
         return CurrentState.JOIN_SCREEN
+    if "next" in text:
+        return CurrentState.TOWER_NEXT_SCREEN
     if "etreat" in text or "ended" in text:
         return CurrentState.JOINED_BATTLES_SCREEN
 
@@ -1161,6 +1164,11 @@ def main():
                 click(
                     int(text_locations["join_back_box"][0]),
                     int(text_locations["join_back_box"][1]),
+                )
+            case CurrentState.TOWER_NEXT_SCREEN:
+                click(
+                    int(text_locations["join_button_box"][0]),
+                    int(text_locations["join_button_box"][1]),
                 )
             case CurrentState.REFILL_QP:
                 if (
