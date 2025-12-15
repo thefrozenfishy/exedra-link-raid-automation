@@ -582,6 +582,7 @@ class CurrentState(Enum):
     DAILY_BONUS_COUNTER = "DAILY_BONUS_COUNTER"
     DAILY_BONUS = "DAILY_BONUS"
     BATTLE_ALREADY_ENDED = "BATTLE_ALREADY_ENDED"
+    CONNECTION_ISSUE = "CONNECTION_ISSUE"
     CURRENTLY_HOSTING_SCREEN = "CURRENTLY_HOSTING_SCREEN"
     EX_SCREEN = "EX_SCREEN"
     TOWER_NEXT_SCREEN = "TOWER_NEXT_SCREEN"
@@ -601,8 +602,11 @@ def current_state() -> CurrentState:
     ) or "esu1t" in normalize_1_and_0(get_text_in_img("crys_result_box2")):
         return CurrentState.CRYS_RESULTS_SCREEN
 
-    if "batt1ehas" in normalize_1_and_0(get_text_in_img("battle_already_ended")):
+    error_msg = normalize_1_and_0(get_text_in_img("battle_already_ended"))
+    if "batt1ehas" in error_msg:
         return CurrentState.BATTLE_ALREADY_ENDED
+    if "err0r" in error_msg:
+        return CurrentState.CONNECTION_ISSUE
 
     text = normalize_1_and_0(get_text_in_img("join_button_box"))
     if "j01n" in text:
@@ -1209,6 +1213,8 @@ def main():
             case CurrentState.HOME_SCREEN_CAN_HOST:
                 click(*text_locations["host_screen_button"])
             case CurrentState.BATTLE_ALREADY_ENDED:
+                click(*text_locations["battle_already_ended_ok"])
+            case CurrentState.CONNECTION_ISSUE:
                 click(*text_locations["battle_already_ended_ok"])
             case CurrentState.HOME_SCREEN_CANNOT_HOST:
                 click(*text_locations["join_screen_button"])
