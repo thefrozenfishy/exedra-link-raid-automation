@@ -592,6 +592,7 @@ class CurrentState(Enum):
     PLAY_HOST_SCREEN = "PLAY_HOST_SCREEN"
     CRYS_SELECT_SCREEN = "CRYS_SELECT_SCREEN"
     CRYS_TEAM_SELECT_SCREEN = "CRYS_TEAM_SELECT_SCREEN"
+    CRYS_FARM_FAILED_SCREEN = "CRYS_FARM_FAILED_SCREEN"
     REFILL_LP = "REFILL_LP"
     REFILL_QP = "REFILL_QP"
     DAILY_BONUS_COUNTER = "DAILY_BONUS_COUNTER"
@@ -694,6 +695,9 @@ def current_state() -> CurrentState:
 
     if "xtra" in get_text_in_img("crys_diff", make_bw=True):
         return CurrentState.CRYS_SELECT_SCREEN
+
+    if "tra1n1ng" in normalize_1_and_0(get_text_in_img("crys_result_box")):
+        return CurrentState.CRYS_FARM_FAILED_SCREEN
 
     *_, v = get_color_diff_range("current_play_mode")
     logger.debug("Current play mode v=%.2f", v)
@@ -1179,6 +1183,8 @@ def main():
                         return
             case CurrentState.CRYS_SELECT_SCREEN:
                 click(*text_locations[f"crys_{CRYS_ELEMENT}_button"])
+            case CurrentState.CRYS_FARM_FAILED_SCREEN:
+                click(*text_locations["host_screen_button"])
             case CurrentState.CRYS_TEAM_SELECT_SCREEN:
                 select_correct_team(CRYS_TEAM, True)
                 click(
@@ -1224,8 +1230,12 @@ def main():
                         )
                         return
             case CurrentState.HOST_SCREEN:
-                set_correct_host_difficulty()
-                click(*text_locations["host_button"])
+                *_, v = get_color_diff_range("scroll_bar")
+                if v < 0.7:
+                    click(*text_locations["hosting_back_button"])
+                else:
+                    set_correct_host_difficulty()
+                    click(*text_locations["host_button"])
             case CurrentState.HOME_SCREEN_CAN_HOST:
                 click(*text_locations["host_screen_button"])
             case CurrentState.BATTLE_ALREADY_ENDED:
