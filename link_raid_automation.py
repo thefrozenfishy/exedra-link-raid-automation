@@ -39,6 +39,7 @@ defaults = {
     "refill_lp": "false",
     "exe_name": "MadokaExedra",
     "join_friends": "false",
+    "ignore_hates": "false",
     "join_community": "false",
     "only_join_friends_and_community": "false",
     "join_friends_and_community_max_difficulty": "",
@@ -126,6 +127,7 @@ TARGET_WINDOW = ini_config.get("general", "exe_name")
 CURRENT_BOSS = ini_config.get("general", "boss").strip().lower()
 
 JOIN_FRIENDS = ini_config.getboolean("general", "join_friends")
+IGNORE_HATES = ini_config.getboolean("general", "ignore_hates")
 JOIN_COMMUNITY = ini_config.getboolean("general", "join_community")
 ONLY_JOIN_FRIENDS_AND_COMMUNITY = ini_config.getboolean(
     "general", "only_join_friends_and_community"
@@ -217,6 +219,16 @@ friends = [
     for f in friend_file.read_text(encoding="utf-8").split("\n")
 ]
 friends = {f for f in friends if len(f) > 2}
+HATES_FILE = "hates.txt"
+hates_file = Path(HATES_FILE)
+hates_file.touch(exist_ok=True)
+hates = [
+    re.sub(r"[^A-Za-z0-9]", "", f.lower().replace(" ", ""))
+    for f in hates_file.read_text(encoding="utf-8").split("\n")
+]
+print("WHAT", hates)
+hates = {f for f in hates if len(f) > 2}
+print("HJUH", hates)
 resp = get(
     "https://raw.githubusercontent.com/thefrozenfishy/exedra-link-raid-automation/main/community.txt",
     timeout=3,
@@ -379,9 +391,9 @@ def find_coords_for_eligable_difficulty() -> bool:
     if lvl not in eligable_nrs and lvl - 10 in eligable_nrs:
         lvl -= 10
     logger.debug("Found lvl %d", lvl)
-    if JOIN_MAX_DIFFICULTY < lvl:
+    if JOIN_MAX_DIFFICULTY < lvl and lvl not in LEVELS_TO_FIND:
         return False
-    if JOIN_FRIENDS or JOIN_COMMUNITY:
+    if JOIN_FRIENDS or JOIN_COMMUNITY or IGNORE_HATES:
         for i in range(3):
             is_union = "union" in get_text_in_img(f"union_{i}").lower()
             if is_union and JOIN_FRIENDS:
@@ -401,6 +413,9 @@ def find_coords_for_eligable_difficulty() -> bool:
             if JOIN_COMMUNITY and is_close_name(username, community):
                 logger.info("Joining community member %s", username)
                 return True
+            if IGNORE_HATES and is_close_name(username, hates):
+                logger.info("Ignoring hate %s", username)
+                return False
     if ONLY_JOIN_FRIENDS_AND_COMMUNITY:
         return False
     if lvl in LEVELS_TO_FIND:
@@ -1112,8 +1127,9 @@ def main():
         {**dict(ini_config["general"]), **{"lvls": str(LEVELS_TO_FIND)}},
     )
     logger.info(
-        "Considering %s friends and %s community members",
+        "Considering %s friends, %s hates and %s community members",
         len(friends) if JOIN_FRIENDS else "no",
+        len(hates) if IGNORE_HATES else "no",
         len(community) if JOIN_COMMUNITY else "no",
     )
     logger.info("Press Ctrl+Shift+Q to terminate the program.")

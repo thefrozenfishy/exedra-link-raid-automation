@@ -21,12 +21,13 @@
   * ``refill_lp`` Use 3 rings to refill LP daily.
   * ``document_daily_reward`` Take screenshot of the daily reward.
   * ``exe_name`` is the name of the exe as shown in task manager. Change if you renamed the exe or are using an emulator.
-  * ``join_friends`` Enable this to always join games where any of the top 3 players in a raid are in your local friends.txt file or your union, given that the difficulty is below ``join_friends_and_community_max_difficulty``.
+  * ``join_friends`` Enable this to always join games where any of the top 3 players in a raid are in your local ``friends.txt`` file or your union, given that the difficulty is below.
     * Top 3 players shows are sorted alphabetically
   * ``join_community`` Enable this to always join games where any of the top 3 players in a raid are in the [community file](https://github.com/thefrozenfishy/exedra-link-raid-automation/blob/main/community.txt), given that the difficulty is below ``join_friends_and_community_max_difficulty``.
     * Add yourself to the [community list](https://thefrozenfishy.github.io/exedra-dmg-calc/#/link-raid) using this form.
   * ``only_join_friends_and_community`` Ignore all games that are not friends or community.
   * ``join_friends_and_community_max_difficulty`` The max difficulty to join friends and community stages in. Defaults to the highest difficulty given in ``join_diff``.
+  * ``ignore_hates`` Enable this to ignore games where any of the top 3 players in a raid are in your local ``hates.txt`` file as long as a friend or community member isn't in the game.
   * ``team_overrides`` If you for some difficulties wish to run other teams than ``default_team`` you can override it here.
   * ``love_everyone`` ♥ everyone in your matches.
   * ``automatically_turn_on_auto`` Turns on full auto if it detects the game is in manual, useful if you have a tendency to leave the script without checking if the game is actually doing anything.
