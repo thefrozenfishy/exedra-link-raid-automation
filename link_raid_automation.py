@@ -226,9 +226,7 @@ hates = [
     re.sub(r"[^A-Za-z0-9]", "", f.lower().replace(" ", ""))
     for f in hates_file.read_text(encoding="utf-8").split("\n")
 ]
-print("WHAT", hates)
 hates = {f for f in hates if len(f) > 2}
-print("HJUH", hates)
 resp = get(
     "https://raw.githubusercontent.com/thefrozenfishy/exedra-link-raid-automation/main/community.txt",
     timeout=3,
@@ -1230,8 +1228,8 @@ def main():
                         )
                         return
             case CurrentState.HOST_SCREEN:
-                *_, v = get_color_diff_range("scroll_bar")
-                if v < 0.7:
+                *_, v = get_color_diff_range("games_until_daily_bonus")
+                if 0.2 < v < 0.4:
                     click(*text_locations["hosting_back_button"])
                 else:
                     set_correct_host_difficulty()
