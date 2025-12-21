@@ -1185,10 +1185,7 @@ def main():
                 click(*text_locations["host_screen_button"])
             case CurrentState.CRYS_TEAM_SELECT_SCREEN:
                 select_correct_team(CRYS_TEAM, True)
-                click(
-                    int(text_locations["join_back_box"][0]),
-                    int(text_locations["join_back_box"][1]),
-                )
+                click(*text_locations["play_button"])
             case CurrentState.TOWER_NEXT_SCREEN:
                 click(
                     int(text_locations["join_button_box"][0]),
