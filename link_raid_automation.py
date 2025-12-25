@@ -459,7 +459,7 @@ def set_correct_host_difficulty():
         else HOST_DIFF
     )
     lvl = ""
-    for _ in range(60):
+    for _ in range(19):
         eligable_nrs = translate_hsv_to_difficulty_range(
             *get_color_diff_range("host_difficulty")
         )
@@ -473,38 +473,12 @@ def set_correct_host_difficulty():
                 config=TESSARACT_WHITELIST.format(eligable_nrs_str),
             )
         )
-        if not lvl.isdigit():
-            click(
-                *(
-                    text_locations[
-                        "host_decrement" if random() > 0.5 else "host_increment"
-                    ]
-                )
-            )
-            continue
-        lvl = int(lvl)
-        if lvl not in eligable_nrs and lvl + 10 in eligable_nrs:
-            lvl += 10
-        if lvl not in eligable_nrs and lvl - 10 in eligable_nrs:
-            lvl -= 10
-        if lvl < target_diff:
-            click(*text_locations["host_increment"])
-        elif lvl > target_diff:
-            click(*text_locations["host_decrement"])
-        else:
-            break
-    if not lvl:
-        lvl = 0
-    if int(lvl) != target_diff:
-        logging.error(
-            "Could not set correct host difficulty, found %d but wanted %d",
-            lvl,
-            target_diff,
-        )
-        raise ValueError("Could not set correct host difficulty")
-
-
-join_nr = 1
+        if lvl.isdigit() and int(lvl) == target_diff:
+            return
+        click(*text_locations["host_decrement"])
+    pyautogui.sleep(3)
+    for _ in range(target_diff - 1):
+        click(*text_locations["host_increment"])
 
 
 def is_scroll_at_bottom():
@@ -547,8 +521,6 @@ def claim_battles():
 
 
 def start_join():
-    global join_nr
-
     current_battles = get_nrs_in_img("joined_battles")
     if current_battles.isdigit() and int(current_battles) == 10:
         click(*text_locations["joined_battles_tab"])
@@ -558,7 +530,6 @@ def start_join():
         if valid_match:
             click(*text_locations["join_button"])
             pyautogui.sleep(2)
-            join_nr += 1
             return
 
         pydirectinput.click(*text_locations["scroll_location"])
