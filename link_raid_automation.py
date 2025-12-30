@@ -670,7 +670,9 @@ def current_state() -> CurrentState:
 
     *_, v = get_color_diff_range("current_play_mode")
     logger.debug("Current play mode v=%.2f", v)
-    if 0.37 < v < 0.45:
+    if 0.37 < v < 0.45 and "aut" in normalize_1_and_0(
+        get_text_in_img("current_play_mode")
+    ):
         return CurrentState.BATTLE_ON_MANUAL
 
     return CurrentState.NO_ACTION
@@ -1020,10 +1022,10 @@ def setup_text_locations(first_time: bool):
         int(client_bottom - 0.91 * client_height),
     )
     text_locations["current_play_mode"] = (
-        int(client_left + 0.83 * client_width),
-        int(client_top + 0.06 * client_height),
-        int(client_right - 0.165 * client_width),
-        int(client_bottom - 0.93 * client_height),
+        int(client_left + 0.816 * client_width),
+        int(client_top + 0.05 * client_height),
+        int(client_right - 0.152 * client_width),
+        int(client_bottom - 0.915 * client_height),
     )
     text_locations["menu_button"] = (
         int(client_left + 0.95 * client_width),
