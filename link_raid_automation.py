@@ -670,7 +670,7 @@ def current_state() -> CurrentState:
 
     *_, v = get_color_diff_range("current_play_mode")
     logger.debug("Current play mode v=%.2f", v)
-    if 0.37 < v < 0.45 and "aut" in normalize_1_and_0(
+    if 0.3 < v < 0.6 and "aut" in normalize_1_and_0(
         get_text_in_img("current_play_mode")
     ):
         return CurrentState.BATTLE_ON_MANUAL
