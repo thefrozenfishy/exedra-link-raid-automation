@@ -53,6 +53,7 @@ crys_defaults = {
     "swap_to_crys_farm_after_link_raid": "true",
     "swap_to_link_raid_after_crys_farm": "true",
     "document_ex_drops": "true",
+    "document_gold_drops": "true",
     "team": "Crys Farm",
     "element": "aqua",
     "refill_qp": "false",
@@ -121,6 +122,7 @@ if CRYS_ELEMENT not in valid_elements:
     input(f"ERROR: element must be one of {', '.join(valid_elements)}")
 DO_REFILL_QP = ini_config.getboolean("crystalis", "refill_qp")
 CRYS_EX_SCREENSHOT = ini_config.getboolean("crystalis", "document_ex_drops")
+CRYS_GOLD_SCREENSHOT = ini_config.getboolean("crystalis", "document_gold_drops")
 
 DAILY_SCREENSHOT = ini_config.getboolean("general", "document_daily_reward")
 TARGET_WINDOW = ini_config.get("general", "exe_name")
@@ -699,6 +701,17 @@ def click(x: float | int, y: float | int):
     pyautogui.moveTo(curr)
 
 
+def has_gold_crys_drop():
+    for i in range(5):
+        colour_img = ImageGrab.grab(text_locations[f"crys_obtain_box_{i}"])
+        arr = np.array(colour_img).astype(float) / 255.0
+        avg_rgb = arr.mean(axis=(0, 1))  # [R, G, B] normalized
+        r, g, b = avg_rgb
+        if g > 0.5:
+            return True
+    return False
+
+
 def setup_text_locations(first_time: bool):
     win = get_game_window()
     hwnd = win._hWnd
@@ -1015,6 +1028,13 @@ def setup_text_locations(first_time: bool):
         int(client_right - 0.15 * client_width),
         int(client_bottom - 0.8 * client_height),
     )
+    for i in range(5):
+        text_locations[f"crys_obtain_box_{i}"] = (
+            int(client_left + 0.62 * client_width),
+            int(client_top + (0.73 - 0.125 * i) * client_height),
+            int(client_right - 0.35 * client_width),
+            int(client_bottom - (0.22 + 0.125 * i) * client_height),
+        )
     text_locations["crys_quest_team_select"] = (
         int(client_left + 0.36 * client_width),
         int(client_top + 0.04 * client_height),
@@ -1227,6 +1247,12 @@ def main():
             case CurrentState.CRYS_FAILED:
                 click(*text_locations["host_screen_button"])
             case CurrentState.RESULTS_SCREEN:
+                if CRYS_GOLD_SCREENSHOT and has_gold_crys_drop():
+                    img = ImageGrab.grab(text_locations["screen"])
+                    os.makedirs("gold_drops", exist_ok=True)
+                    img.save(
+                        f"gold_drops/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')}.png"
+                    )
                 click(
                     int(text_locations["join_back_box"][2]),
                     int(text_locations["join_back_box"][3]),
