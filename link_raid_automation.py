@@ -707,7 +707,8 @@ def has_gold_crys_drop():
         arr = np.array(colour_img).astype(float) / 255.0
         avg_rgb = arr.mean(axis=(0, 1))  # [R, G, B] normalized
         r, g, b = avg_rgb
-        if g > 0.5:
+        h, s, v = colorsys.rgb_to_hsv(r, g, b)
+        if 0.65 > g > 0.55:
             return True
     return False
 
@@ -1247,12 +1248,14 @@ def main():
             case CurrentState.CRYS_FAILED:
                 click(*text_locations["host_screen_button"])
             case CurrentState.RESULTS_SCREEN:
-                if CRYS_GOLD_SCREENSHOT and has_gold_crys_drop():
-                    img = ImageGrab.grab(text_locations["screen"])
-                    os.makedirs("gold_drops", exist_ok=True)
-                    img.save(
-                        f"gold_drops/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')}.png"
-                    )
+                if CRYS_GOLD_SCREENSHOT:
+                    pyautogui.sleep(1)  # Allow crys animation to play out
+                    if has_gold_crys_drop():
+                        img = ImageGrab.grab(text_locations["screen"])
+                        os.makedirs("gold_drops", exist_ok=True)
+                        img.save(
+                            f"gold_drops/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')}.png"
+                        )
                 click(
                     int(text_locations["join_back_box"][2]),
                     int(text_locations["join_back_box"][3]),
