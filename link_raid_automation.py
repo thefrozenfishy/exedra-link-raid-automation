@@ -548,6 +548,7 @@ def start_join():
 class CurrentState(Enum):
     JOIN_SCREEN = "JOIN_SCREEN"
     NO_JOINS_FOUND = "NO_JOINS_FOUND"
+    FAILED_TO_JOIN = "FAILED_TO_JOIN"
     JOINED_BATTLES_SCREEN = "JOINED_BATTLES_SCREEN"
     HOST_SCREEN = "HOST_SCREEN"
     HOME_SCREEN_CAN_HOST = "HOME_SCREEN_CAN_HOST"
@@ -658,8 +659,12 @@ def current_state() -> CurrentState:
             return CurrentState.DAILY_BONUS
         return CurrentState.RESULTS_SCREEN
 
-    if "backup" in get_text_in_img("no_join_available"):
+    no_join_text = normalize_1_and_0(get_text_in_img("no_join_available"))
+    if "backup" in no_join_text:
         return CurrentState.NO_JOINS_FOUND
+
+    if "tryaga1n" in no_join_text:
+        return CurrentState.FAILED_TO_JOIN
 
     if "rysta" in get_text_in_img("crys_quest_team_select"):
         return CurrentState.CRYS_TEAM_SELECT_SCREEN
@@ -1292,6 +1297,8 @@ def main():
                 click(*text_locations["hosting_back_button"])
             case CurrentState.NO_JOINS_FOUND:
                 click(*text_locations["refresh_button"])
+            case CurrentState.FAILED_TO_JOIN:
+                click(*text_locations["battle_already_ended_ok"])
             case CurrentState.DAILY_BONUS_COUNTER:
                 click(
                     int(text_locations["join_back_box"][0]),
