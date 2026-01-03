@@ -9,4 +9,5 @@ pyinstaller
 keyboard
 requests
 pywin32
+mss
 python-Levenshtein
