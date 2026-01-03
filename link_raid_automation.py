@@ -1264,6 +1264,7 @@ def main():
             case CurrentState.BATTLE_ON_MANUAL:
                 if ENABLE_AUTO:
                     click_box(*text_locations["current_play_mode"])
+                    pyautogui.sleep(1)
                     click_box(*text_locations["current_play_mode"])
             case CurrentState.PLAY_JOIN_SCREEN:
                 logger.info("Joining a game...")
