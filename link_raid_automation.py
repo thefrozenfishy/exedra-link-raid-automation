@@ -7,10 +7,10 @@ from datetime import datetime
 from difflib import SequenceMatcher
 from enum import Enum
 from pathlib import Path
-from random import random
 
 import cv2
 import keyboard
+import mss
 import numpy as np
 import pyautogui
 import pydirectinput
@@ -18,7 +18,7 @@ import pygetwindow
 import pytesseract
 import win32gui
 from Levenshtein import distance as lev_distance
-from PIL import Image, ImageDraw, ImageGrab
+from PIL import Image, ImageDraw
 from requests import get
 
 pyautogui.FAILSAFE = False
@@ -159,7 +159,7 @@ def toggle_running():
 def take_debug_screencap():
     client_left = text_locations["screen"][0]
     client_top = text_locations["screen"][1]
-    img = ImageGrab.grab(text_locations["screen"])
+    img = grab_region(text_locations["screen"])
     draw = ImageDraw.Draw(img)
     for name, coords in text_locations.items():
         if len(coords) == 4:
@@ -280,6 +280,19 @@ def get_game_window():
     return wins[0]
 
 
+def grab_region(bbox):
+    x1, y1, x2, y2 = bbox
+    with mss.mss() as sct:
+        monitor = {
+            "left": x1,
+            "top": y1,
+            "width": x2 - x1,
+            "height": y2 - y1,
+        }
+        img = sct.grab(monitor)
+        return Image.frombytes("RGB", img.size, img.rgb)
+
+
 def normalize_1_and_0(s: str) -> str:
     return (
         s.replace("i", "1")
@@ -293,7 +306,7 @@ def normalize_1_and_0(s: str) -> str:
 
 
 def get_text_in_img(cords: str, config="", make_bw=False) -> str:
-    img = ImageGrab.grab(text_locations[cords])
+    img = grab_region(text_locations[cords])
     if make_bw:
         gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
         _, img_data = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
@@ -331,7 +344,7 @@ def get_color_diff_range(offset: str) -> tuple[float, float, float]:
         text_locations[offset][1]
         + abs(text_locations[offset][1] - text_locations[offset][3]) // 2
     )
-    colour_img = ImageGrab.grab(
+    colour_img = grab_region(
         (
             mid_x,
             mid_y - 10,
@@ -484,7 +497,7 @@ def set_correct_host_difficulty():
 
 
 def is_scroll_at_bottom():
-    scroll_bar_img = ImageGrab.grab(
+    scroll_bar_img = grab_region(
         (
             text_locations["scroll_bar"][0],
             text_locations["scroll_bar"][1],
@@ -708,12 +721,22 @@ def click(x: float | int, y: float | int):
 
 def has_gold_crys_drop():
     for i in range(5):
-        colour_img = ImageGrab.grab(text_locations[f"crys_obtain_box_{i}"])
+        colour_img = grab_region(text_locations[f"crys_obtain_box_{i}"])
         arr = np.array(colour_img).astype(float) / 255.0
         avg_rgb = arr.mean(axis=(0, 1))  # [R, G, B] normalized
         r, g, b = avg_rgb
         h, s, v = colorsys.rgb_to_hsv(r, g, b)
         if 0.65 > g > 0.55:
+            logger.debug(
+                "Found gold crys in %d w r=%d,g=%d,b=%d,h=%d,s=%d,v=%d",
+                i,
+                r,
+                g,
+                b,
+                h,
+                s,
+                v,
+            )
             return True
     return False
 
@@ -1254,9 +1277,9 @@ def main():
                 click(*text_locations["host_screen_button"])
             case CurrentState.RESULTS_SCREEN:
                 if CRYS_GOLD_SCREENSHOT:
-                    pyautogui.sleep(1)  # Allow crys animation to play out
+                    pyautogui.sleep(2)  # Allow crys animation to play out
                     if has_gold_crys_drop():
-                        img = ImageGrab.grab(text_locations["screen"])
+                        img = grab_region(text_locations["screen"])
                         os.makedirs("gold_drops", exist_ok=True)
                         img.save(
                             f"gold_drops/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')}.png"
@@ -1270,6 +1293,8 @@ def main():
                     int(text_locations["crys_retry_box"][0]),
                     int(text_locations["crys_retry_box"][1]),
                 )
+                pyautogui.sleep(1)
+                # This action triggers twice cause loading screen otherwise
             case CurrentState.CRYS_RESULTS_SCREEN:
                 click(
                     int(text_locations["join_back_box"][2]),
@@ -1306,7 +1331,7 @@ def main():
                 )
             case CurrentState.EX_SCREEN:
                 if CRYS_EX_SCREENSHOT:
-                    img = ImageGrab.grab(text_locations["screen"])
+                    img = grab_region(text_locations["screen"])
                     os.makedirs("ex_drops", exist_ok=True)
                     img.save(
                         f"ex_drops/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')}.png"
@@ -1318,7 +1343,7 @@ def main():
                 )
             case CurrentState.DAILY_BONUS:
                 if DAILY_SCREENSHOT:
-                    img = ImageGrab.grab(text_locations["daily_reward_pic_box"])
+                    img = grab_region(text_locations["daily_reward_pic_box"])
                     os.makedirs("daily_reward", exist_ok=True)
                     img.save(
                         f"daily_reward/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')}.png"
