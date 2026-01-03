@@ -728,7 +728,7 @@ def has_gold_crys_drop():
         h, s, v = colorsys.rgb_to_hsv(r, g, b)
         if 0.65 > g > 0.55:
             logger.debug(
-                "Found gold crys in %d w r=%d,g=%d,b=%d,h=%d,s=%d,v=%d",
+                "Found gold crys in %d w r=%.2f,g=%.2f,b=%.2f,h=%.2f,s=%.2f,v=%.2f",
                 i,
                 r,
                 g,
