@@ -569,6 +569,7 @@ class CurrentState(Enum):
     NO_ACTION = "NO_ACTION"
     RESULTS_SCREEN = "RESULTS_SCREEN"
     CRYS_RESULTS_SCREEN = "CRYS_RESULTS_SCREEN"
+    NO_MORE_BATTLES_JOINED = "NO_MORE_BATTLES_JOINED"
     CRYS_RETRY_SCREEN = "CRYS_RETRY_SCREEN"
     CRYS_FAILED = "CRYS_FAILED"
     JOIN_BACK_SCREEN = "JOIN_BACK_SCREEN"
@@ -675,6 +676,9 @@ def current_state() -> CurrentState:
     no_join_text = normalize_1_and_0(get_text_in_img("no_join_available"))
     if "backup" in no_join_text:
         return CurrentState.NO_JOINS_FOUND
+
+    if "batt1es" in no_join_text:
+        return CurrentState.NO_MORE_BATTLES_JOINED
 
     if "tryaga1n" in no_join_text:
         return CurrentState.FAILED_TO_JOIN
@@ -867,7 +871,7 @@ def setup_text_locations(first_time: bool):
         int(client_bottom - 0.18 * client_height),
     )
     text_locations["join_button_box"] = (
-        int(client_left + 0.8 * client_width),
+        int(client_left + 0.81 * client_width),
         int(client_top + 0.8 * client_height),
         int(client_right - 0.1 * client_width),
         int(client_bottom - 0.14 * client_height),
@@ -1301,6 +1305,9 @@ def main():
                     int(text_locations["join_back_box"][2]),
                     int(text_locations["join_back_box"][3]),
                 )
+            case CurrentState.NO_MORE_BATTLES_JOINED:
+                click(*text_locations["join_battles_tab"])
+
             case CurrentState.JOIN_BACK_SCREEN:
                 love_everyone()
                 click(
