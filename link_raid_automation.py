@@ -730,7 +730,7 @@ def has_gold_crys_drop():
         avg_rgb = arr.mean(axis=(0, 1))  # [R, G, B] normalized
         r, g, b = avg_rgb
         h, s, v = colorsys.rgb_to_hsv(r, g, b)
-        if 0.65 > g > 0.6 and 0.3 > b > 0.25:
+        if 0.65 > g > 0.55 and 0.35 > b > 0.25:
             logger.debug(
                 "Found gold crys in %d w r=%.2f,g=%.2f,b=%.2f,h=%.2f,s=%.2f,v=%.2f",
                 i,
@@ -742,6 +742,17 @@ def has_gold_crys_drop():
                 v,
             )
             return True
+        else:
+            logger.debug(
+                "Skipping %d w r=%.2f,g=%.2f,b=%.2f,h=%.2f,s=%.2f,v=%.2f",
+                i,
+                r,
+                g,
+                b,
+                h,
+                s,
+                v,
+            )
     return False
 
 
