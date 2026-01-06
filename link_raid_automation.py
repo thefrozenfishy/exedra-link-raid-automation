@@ -596,7 +596,7 @@ def current_state() -> CurrentState:
     if "1v1" in normalize_1_and_0(get_text_in_img("result_box")):
         return CurrentState.RESULTS_SCREEN
 
-    if "retry" in normalize_1_and_0(get_text_in_img("crys_retry_box")):
+    if "etry" in normalize_1_and_0(get_text_in_img("crys_retry_box")):
         return CurrentState.CRYS_RETRY_SCREEN
 
     if "bta1ned" in normalize_1_and_0(
