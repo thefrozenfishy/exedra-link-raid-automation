@@ -533,6 +533,7 @@ def claim_battles():
                 break
 
     click(*text_locations["join_battles_tab"])
+    click(*text_locations["refresh_button"])
 
 
 def start_join():
