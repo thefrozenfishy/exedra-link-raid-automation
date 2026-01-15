@@ -367,7 +367,7 @@ def get_color_diff_range(offset: str) -> tuple[float, float, float]:
 def translate_hsv_to_difficulty_range(h, s, v) -> set[int]:
     if 230 < h < 250 and s < 0.05:
         return set(range(17, 21))  # White
-    if (30 < h < 70 and s < 0.15 and 0.65 > v > 0.35) or (
+    if (30 < h < 70 and s < 0.15 and 0.65 > v > 0.25) or (
         h < 50 and s < 0.1 and v < 0.3
     ):
         # Different colour in host and join screens for some reason
@@ -594,6 +594,13 @@ class CurrentState(Enum):
 
 
 def current_state() -> CurrentState:
+    text = normalize_1_and_0(get_text_in_img("party_box"))
+    if "party" in text:
+        text2 = normalize_1_and_0(get_text_in_img("play_box"))
+        if "p1ay" in text2.lower():
+            return CurrentState.PLAY_JOIN_SCREEN
+        return CurrentState.PLAY_HOST_SCREEN
+
     if "1v1" in normalize_1_and_0(get_text_in_img("result_box")):
         return CurrentState.RESULTS_SCREEN
 
@@ -638,13 +645,6 @@ def current_state() -> CurrentState:
 
     if "back" in get_text_in_img("host_back_box"):
         return CurrentState.HOST_BACK_SCREEN
-
-    text = normalize_1_and_0(get_text_in_img("party_box"))
-    if "party" in text:
-        text2 = normalize_1_and_0(get_text_in_img("play_box"))
-        if "p1ay" in text2.lower():
-            return CurrentState.PLAY_JOIN_SCREEN
-        return CurrentState.PLAY_HOST_SCREEN
 
     in_progress_text = normalize_1_and_0(get_text_in_img("in_progress_box"))
     if "v1ewresu1ts" in in_progress_text:
@@ -1045,6 +1045,9 @@ def setup_text_locations(first_time: bool):
         case "wheel":
             diff_left = 0.36
             diff_right = 0.62
+        case "ai":
+            diff_left = 0.407
+            diff_right = 0.573
         case _:
             logger.error("Unknown boss '%s', using Wheel coords", CURRENT_BOSS)
             diff_left = 0.36
