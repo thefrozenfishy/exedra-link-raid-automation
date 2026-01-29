@@ -229,17 +229,20 @@ hates = [
     for f in hates_file.read_text(encoding="utf-8").split("\n")
 ]
 hates = {f for f in hates if len(f) > 2}
-resp = get(
-    "https://raw.githubusercontent.com/thefrozenfishy/exedra-link-raid-automation/main/community.txt",
-    timeout=3,
-)
-if resp.ok:
-    community = [
-        re.sub(r"[^A-Za-z0-9]", "", f.lower().replace(" ", ""))
-        for f in resp.text.splitlines()
-    ]
+if JOIN_COMMUNITY:
+    resp = get(
+        "https://raw.githubusercontent.com/thefrozenfishy/exedra-link-raid-automation/main/community.txt",
+        timeout=3,
+    )
+    if resp.ok:
+        community = [
+            re.sub(r"[^A-Za-z0-9]", "", f.lower().replace(" ", ""))
+            for f in resp.text.splitlines()
+        ]
+    else:
+        logging.error("Failed to fetch community members list.")
+        community = []
 else:
-    logging.error("Failed to fetch community members list.")
     community = []
 community = {c for c in community if len(c) > 2}
 
@@ -260,17 +263,20 @@ def is_close_name(name, candidates):
 
 
 def check_git_version_match():
-    git_version = get(
-        "https://api.github.com/repos/thefrozenfishy/exedra-link-raid-automation/releases/latest",
-        timeout=10,
-    )
-    if git_version.status_code == 200:
-        data = git_version.json()
-        version = data["tag_name"].lstrip("version-")
-        if f"v{version}" != __version__:
-            logger.warning(
-                "New version available: v%s, you are on %s", version, __version__
-            )
+    try:
+        git_version = get(
+            "https://api.github.com/repos/thefrozenfishy/exedra-link-raid-automation/releases/latest",
+            timeout=10,
+        )
+        if git_version.status_code == 200:
+            data = git_version.json()
+            version = data["tag_name"].lstrip("version-")
+            if f"v{version}" != __version__:
+                logger.warning(
+                    "New version available: v%s, you are on %s", version, __version__
+                )
+    except Exception as e:
+        logger.error("Failed to get git version")
 
 
 def get_game_window():
@@ -1158,13 +1164,30 @@ def setup_text_locations(first_time: bool):
         int(client_right),
         int(client_bottom),
     )
+    text_locations["reward_orb_box"] = (
+        int(client_left + 0.43 * client_width),
+        int(client_top + 0.3 * client_height),
+        int(client_right - 0.43 * client_width),
+        int(client_bottom - 0.4 * client_height),
+    )
+    text_locations["reward_diff_box"] = (
+        int(client_left + 0.61 * client_width),
+        int(client_top + 0.56 * client_height),
+        int(client_right - 0.35 * client_width),
+        int(client_bottom - 0.39 * client_height),
+    )
     text_locations["screen"] = (client_left, client_top, client_right, client_bottom)
 
     if DEBUG and first_time:
         take_debug_screencap()
 
 
+host_diff = ""
+orb_colour = ""
+
+
 def main():
+    global orb_colour, host_diff
     logger.info(
         "starting with config: %s",
         {**dict(ini_config["general"]), **{"lvls": str(LEVELS_TO_FIND)}},
@@ -1337,6 +1360,23 @@ def main():
                     int(text_locations["host_back_box"][1]),
                 )
             case CurrentState.CONTINUE:
+                img = grab_region(text_locations["reward_orb_box"])
+                avg_rgb = (np.array(img).astype(float) / 255.0).mean(axis=(0, 1))
+                r, g, b = avg_rgb
+                if 0.3 < r < 0.4 and 0.5 < g < 0.6 and 0.55 < b < 0.65:
+                    orb_colour = "B"
+                elif 0.65 < r < 0.75 and 0.35 < g < 0.45 and 0.6 < b < 0.7:
+                    orb_colour = "P"
+                elif 0.65 < r < 0.75 and 0.55 < g < 0.65 and 0.35 < b < 0.45:
+                    orb_colour = "G"
+                else:
+                    orb_colour = "U"
+                if DEBUG:
+                    img = grab_region(text_locations["screen"])
+                    os.makedirs("continue", exist_ok=True)
+                    img.save(
+                        f"continue/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')} {r:.2f}_{g:.2f}_{b:.2f}s.png"
+                    )
                 click(
                     int(text_locations["join_back_box"][0]),
                     int(text_locations["join_back_box"][1]),
@@ -1348,6 +1388,13 @@ def main():
             case CurrentState.FAILED_TO_JOIN:
                 click(*text_locations["battle_already_ended_ok"])
             case CurrentState.DAILY_BONUS_COUNTER:
+                host_diff = get_nrs_in_img("reward_orb_box")
+                if DEBUG:
+                    img = grab_region(text_locations["screen"])
+                    os.makedirs("daily_counter", exist_ok=True)
+                    img.save(
+                        f"daily_counter/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')} - {orb_colour}_{host_diff}.png"
+                    )
                 click(
                     int(text_locations["join_back_box"][0]),
                     int(text_locations["join_back_box"][1]),
