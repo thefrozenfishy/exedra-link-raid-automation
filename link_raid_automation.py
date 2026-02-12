@@ -1054,6 +1054,9 @@ def setup_text_locations(first_time: bool):
         case "ai":
             diff_left = 0.407
             diff_right = 0.573
+        case "yume":
+            diff_left = 0.432
+            diff_right = 0.548
         case _:
             logger.error("Unknown boss '%s', using Wheel coords", CURRENT_BOSS)
             diff_left = 0.36
