@@ -568,6 +568,7 @@ def start_join():
 class CurrentState(Enum):
     JOIN_SCREEN = "JOIN_SCREEN"
     NO_JOINS_FOUND = "NO_JOINS_FOUND"
+    NETWORK_ERROR = "NETWORK_ERROR"
     FAILED_TO_JOIN = "FAILED_TO_JOIN"
     JOINED_BATTLES_SCREEN = "JOINED_BATTLES_SCREEN"
     HOST_SCREEN = "HOST_SCREEN"
@@ -683,6 +684,9 @@ def current_state() -> CurrentState:
     no_join_text = normalize_1_and_0(get_text_in_img("no_join_available"))
     if "backup" in no_join_text:
         return CurrentState.NO_JOINS_FOUND
+
+    if "0ccurred" in no_join_text:
+        return CurrentState.NETWORK_ERROR
 
     if "batt1es" in no_join_text:
         return CurrentState.NO_MORE_BATTLES_JOINED
@@ -1040,31 +1044,24 @@ def setup_text_locations(first_time: bool):
     )
     match CURRENT_BOSS:
         case "sandbox":
-            diff_left = 0.45
-            diff_right = 0.53
+            curr_diff_start = 0.45
         case "spindle":
-            diff_left = 0.452
-            diff_right = 0.525
+            curr_diff_start = 0.452
         case "horse":
-            diff_left = 0.387
-            diff_right = 0.59
+            curr_diff_start = 0.387
         case "wheel":
-            diff_left = 0.36
-            diff_right = 0.62
+            curr_diff_start = 0.36
         case "ai":
-            diff_left = 0.407
-            diff_right = 0.573
+            curr_diff_start = 0.407
         case "yume":
-            diff_left = 0.432
-            diff_right = 0.548
+            curr_diff_start = 0.432
         case _:
             logger.error("Unknown boss '%s', using Wheel coords", CURRENT_BOSS)
-            diff_left = 0.36
-            diff_right = 0.62
+            curr_diff_start = 0.36
     text_locations["current_difficulty"] = (
-        int(client_left + diff_left * client_width),
+        int(client_left + curr_diff_start * client_width),
         int(client_top + 0.04 * client_height),
-        int(client_right - diff_right * client_width),
+        int(client_right - (1 - curr_diff_start - 0.02) * client_width),
         int(client_bottom - 0.91 * client_height),
     )
     text_locations["current_difficulty_single_digit"] = (
@@ -1388,6 +1385,8 @@ def main():
                 click(*text_locations["hosting_back_button"])
             case CurrentState.NO_JOINS_FOUND:
                 click(*text_locations["refresh_button"])
+            case CurrentState.NETWORK_ERROR:
+                click(*text_locations["play_button"])
             case CurrentState.FAILED_TO_JOIN:
                 click(*text_locations["battle_already_ended_ok"])
             case CurrentState.DAILY_BONUS_COUNTER:
