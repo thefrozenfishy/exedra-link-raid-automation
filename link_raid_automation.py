@@ -719,9 +719,27 @@ text_locations = {}
 def love_everyone():
     if not DO_LOVE:
         return
-    for i in range(6):
-        click(*text_locations[f"love_button_{i}"])
+    for i in range(3):
+        click(*text_locations["love_button_l"])
         pyautogui.sleep(2.5)
+        click(*text_locations["love_button_r"])
+        pyautogui.sleep(2.5)
+
+        pydirectinput.click(*text_locations["scroll_location"])
+        pyautogui.scroll(-1)
+        pyautogui.sleep(0.5)
+        pyautogui.scroll(-1)
+        pyautogui.scroll(-1)
+        pyautogui.scroll(-1)
+
+    click(*text_locations["love_button_l"])
+    pyautogui.sleep(2.5)
+    click(*text_locations["love_button_r"])
+    pyautogui.sleep(2.5)
+    click(*text_locations["love_button_lb"])
+    pyautogui.sleep(2.5)
+    click(*text_locations["love_button_rb"])
+    pyautogui.sleep(2.5)
 
 
 def click_box(x1: float | int, y1: float | int, x2: float | int, y2: float | int):
@@ -1110,11 +1128,11 @@ def setup_text_locations(first_time: bool):
         int(client_top + 0.8 * client_height),
     )
     text_locations["upgrade_button"] = (
-        int(client_left + 0.55 * client_width),
-        int(client_top + 0.3 * client_height),
+        int(client_left + 0.45 * client_width),
+        int(client_top + 0.6 * client_height),
     )
     text_locations["raid_button"] = (
-        int(client_left + 0.7 * client_width),
+        int(client_left + 0.6 * client_width),
         int(client_top + 0.3 * client_height),
     )
     text_locations["hosting_back_button"] = (
@@ -1149,15 +1167,22 @@ def setup_text_locations(first_time: bool):
         int(client_left + 0.85 * client_width),
         int(client_top + 0.5 * client_height),
     )
-    for i in range(3):
-        text_locations[f"love_button_{i*2}"] = (
-            int(client_left + 0.47 * client_width),
-            int(client_top + (0.3 + 0.2 * i) * client_height),
-        )
-        text_locations[f"love_button_{i*2+1}"] = (
-            int(client_left + 0.93 * client_width),
-            int(client_top + (0.3 + 0.2 * i) * client_height),
-        )
+    text_locations["love_button_l"] = (
+        int(client_left + 0.44 * client_width),
+        int(client_top + 0.45 * client_height),
+    )
+    text_locations["love_button_lb"] = (
+        int(client_left + 0.44 * client_width),
+        int(client_top + 0.65 * client_height),
+    )
+    text_locations["love_button_r"] = (
+        int(client_left + 0.9 * client_width),
+        int(client_top + 0.45 * client_height),
+    )
+    text_locations["love_button_rb"] = (
+        int(client_left + 0.9 * client_width),
+        int(client_top + 0.65 * client_height),
+    )
     text_locations["next_box"] = (
         int(client_left + 0.95 * client_width),
         int(client_top + 0.95 * client_height),
