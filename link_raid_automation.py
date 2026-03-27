@@ -3,7 +3,7 @@ import configparser
 import logging
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from difflib import SequenceMatcher
 from enum import Enum
 from pathlib import Path
@@ -46,6 +46,7 @@ defaults = {
     "love_everyone": "true",
     "automatically_turn_on_auto": "false",
     "boss": "Wheel",
+    "use_online_boss": "true",
 }
 join_team_override_defaults = {str(i): "" for i in range(1, 21)}
 
@@ -126,7 +127,6 @@ CRYS_GOLD_SCREENSHOT = ini_config.getboolean("crystalis", "document_gold_drops")
 
 DAILY_SCREENSHOT = ini_config.getboolean("general", "document_daily_reward")
 TARGET_WINDOW = ini_config.get("general", "exe_name")
-CURRENT_BOSS = ini_config.get("general", "boss").strip().lower()
 
 JOIN_FRIENDS = ini_config.getboolean("general", "join_friends")
 IGNORE_HATES = ini_config.getboolean("general", "ignore_hates")
@@ -277,6 +277,39 @@ def check_git_version_match():
                 )
     except Exception as e:
         logger.error("Failed to get git version")
+
+
+boss_schedule: list[dict] = []
+
+
+def fetch_boss_schedule() -> None:
+    global boss_schedule
+    try:
+        resp = get(
+            "https://raw.githubusercontent.com/thefrozenfishy/exedra-link-raid-automation/main/boss_schedule.json",
+            timeout=5,
+        )
+        resp.raise_for_status()
+        boss_schedule = resp.json()
+        logger.info("Fetched boss schedule with %d entries", len(boss_schedule))
+    except Exception as e:
+        logger.warning("Could not fetch boss schedule (%s), falling back to config.", e)
+
+
+def get_current_boss() -> str:
+    fallback = ini_config.get("general", "boss").strip().lower()
+    use_online_boss = ini_config.getboolean("general", "use_online_boss")
+    if not boss_schedule or not use_online_boss:
+        return fallback
+    now = datetime.now(timezone.utc)
+    current = None
+    for entry in boss_schedule:
+        entry_time = datetime.fromisoformat(entry["start"].replace("Z", "+00:00"))
+        if entry_time <= now:
+            current = entry["boss"].strip().lower()
+        else:
+            break
+    return current if current else fallback
 
 
 def get_game_window():
@@ -1060,7 +1093,7 @@ def setup_text_locations(first_time: bool):
         int(client_left + 0.84 * client_width),
         int(client_top + 0.19 * client_height),
     )
-    match CURRENT_BOSS:
+    match get_current_boss():
         case "sandbox":
             curr_diff_start = 0.45
         case "spindle":
@@ -1074,7 +1107,7 @@ def setup_text_locations(first_time: bool):
         case "yume":
             curr_diff_start = 0.432
         case _:
-            logger.error("Unknown boss '%s', using Wheel coords", CURRENT_BOSS)
+            logger.error("Unknown boss '%s', using Wheel coords", get_current_boss())
             curr_diff_start = 0.36
     text_locations["current_difficulty"] = (
         int(client_left + curr_diff_start * client_width),
@@ -1227,6 +1260,7 @@ def main():
     logger.info("Press Ctrl+Shift+E to pause the program.")
     logger.debug("Current version %s", __version__)
     check_git_version_match()
+    fetch_boss_schedule()
     i = 0
     while True:
         pyautogui.sleep(1)

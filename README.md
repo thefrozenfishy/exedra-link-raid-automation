@@ -45,7 +45,9 @@ The tool is able to swap between crys farming and link raids once running out of
 * ``refill_qp`` Use 8 cubes to refill QP daily.
 * ``document_ex_drops`` Take screenshot of all dropped ex Crystalises.
 * ``document_gold_drops`` Take screenshot of all dropped gold Crystalises.
-* ``boss`` Which boss is currently being fought, is used for the tool to know what difficulty you are currently fighting. Options: ``Sandbox``, ``Wheel``, ``Spindle``, ``Horse``, ``AI`` and ``Yume``
+* ``use_online_boss`` true to make the program automatically fetch the LR schedule.
+* ``boss`` Which boss is currently being fought, is used for the tool to know what difficulty you are currently fighting. Options: ``Sandbox``, ``Wheel``, ``Spindle``, ``Horse``, ``AI`` and ``Yume``.
+  * Only has effect if ``use_online_boss`` is ``false`` or schedule can not be fetched.
 
 ## Bug notes
 
