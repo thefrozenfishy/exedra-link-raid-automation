@@ -634,6 +634,9 @@ class CurrentState(Enum):
 
 
 def current_state() -> CurrentState:
+    if "10" in normalize_1_and_0(get_text_in_img("current_player_count")):
+        return CurrentState.NO_JOINS_FOUND
+
     text = normalize_1_and_0(get_text_in_img("party_box"))
     if "party" in text:
         text2 = normalize_1_and_0(get_text_in_img("play_box"))
@@ -749,16 +752,25 @@ def current_state() -> CurrentState:
 text_locations = {}
 
 
-def love_everyone():
-    if not DO_LOVE:
-        return
-    for i in range(3):
-        click(*text_locations["love_button_l"])
-        pyautogui.sleep(2.5)
-        click(*text_locations["love_button_r"])
-        pyautogui.sleep(2.5)
+def is_boss_dead() -> bool:
+    colour_img = grab_region(text_locations["boss_hp"])
+    arr = np.array(colour_img).astype(float) / 255.0
+    avg_rgb = arr.mean(axis=(0, 1))  # [R, G, B] normalized
+    r, g, b = avg_rgb
+    _, _, v = colorsys.rgb_to_hsv(r, g, b)
+    return v < 0.1
 
-        pydirectinput.click(*text_locations["scroll_location"])
+
+def love_everyone():
+    if not DO_LOVE or not is_boss_dead():
+        return
+    for _ in range(3):
+        click(*text_locations["love_button_l"])
+        pyautogui.sleep(0.5)
+        click(*text_locations["love_button_r"])
+        pyautogui.sleep(0.5)
+
+        pydirectinput.click(*text_locations["raid_button"])
         pyautogui.scroll(-1)
         pyautogui.sleep(0.5)
         pyautogui.scroll(-1)
@@ -766,11 +778,11 @@ def love_everyone():
         pyautogui.scroll(-1)
 
     click(*text_locations["love_button_l"])
-    pyautogui.sleep(2.5)
+    pyautogui.sleep(0.5)
     click(*text_locations["love_button_r"])
-    pyautogui.sleep(2.5)
+    pyautogui.sleep(0.5)
     click(*text_locations["love_button_lb"])
-    pyautogui.sleep(2.5)
+    pyautogui.sleep(0.5)
     click(*text_locations["love_button_rb"])
     pyautogui.sleep(2.5)
 
@@ -965,6 +977,12 @@ def setup_text_locations(first_time: bool):
         int(client_left + 0.5 * client_width),
         int(client_top + 0.75 * client_height),
     )
+    text_locations["boss_hp"] = (
+        int(client_left + 0.38 * client_width),
+        int(client_top + 0.16 * client_height),
+        int(client_right - 0.615 * client_width),
+        int(client_bottom - 0.83 * client_height),
+    )
     text_locations["joined_battles"] = (
         int(client_left + 0.54 * client_width),
         int(client_top + 0.02 * client_height),
@@ -1018,6 +1036,12 @@ def setup_text_locations(first_time: bool):
         int(client_top + 0.42 * client_height),
         int(client_right - 0.3 * client_width),
         int(client_bottom - 0.48 * client_height),
+    )
+    text_locations["current_player_count"] = (
+        int(client_left + 0.73 * client_width),
+        int(client_top + 0.41 * client_height),
+        int(client_right - 0.23 * client_width),
+        int(client_bottom - 0.54 * client_height),
     )
     text_locations["union_0"] = (
         int(client_left + 0.76 * client_width),
