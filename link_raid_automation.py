@@ -634,9 +634,6 @@ class CurrentState(Enum):
 
 
 def current_state() -> CurrentState:
-    if "10" in normalize_1_and_0(get_text_in_img("current_player_count")):
-        return CurrentState.NO_JOINS_FOUND
-
     text = normalize_1_and_0(get_text_in_img("party_box"))
     if "party" in text:
         text2 = normalize_1_and_0(get_text_in_img("play_box"))
@@ -662,12 +659,14 @@ def current_state() -> CurrentState:
         return CurrentState.CONNECTION_ISSUE
 
     text = normalize_1_and_0(get_text_in_img("join_button_box"))
+    if "etreat" in text or "ended" in text:
+        return CurrentState.JOINED_BATTLES_SCREEN
+    if "10" in normalize_1_and_0(get_text_in_img("current_player_count")):
+        return CurrentState.NO_JOINS_FOUND
     if "j01n" in text:
         return CurrentState.JOIN_SCREEN
     if "next" in text:
         return CurrentState.TOWER_NEXT_SCREEN
-    if "etreat" in text or "ended" in text:
-        return CurrentState.JOINED_BATTLES_SCREEN
 
     text = normalize_1_and_0(get_text_in_img("daily_bonus_box"))
     if "da11y" in text:
@@ -720,6 +719,8 @@ def current_state() -> CurrentState:
     no_join_text = normalize_1_and_0(get_text_in_img("no_join_available"))
     if "backup" in no_join_text:
         return CurrentState.NO_JOINS_FOUND
+    if "reached" in no_join_text:
+        return CurrentState.BATTLE_ALREADY_ENDED
 
     if "0ccurred" in no_join_text:
         return CurrentState.NETWORK_ERROR
