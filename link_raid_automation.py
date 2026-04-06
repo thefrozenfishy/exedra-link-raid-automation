@@ -1,5 +1,6 @@
 import colorsys
 import configparser
+import json
 import logging
 import os
 import re
@@ -284,16 +285,27 @@ boss_schedule: list[dict] = []
 
 def fetch_boss_schedule() -> None:
     global boss_schedule
-    try:
-        resp = get(
-            "https://raw.githubusercontent.com/thefrozenfishy/exedra-link-raid-automation/main/boss_schedule.json",
-            timeout=5,
-        )
-        resp.raise_for_status()
-        boss_schedule = resp.json()
-        logger.info("Fetched boss schedule with %d entries", len(boss_schedule))
-    except Exception as e:
-        logger.warning("Could not fetch boss schedule (%s), falling back to config.", e)
+    if __version__ == "vDEV":
+        logger.info("Running DEV version, fetching local bosses")
+        with open("boss_schedule.json", encoding="utf-8") as f:
+            boss_schedule = json.load(f)
+    else:
+        try:
+            resp = get(
+                "https://raw.githubusercontent.com/thefrozenfishy/exedra-link-raid-automation/main/boss_schedule.json",
+                timeout=5,
+            )
+            resp.raise_for_status()
+            boss_schedule = resp.json()
+        except Exception as e:
+            logger.warning(
+                "Could not fetch boss schedule (%s), falling back to config.", e
+            )
+    logger.info(
+        "Fetched boss schedule with %d entries, last two being %s",
+        len(boss_schedule),
+        boss_schedule[-2:],
+    )
 
 
 def get_current_boss() -> str:
@@ -309,6 +321,7 @@ def get_current_boss() -> str:
             current = entry["boss"].strip().lower()
         else:
             break
+    logger.info("Current boss is %s (use_online_boss=%s)", current, use_online_boss)
     return current if current else fallback
 
 
