@@ -887,6 +887,12 @@ def setup_text_locations(first_time: bool):
         int(client_right - 0.305 * client_width),
         int(client_bottom - 0.12 * client_height),
     )
+    text_locations["battles_ended"] = (
+        int(client_left + 0.74 * client_width),
+        int(client_top + 0.83 * client_height),
+        int(client_right - 0.24 * client_width),
+        int(client_bottom - 0.13 * client_height),
+    )
     text_locations["retreat_box"] = (
         int(client_left + 0.78 * client_width),
         int(client_top + 0.83 * client_height),
@@ -984,7 +990,7 @@ def setup_text_locations(first_time: bool):
     text_locations["games_until_daily_bonus"] = (
         int(client_left + 0.64 * client_width),
         int(client_top + 0.74 * client_height),
-        int(client_right - 0.34 * client_width),
+        int(client_right - 0.33 * client_width),
         int(client_bottom - 0.21 * client_height),
     )
     text_locations["battle_already_ended_ok"] = (
@@ -1386,13 +1392,18 @@ def main():
                         )
                         return
             case CurrentState.HOST_SCREEN:
-                *_, v = get_color_diff_range("games_until_daily_bonus")
-                if 0.2 < v < 0.4:
+                *_, v1 = get_color_diff_range("games_until_daily_bonus")
+                *_, v2 = get_color_diff_range("scroll_bar")
+                # When daily bonus is available
+                logger.debug("Games until daily bonus v1=%.2f v2=%.2f", v1, v2)
+                if 0.2 < v1 < 0.4 or 0.2 < v2 < 0.4:
                     click(*text_locations["hosting_back_button"])
                 else:
                     set_correct_host_difficulty()
                     click(*text_locations["host_button"])
             case CurrentState.HOME_SCREEN_CAN_HOST:
+                if "10" in get_nrs_in_img("battles_ended"):
+                    click(*text_locations["join_screen_button"])
                 click(*text_locations["host_screen_button"])
             case CurrentState.BATTLE_ALREADY_ENDED:
                 click(*text_locations["battle_already_ended_ok"])
