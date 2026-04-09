@@ -1003,10 +1003,10 @@ def setup_text_locations(first_time: bool):
         int(client_top + 0.75 * client_height),
     )
     text_locations["boss_hp"] = (
-        int(client_left + 0.38 * client_width),
-        int(client_top + 0.16 * client_height),
-        int(client_right - 0.615 * client_width),
-        int(client_bottom - 0.83 * client_height),
+        int(client_left + 0.385 * client_width),
+        int(client_top + 0.162 * client_height),
+        int(client_right - 0.61 * client_width),
+        int(client_bottom - 0.828 * client_height),
     )
     text_locations["joined_battles"] = (
         int(client_left + 0.54 * client_width),
