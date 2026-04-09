@@ -30,6 +30,7 @@
   * ``ignore_hates`` Enable this to ignore games where any of the top 3 players in a raid are in your local ``hates.txt`` file as long as a friend or community member isn't in the game.
   * ``team_overrides`` If you for some difficulties wish to run other teams than ``default_team`` you can override it here.
   * ``love_everyone`` ♥ everyone in your matches.
+    * Note: Only ♥s when the battle is won, to speed things up
   * ``automatically_turn_on_auto`` Turns on full auto if it detects the game is in manual, useful if you have a tendency to leave the script without checking if the game is actually doing anything.
 
 ### Crystalis farming

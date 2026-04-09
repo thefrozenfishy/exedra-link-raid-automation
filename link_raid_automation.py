@@ -844,7 +844,11 @@ def has_gold_crys_drop():
     return False
 
 
+curr_boss = None
+
+
 def setup_text_locations(first_time: bool):
+    global curr_boss
     win = get_game_window()
     hwnd = win._hWnd
     client_rect = win32gui.GetClientRect(hwnd)
@@ -859,6 +863,7 @@ def setup_text_locations(first_time: bool):
     logger.debug("Client area resolution is %dx%d", client_width, client_height)
 
     if first_time:
+        curr_boss = get_current_boss()
         try:
             win.activate()
         except Exception as e:
@@ -1137,7 +1142,12 @@ def setup_text_locations(first_time: bool):
         int(client_left + 0.84 * client_width),
         int(client_top + 0.19 * client_height),
     )
-    match get_current_boss():
+    if curr_boss != get_current_boss():
+        input(
+            "IMPORTANT: Boss has changed. Redo your teams and restart the application"
+        )
+        raise RuntimeError("Boss changed since application start")
+    match curr_boss:
         case "sandbox":
             curr_diff_start = 0.45
         case "spindle":
@@ -1151,7 +1161,7 @@ def setup_text_locations(first_time: bool):
         case "yume":
             curr_diff_start = 0.432
         case _:
-            logger.error("Unknown boss '%s', using Wheel coords", get_current_boss())
+            logger.error("Unknown boss '%s', using Wheel coords", curr_boss)
             curr_diff_start = 0.36
     text_locations["current_difficulty"] = (
         int(client_left + curr_diff_start * client_width),
