@@ -17,6 +17,8 @@ import pyautogui
 import pydirectinput
 import pygetwindow
 import pytesseract
+import win32api
+import win32con
 import win32gui
 from Levenshtein import distance as lev_distance
 from PIL import Image, ImageDraw
@@ -568,6 +570,14 @@ def is_scroll_at_bottom():
     return v >= 0.3
 
 
+def scroll(clicks: int, x: int, y: int):
+    """Scroll without being affected by Windows scroll speed setting."""
+    pydirectinput.click(x, y)
+    for _ in range(clicks):
+        win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, 0, 0, -120, 0)
+        pyautogui.sleep(0.1)
+
+
 def claim_battles():
     current_battles = get_nrs_in_img("joined_battles")
     if not (current_battles.isdigit() and int(current_battles) <= 3):
@@ -576,10 +586,7 @@ def claim_battles():
                 click(*text_locations["join_button"])
                 return
 
-            pydirectinput.click(*text_locations["scroll_location"])
-            pyautogui.scroll(-1)
-            pyautogui.scroll(-1)
-            pyautogui.scroll(-1)
+            scroll(3, *text_locations["scroll_location"])
 
             if is_scroll_at_bottom():
                 break
@@ -600,10 +607,7 @@ def start_join():
             pyautogui.sleep(2)
             return
 
-        pydirectinput.click(*text_locations["scroll_location"])
-        pyautogui.scroll(-1)
-        pyautogui.scroll(-1)
-        pyautogui.scroll(-1)
+        scroll(3, *text_locations["scroll_location"])
 
         if is_scroll_at_bottom():
             break
@@ -734,6 +738,8 @@ def current_state() -> CurrentState:
         return CurrentState.NO_JOINS_FOUND
     if "reached" in no_join_text:
         return CurrentState.BATTLE_ALREADY_ENDED
+    if "retry" in no_join_text:
+        return CurrentState.NETWORK_ERROR
 
     if "0ccurred" in no_join_text:
         return CurrentState.NETWORK_ERROR
@@ -784,12 +790,7 @@ def love_everyone():
         click(*text_locations["love_button_r"])
         pyautogui.sleep(0.5)
 
-        pydirectinput.click(*text_locations["raid_button"])
-        pyautogui.scroll(-1)
-        pyautogui.sleep(0.5)
-        pyautogui.scroll(-1)
-        pyautogui.scroll(-1)
-        pyautogui.scroll(-1)
+        scroll(4, *text_locations["raid_button"])
 
     click(*text_locations["love_button_l"])
     pyautogui.sleep(0.5)
@@ -1438,7 +1439,7 @@ def main():
                 click(*text_locations["host_screen_button"])
             case CurrentState.RESULTS_SCREEN:
                 if CRYS_GOLD_SCREENSHOT:
-                    pyautogui.sleep(3)  # Allow crys animation to play out
+                    pyautogui.sleep(6)  # Allow crys animation to play out
                     if has_gold_crys_drop():
                         img = grab_region(text_locations["screen"])
                         os.makedirs("gold_drops", exist_ok=True)
