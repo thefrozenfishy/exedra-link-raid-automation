@@ -1,5 +1,6 @@
 import colorsys
 import configparser
+import ctypes
 import json
 import logging
 import os
@@ -570,11 +571,24 @@ def is_scroll_at_bottom():
     return v >= 0.3
 
 
+def get_dpi_scale() -> float:
+    """Return the DPI scale factor (e.g. 1.0, 1.25, 1.5)."""
+    try:
+        hdc = ctypes.windll.user32.GetDC(0)
+        dpi = ctypes.windll.gdi32.GetDeviceCaps(hdc, 88)  # LOGPIXELSX
+        ctypes.windll.user32.ReleaseDC(0, hdc)
+        return dpi / 96.0
+    except Exception:
+        return 1.0
+
+
 def scroll(clicks: int, x: int, y: int):
     """Scroll without being affected by Windows scroll speed setting."""
     pydirectinput.click(x, y)
+
+    adjusted_delta = int(-120 / DPI_SCALE)
     for _ in range(clicks):
-        win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, 0, 0, -120, 0)
+        win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, 0, 0, adjusted_delta, 0)
         pyautogui.sleep(0.1)
 
 
@@ -1295,6 +1309,8 @@ def setup_text_locations(first_time: bool):
         take_debug_screencap()
 
 
+DPI_SCALE = get_dpi_scale()
+logger.debug("DPI scale factor detected: %.2f", DPI_SCALE)
 host_diff = ""
 orb_colour = ""
 
