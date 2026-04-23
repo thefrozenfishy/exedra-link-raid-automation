@@ -311,21 +311,46 @@ def fetch_boss_schedule() -> None:
     )
 
 
-def get_current_boss() -> str:
+def boss_to_offset(curr_boss):
+    match curr_boss:
+        case "sandbox":
+            return 0.45
+        case "spindle":
+            return 0.452
+        case "horse":
+            return 0.387
+        case "wheel":
+            return 0.36
+        case "ai":
+            return 0.407
+        case "yume":
+            return 0.432
+        case _:
+            logger.error("Unknown boss '%s', using Wheel coords", curr_boss)
+            return 0.36
+
+
+def get_current_boss_offset() -> float:
     fallback = ini_config.get("general", "boss").strip().lower()
     use_online_boss = ini_config.getboolean("general", "use_online_boss")
     if not boss_schedule or not use_online_boss:
-        return fallback
+        return boss_to_offset(fallback)
     now = datetime.now(timezone.utc)
-    current = None
+    offset = c_boss = None
     for entry in boss_schedule:
         entry_time = datetime.fromisoformat(entry["start"].replace("Z", "+00:00"))
         if entry_time <= now:
-            current = entry["boss"].strip().lower()
+            c_boss = entry["boss"].strip()
+            offset = float(entry["offset"])
         else:
             break
-    logger.info("Current boss is %s (use_online_boss=%s)", current, use_online_boss)
-    return current if current else fallback
+    logger.info(
+        "Current boss is %s with offset %f (use_online_boss=%s)",
+        c_boss,
+        offset,
+        use_online_boss,
+    )
+    return offset if offset else boss_to_offset(fallback)
 
 
 def get_game_window():
@@ -419,7 +444,7 @@ def get_color_diff_range(offset: str) -> tuple[float, float, float]:
     return h, s, v
 
 
-def translate_hsv_to_difficulty_range(h, s, v) -> set[int]:
+def _translate_hsv_to_difficulty_range(h, s, v) -> set[int]:
     if 230 < h < 250 and s < 0.05:
         return set(range(17, 21))  # White
     if (30 < h < 70 and s < 0.15 and 0.65 > v > 0.25) or (
@@ -436,6 +461,16 @@ def translate_hsv_to_difficulty_range(h, s, v) -> set[int]:
 
     logger.error("HSV was H=%.0f, S=%.2f, V=%.2f", h, s, v)
     return {0}
+
+
+CURRENT_DIFF_RANGE = set()
+
+
+def translate_hsv_to_difficulty_range(h, s, v) -> set[int]:
+    global CURRENT_DIFF_RANGE
+    span = _translate_hsv_to_difficulty_range(h, s, v)
+    CURRENT_DIFF_RANGE = span
+    return span
 
 
 def find_coords_for_eligable_difficulty() -> bool:
@@ -507,11 +542,16 @@ def select_correct_team(team_name, is_crys):
 def start_play():
     single_digit_diff = get_nrs_in_img("current_difficulty_single_digit")
     multi_digit_diff = get_nrs_in_img("current_difficulty")
-    diff = 0
-    if single_digit_diff.isdigit() and int(single_digit_diff) < 10:
-        diff = int(single_digit_diff)
-    elif multi_digit_diff.isdigit() and int(multi_digit_diff) >= 10:
-        diff = int(multi_digit_diff) % 100
+    single = multi = 0
+    if single_digit_diff.isdigit():
+        single = int(single_digit_diff)
+    if multi_digit_diff.isdigit() and int(multi_digit_diff) >= 10:
+        multi = int(multi_digit_diff) % 100
+    diff = (
+        multi
+        if multi in CURRENT_DIFF_RANGE
+        else single if single in CURRENT_DIFF_RANGE else 20
+    )
     select_correct_team(teams.get(diff, default_team), is_crys=False)
     logger.debug(
         "Starting play at difficulty %d using %s", diff, teams.get(diff, default_team)
@@ -798,18 +838,18 @@ def is_boss_dead() -> bool:
 def love_everyone():
     if not DO_LOVE or not is_boss_dead():
         return
-    for _ in range(3):
-        click(*text_locations["love_button_l"])
-        pyautogui.sleep(0.5)
-        click(*text_locations["love_button_r"])
-        pyautogui.sleep(0.5)
-
-        scroll(4, *text_locations["raid_button"])
 
     click(*text_locations["love_button_l"])
     pyautogui.sleep(0.5)
     click(*text_locations["love_button_r"])
     pyautogui.sleep(0.5)
+    for _ in range(3):
+        click(*text_locations["love_button_lb"])
+        pyautogui.sleep(0.5)
+        click(*text_locations["love_button_rb"])
+        pyautogui.sleep(0.5)
+        scroll(4, *text_locations["raid_button"])
+
     click(*text_locations["love_button_lb"])
     pyautogui.sleep(0.5)
     click(*text_locations["love_button_rb"])
@@ -859,11 +899,11 @@ def has_gold_crys_drop():
     return False
 
 
-curr_boss = None
+curr_offset = 0
 
 
 def setup_text_locations(first_time: bool):
-    global curr_boss
+    global curr_offset
     win = get_game_window()
     hwnd = win._hWnd
     client_rect = win32gui.GetClientRect(hwnd)
@@ -878,7 +918,7 @@ def setup_text_locations(first_time: bool):
     logger.debug("Client area resolution is %dx%d", client_width, client_height)
 
     if first_time:
-        curr_boss = get_current_boss()
+        curr_offset = get_current_boss_offset()
         try:
             win.activate()
         except Exception as e:
@@ -1157,31 +1197,15 @@ def setup_text_locations(first_time: bool):
         int(client_left + 0.84 * client_width),
         int(client_top + 0.19 * client_height),
     )
-    if curr_boss != get_current_boss():
+    if curr_offset != get_current_boss_offset():
         input(
             "IMPORTANT: Boss has changed. Redo your teams and restart the application"
         )
         raise RuntimeError("Boss changed since application start")
-    match curr_boss:
-        case "sandbox":
-            curr_diff_start = 0.45
-        case "spindle":
-            curr_diff_start = 0.452
-        case "horse":
-            curr_diff_start = 0.387
-        case "wheel":
-            curr_diff_start = 0.36
-        case "ai":
-            curr_diff_start = 0.407
-        case "yume":
-            curr_diff_start = 0.432
-        case _:
-            logger.error("Unknown boss '%s', using Wheel coords", curr_boss)
-            curr_diff_start = 0.36
     text_locations["current_difficulty"] = (
-        int(client_left + curr_diff_start * client_width),
+        int(client_left + curr_offset * client_width),
         int(client_top + 0.04 * client_height),
-        int(client_right - (1 - curr_diff_start - 0.02) * client_width),
+        int(client_right - (1 - curr_offset - 0.02) * client_width),
         int(client_bottom - 0.91 * client_height),
     )
     text_locations["current_difficulty_single_digit"] = (
@@ -1275,7 +1299,7 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["love_button_lb"] = (
         int(client_left + 0.44 * client_width),
-        int(client_top + 0.65 * client_height),
+        int(client_top + 0.7 * client_height),
     )
     text_locations["love_button_r"] = (
         int(client_left + 0.9 * client_width),
@@ -1283,7 +1307,7 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["love_button_rb"] = (
         int(client_left + 0.9 * client_width),
-        int(client_top + 0.65 * client_height),
+        int(client_top + 0.7 * client_height),
     )
     text_locations["next_box"] = (
         int(client_left + 0.95 * client_width),
