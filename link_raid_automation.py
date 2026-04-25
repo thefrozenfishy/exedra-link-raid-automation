@@ -325,6 +325,8 @@ def boss_to_offset(curr_boss):
             return 0.407
         case "yume":
             return 0.432
+        case "walpy":
+            return 0.46
         case _:
             logger.error("Unknown boss '%s', using Wheel coords", curr_boss)
             return 0.36
