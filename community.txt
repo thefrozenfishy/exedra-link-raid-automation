@@ -96,3 +96,4 @@ jellix
 Wolf
 Sylve
 BirdMess
+MagicFox
