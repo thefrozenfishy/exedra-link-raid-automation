@@ -691,6 +691,8 @@ class CurrentState(Enum):
     PLAY_JOIN_SCREEN = "PLAY_JOIN_SCREEN"
     PLAY_HOST_SCREEN = "PLAY_HOST_SCREEN"
     CRYS_SELECT_SCREEN = "CRYS_SELECT_SCREEN"
+    CRYS_TOP_MENU_SCREEN = "CRYS_TOP_MENU_SCREEN"
+    CRYS_MULTI_TICKET_POPUP = "CRYS_MULTI_TICKET_POPUP"
     CRYS_TEAM_SELECT_SCREEN = "CRYS_TEAM_SELECT_SCREEN"
     CRYS_FARM_FAILED_SCREEN = "CRYS_FARM_FAILED_SCREEN"
     REFILL_LP = "REFILL_LP"
@@ -752,6 +754,9 @@ def current_state() -> CurrentState:
     if "fa11ed" in text:
         return CurrentState.CRYS_FAILED
 
+    if "sk1pt1cket" in text:
+        return CurrentState.CRYS_MULTI_TICKET_POPUP
+
     if "round" in get_text_in_img("round_box"):
         return CurrentState.HOST_SCREEN
 
@@ -811,6 +816,12 @@ def current_state() -> CurrentState:
 
     if "xtra" in get_text_in_img("crys_diff", make_bw=True):
         return CurrentState.CRYS_SELECT_SCREEN
+
+    if "xtra" in get_text_in_img("crys_diff"):
+        return CurrentState.CRYS_SELECT_SCREEN
+
+    if "k10ku" in normalize_1_and_0(get_text_in_img("crys_kioku_tab", make_bw=True)):
+        return CurrentState.CRYS_TOP_MENU_SCREEN
 
     if "tra1n1ng" in normalize_1_and_0(get_text_in_img("crys_result_box")):
         return CurrentState.CRYS_FARM_FAILED_SCREEN
@@ -1059,6 +1070,10 @@ def setup_text_locations(first_time: bool):
         int(client_left + 0.5 * client_width),
         int(client_top + 0.75 * client_height),
     )
+    text_locations["crys_multi_ticket_confirm"] = (
+        int(client_left + 0.7 * client_width),
+        int(client_top + 0.75 * client_height),
+    )
     text_locations["boss_hp"] = (
         int(client_left + 0.385 * client_width),
         int(client_top + 0.162 * client_height),
@@ -1078,6 +1093,12 @@ def setup_text_locations(first_time: bool):
     text_locations["joined_battles_tab"] = (
         int(client_left + 0.2 * client_width),
         int(client_top + 0.3 * client_height),
+    )
+    text_locations["crys_kioku_tab"] = (
+        int(client_left + 0.15 * client_width),
+        int(client_top + 0.25 * client_height),
+        int(client_right - 0.78 * client_width),
+        int(client_bottom - 0.7 * client_height),
     )
     text_locations["play_button"] = (
         int(client_right - 0.4 * client_width),
@@ -1401,11 +1422,16 @@ def main():
                         return
             case CurrentState.CRYS_SELECT_SCREEN:
                 click(*text_locations[f"crys_{CRYS_ELEMENT}_button"])
+            case CurrentState.CRYS_TOP_MENU_SCREEN:
+                click(*text_locations["crys_void_button"])
             case CurrentState.CRYS_FARM_FAILED_SCREEN:
                 click(*text_locations["host_screen_button"])
             case CurrentState.CRYS_TEAM_SELECT_SCREEN:
                 select_correct_team(CRYS_TEAM, True)
                 click(*text_locations["play_button"])
+            case CurrentState.CRYS_MULTI_TICKET_POPUP:
+                click(*text_locations["upgrade_button"])
+                click(*text_locations["crys_multi_ticket_confirm"])
             case CurrentState.TOWER_NEXT_SCREEN:
                 click(
                     int(text_locations["join_button_box"][0]),
@@ -1449,7 +1475,7 @@ def main():
                 *_, v2 = get_color_diff_range("scroll_bar")
                 # When daily bonus is available
                 logger.debug("Games until daily bonus v1=%.2f v2=%.2f", v1, v2)
-                if 0.2 < v1 < 0.4 or 0.2 < v2 < 0.4:
+                if 0.3 < v1 < 0.4 or 0.3 < v2 < 0.4:
                     click(*text_locations["hosting_back_button"])
                 else:
                     set_correct_host_difficulty()
