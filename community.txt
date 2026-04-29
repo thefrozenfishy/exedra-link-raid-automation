@@ -97,3 +97,6 @@ Wolf
 Sylve
 BirdMess
 MagicFox
+FragileMeguca
+Tillie
+Ceri
