@@ -550,12 +550,12 @@ def start_play():
     if single_digit_diff.isdigit():
         single = int(single_digit_diff)
     if multi_digit_diff.isdigit():
-        multi = int(multi_digit_diff) % 100
+        multi = 10 + int(multi_digit_diff) % 10
     logger.debug("Spotted diffs: single='%d', multi='%d'", single, multi)
     diff = (
         multi
         if multi in CURRENT_DIFF_RANGE or single == multi
-        else single if single in CURRENT_DIFF_RANGE else 20
+        else single % 10 if single % 10 in CURRENT_DIFF_RANGE else 20
     )
     select_correct_team(teams.get(diff, default_team), is_crys=False)
     logger.debug(
