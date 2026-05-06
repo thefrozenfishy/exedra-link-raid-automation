@@ -2,13 +2,15 @@
 
 ## Requires
 
-* [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki) installed and added to PATH.
+* [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki) installed and [added to PATH](https://gist.github.com/ScribbleGhost/752ec213b57eef5f232053e04f9d0d54).
 * Download the exe file of this tool from [releases](https://github.com/thefrozenfishy/exedra-link-raid-automation/releases)
 
 ## Usage
 
 * This assumes your game runs in 16:9 aspect ratio. I have not tested on emulator myself so do tell if it doesn't work
 * Download exe from [releases](https://github.com/thefrozenfishy/exedra-link-raid-automation/releases) and run. Keep in mind the window needs to be visible on the screen for the OCR to function properly.
+* At any point, press ``ctrl+shift+q`` to exit the program
+* At any point, press ``ctrl+shift+e`` to pause the program, press it again to resume
 * The file will run infinitely, hosting whenever able, otherwise joining the first battle it finds in your desired range.
 * Configure settings in `link-raid-automation-settings.ini`. This file is created automatically on first run with default settings.
   * ``default_team`` Team name to use when doing Link Raid.
