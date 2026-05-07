@@ -366,7 +366,7 @@ def get_game_window():
 
 def grab_region(bbox):
     x1, y1, x2, y2 = bbox
-    with mss.mss() as sct:
+    with mss.MSS() as sct:
         monitor = {
             "left": x1,
             "top": y1,
