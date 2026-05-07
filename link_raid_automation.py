@@ -877,9 +877,17 @@ def click_box(x1: float | int, y1: float | int, x2: float | int, y2: float | int
 
 
 def click(x: float | int, y: float | int):
+    hwnd = win32gui.FindWindow(None, TARGET_WINDOW)
+    if not hwnd:
+        return
+    prev_hwnd = win32gui.GetForegroundWindow()
+    ctypes.windll.user32.SetForegroundWindow(hwnd)
+    pyautogui.sleep(0.05)  # let it actually activate
     curr = pyautogui.position()
     pydirectinput.click(int(x), int(y))
     pyautogui.moveTo(curr)
+    pyautogui.sleep(0.05)
+    ctypes.windll.user32.SetForegroundWindow(prev_hwnd)
 
 
 def has_gold_crys_drop():
