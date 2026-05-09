@@ -140,6 +140,7 @@ JOIN_COMMUNITY = ini_config.getboolean("general", "join_community")
 ONLY_JOIN_FRIENDS_AND_COMMUNITY = ini_config.getboolean(
     "general", "only_join_friends_and_community"
 )
+JOIN_WITH_STRONGEST_TEAM = False
 
 teams = {
     **{i: default_team for i in range(1, 21)},
@@ -557,6 +558,9 @@ def start_play():
         if multi in CURRENT_DIFF_RANGE or single == multi
         else single % 10 if single % 10 in CURRENT_DIFF_RANGE else 20
     )
+    if JOIN_WITH_STRONGEST_TEAM:
+        diff = 20
+        logger.debug("Found a almost full lobby, killing")
     select_correct_team(teams.get(diff, default_team), is_crys=False)
     logger.debug(
         "Starting play at difficulty %d using %s", diff, teams.get(diff, default_team)
@@ -655,6 +659,8 @@ def claim_battles():
 
 
 def start_join():
+    global JOIN_WITH_STRONGEST_TEAM
+    JOIN_WITH_STRONGEST_TEAM = False
     current_battles = get_nrs_in_img("joined_battles")
     if current_battles.isdigit() and int(current_battles) == 10:
         click(*text_locations["joined_battles_tab"])
@@ -662,6 +668,11 @@ def start_join():
     for _ in range(60):
         valid_match = find_coords_for_eligable_difficulty()
         if valid_match:
+            current_players = re.sub(
+                r"\D", "", normalize_1_and_0(get_text_in_img("current_player_count"))
+            )
+            if int(current_players) >= 8:
+                JOIN_WITH_STRONGEST_TEAM = True
             click(*text_locations["join_button"])
             pyautogui.sleep(SLEEP_MULT * 2)
             return
