@@ -560,7 +560,7 @@ def start_play():
     )
     if JOIN_WITH_STRONGEST_TEAM:
         diff = 20
-        logger.debug("Found a almost full lobby, killing")
+        logger.info("Found an almost full lobby, killing")
     select_correct_team(teams.get(diff, default_team), is_crys=False)
     logger.debug(
         "Starting play at difficulty %d using %s", diff, teams.get(diff, default_team)
