@@ -39,7 +39,7 @@ jobs:
           git push origin "version-${{ github.run_number }}"
 
       - name: Build EXE with PyInstaller
-        run: pyinstaller --onefile --name "link_raid_automation-v${{ github.run_number }}" link_raid_automation.py
+        run: pyinstaller --icon=icon.ico --onefile --name "link_raid_automation-v${{ github.run_number }}" link_raid_automation.py
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
