@@ -671,13 +671,23 @@ def get_dpi_scale() -> float:
 
 
 def scroll(clicks: int, x: int, y: int):
-    """Scroll without being affected by Windows scroll speed setting."""
+    hwnd = win32gui.FindWindow(None, TARGET_WINDOW)
+    if not hwnd:
+        return
+    prev_hwnd = win32gui.GetForegroundWindow()
+    ctypes.windll.user32.SetForegroundWindow(hwnd)
+    pyautogui.sleep(0.02)
+    curr = pyautogui.position()
     pydirectinput.click(x, y)
 
     adjusted_delta = int(-120 / DPI_SCALE)
     for _ in range(clicks):
         win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, 0, 0, adjusted_delta, 0)
         pyautogui.sleep(SLEEP_MULT * 0.1)
+
+    pyautogui.moveTo(curr)
+    pyautogui.sleep(0.02)
+    ctypes.windll.user32.SetForegroundWindow(prev_hwnd)
 
 
 def claim_battles():
@@ -915,6 +925,7 @@ def love_everyone():
         click(*text_locations["love_button_rb"])
         pyautogui.sleep(SLEEP_MULT * 0.5)
         scroll(4, *text_locations["raid_button"])
+        pyautogui.sleep(SLEEP_MULT * 0.1)
 
     click(*text_locations["love_button_lb"])
     pyautogui.sleep(SLEEP_MULT * 0.5)
