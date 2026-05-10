@@ -282,6 +282,10 @@ def check_git_version_match():
                 logger.warning(
                     "New version available: v%s, you are on %s", version, __version__
                 )
+                logger.warning(
+                    "Get it on https://github.com/thefrozenfishy/exedra-link-raid-automation/releases/tag/version-%s",
+                    version,
+                )
     except Exception as e:
         logger.error("Failed to get git version")
 
