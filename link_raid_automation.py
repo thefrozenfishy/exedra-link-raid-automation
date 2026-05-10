@@ -601,13 +601,13 @@ def start_play():
         if multi in CURRENT_DIFF_RANGE or single == multi
         else single % 10 if single % 10 in CURRENT_DIFF_RANGE else 20
     )
-    if JOIN_WITH_STRONGEST_TEAM:
-        diff = 20
+    if JOIN_WITH_STRONGEST_TEAM and CURRENT_DIFF_RANGE == {1, 2, 3, 4}:
         logger.info("Found an almost full lobby, killing")
-    select_correct_team(teams.get(diff, default_team), is_crys=False)
-    logger.debug(
-        "Starting play at difficulty %d using %s", diff, teams.get(diff, default_team)
-    )
+        team = default_team
+    else:
+        team = teams.get(diff, default_team)
+    select_correct_team(team, is_crys=False)
+    logger.debug("Starting play at difficulty %d using %s", diff, team)
     click(*text_locations["play_button"])
     for _ in range(10):
         pyautogui.sleep(SLEEP_MULT * 0.2)
