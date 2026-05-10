@@ -12,7 +12,6 @@ from pathlib import Path
 
 import cv2
 import keyboard
-import mss
 import numpy as np
 import pyautogui
 import pydirectinput
@@ -21,6 +20,7 @@ import pytesseract
 import win32api
 import win32con
 import win32gui
+import win32ui
 from Levenshtein import distance as lev_distance
 from PIL import Image, ImageDraw
 from requests import get
@@ -365,17 +365,56 @@ def get_game_window():
     return wins[0]
 
 
-def grab_region(bbox):
+def _capture_client(hwnd: int) -> Image.Image:
+    win_left, win_top, win_right, win_bottom = win32gui.GetWindowRect(hwnd)
+    w = win_right - win_left
+    h = win_bottom - win_top
+
+    hwnd_dc = win32gui.GetWindowDC(hwnd)
+    mfc_dc = win32ui.CreateDCFromHandle(hwnd_dc)
+    save_dc = mfc_dc.CreateCompatibleDC()
+
+    bmp = win32ui.CreateBitmap()
+    bmp.CreateCompatibleBitmap(mfc_dc, w, h)
+    save_dc.SelectObject(bmp)
+    ctypes.windll.user32.PrintWindow(hwnd, save_dc.GetSafeHdc(), 0x2)
+
+    bmp_info = bmp.GetInfo()
+    raw = bmp.GetBitmapBits(True)
+    full_img = Image.frombuffer(
+        "RGB",
+        (bmp_info["bmWidth"], bmp_info["bmHeight"]),
+        raw,
+        "raw",
+        "BGRX",
+        0,
+        1,
+    )
+
+    win32gui.DeleteObject(bmp.GetHandle())
+    save_dc.DeleteDC()
+    mfc_dc.DeleteDC()
+    win32gui.ReleaseDC(hwnd, hwnd_dc)
+
+    client_left, client_top = win32gui.ClientToScreen(hwnd, (0, 0))
+    client_rect = win32gui.GetClientRect(hwnd)
+    cx = client_left - win_left
+    cy = client_top - win_top
+    cw = client_rect[2]
+    ch = client_rect[3]
+    return full_img.crop((cx, cy, cx + cw, cy + ch))
+
+
+_game_hwnd: int = 0
+_client_left: int = 0
+_client_top: int = 0
+
+
+def grab_region(bbox) -> Image.Image:
     x1, y1, x2, y2 = bbox
-    with mss.MSS() as sct:
-        monitor = {
-            "left": x1,
-            "top": y1,
-            "width": x2 - x1,
-            "height": y2 - y1,
-        }
-        img = sct.grab(monitor)
-        return Image.frombytes("RGB", img.size, img.rgb)
+    img = _capture_client(_game_hwnd)
+    ox, oy = _client_left, _client_top
+    return img.crop((x1 - ox, y1 - oy, x2 - ox, y2 - oy))
 
 
 def normalize_1_and_0(s: str) -> str:
@@ -893,11 +932,11 @@ def click(x: float | int, y: float | int):
         return
     prev_hwnd = win32gui.GetForegroundWindow()
     ctypes.windll.user32.SetForegroundWindow(hwnd)
-    pyautogui.sleep(0.05)  # let it actually activate
+    pyautogui.sleep(0.02)
     curr = pyautogui.position()
     pydirectinput.click(int(x), int(y))
     pyautogui.moveTo(curr)
-    pyautogui.sleep(0.05)
+    pyautogui.sleep(0.02)
     ctypes.windll.user32.SetForegroundWindow(prev_hwnd)
 
 
@@ -938,7 +977,7 @@ curr_offset = 0
 
 
 def setup_text_locations(first_time: bool):
-    global curr_offset
+    global curr_offset, _game_hwnd, _client_left, _client_top
     win = get_game_window()
     hwnd = win._hWnd
     client_rect = win32gui.GetClientRect(hwnd)
@@ -952,17 +991,12 @@ def setup_text_locations(first_time: bool):
 
     logger.debug("Client area resolution is %dx%d", client_width, client_height)
 
+    _game_hwnd = hwnd
+    _client_left = client_left
+    _client_top = client_top
+
     if first_time:
         curr_offset = get_current_boss_offset()
-        try:
-            win.activate()
-        except Exception as e:
-            logger.exception(
-                """Could not activate window!
-    This is not a major issue, just be sure that no application is hiding Exedra from view. 
-    The OCR has to 'see' the content of the game to determine what to do.""",
-                exc_info=e,
-            )
 
     text_locations["result_box"] = (
         int(client_left + 0.23 * client_width),
