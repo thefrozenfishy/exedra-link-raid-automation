@@ -433,6 +433,22 @@ def normalize_1_and_0(s: str) -> str:
     )
 
 
+def get_play_mode_text() -> str:
+    img = grab_region(text_locations["upper_current_play_mode"])
+    gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
+    gray = cv2.GaussianBlur(gray, (3, 3), 0)
+    _, img_bw = cv2.threshold(gray, 180, 235, cv2.THRESH_BINARY)
+    h, w = img_bw.shape
+    img_bw = cv2.resize(img_bw, (w * 2, h * 2), interpolation=cv2.INTER_LINEAR)
+    if DEBUG:
+        Image.fromarray(img_bw).save("debug/upper_current_play_mode.png")
+    config = "--psm 8 -c tessedit_char_whitelist=FULAOTMNulaotmn"
+    data = pytesseract.image_to_data(
+        img_bw, output_type=pytesseract.Output.DICT, config=config
+    )
+    return re.sub(r"[^A-Za-z0-9]", "", "".join(data["text"]).lower())
+
+
 def get_text_in_img(cords: str, config="", make_bw=False) -> str:
     img = grab_region(text_locations[cords])
     if make_bw:
@@ -772,6 +788,7 @@ class CurrentState(Enum):
     EX_SCREEN = "EX_SCREEN"
     TOWER_NEXT_SCREEN = "TOWER_NEXT_SCREEN"
     BATTLE_ON_MANUAL = "BATTLE_ON_MANUAL"
+    BATTLE_ON_SEMI = "BATTLE_ON_SEMI"
     CONTINUE = "CONTINUE"
 
 
@@ -893,6 +910,10 @@ def current_state() -> CurrentState:
     if "tra1n1ng" in normalize_1_and_0(get_text_in_img("crys_result_box")):
         return CurrentState.CRYS_FARM_FAILED_SCREEN
 
+    current_play_mode = normalize_1_and_0(get_play_mode_text())
+    logger.debug("Upper current play mode %s", current_play_mode)
+    if "m" in current_play_mode:
+        return CurrentState.BATTLE_ON_SEMI
     *_, v = get_color_diff_range("current_play_mode")
     logger.debug("Current play mode v=%.2f", v)
     if 0.3 < v < 0.6 and "aut" in normalize_1_and_0(
@@ -1333,6 +1354,12 @@ def setup_text_locations(first_time: bool):
         int(client_right - 0.36 * client_width),
         int(client_bottom - 0.91 * client_height),
     )
+    text_locations["upper_current_play_mode"] = (
+        int(client_left + 0.813 * client_width),
+        int(client_top + 0.04 * client_height),
+        int(client_right - 0.15 * client_width),
+        int(client_bottom - 0.93 * client_height),
+    )
     text_locations["current_play_mode"] = (
         int(client_left + 0.816 * client_width),
         int(client_top + 0.05 * client_height),
@@ -1567,6 +1594,9 @@ def main():
                     if ENABLE_AUTO:
                         click_box(*text_locations["current_play_mode"])
                         pyautogui.sleep(SLEEP_MULT * 1)
+                        click_box(*text_locations["current_play_mode"])
+                case CurrentState.BATTLE_ON_SEMI:
+                    if ENABLE_AUTO:
                         click_box(*text_locations["current_play_mode"])
                 case CurrentState.PLAY_JOIN_SCREEN:
                     logger.info("Joining a game...")
