@@ -724,7 +724,7 @@ def start_join():
             current_players = re.sub(
                 r"\D", "", normalize_1_and_0(get_text_in_img("current_player_count"))
             )
-            if current_battles.isdigit() and int(current_players) >= 8:
+            if current_players.isdigit() and int(current_players) >= 8:
                 JOIN_WITH_STRONGEST_TEAM = True
             click(*text_locations["join_button"])
             pyautogui.sleep(SLEEP_MULT * 2)
