@@ -100,3 +100,4 @@ MagicFox
 FragileMeguca
 Tillie
 Ceri
+Magnolia
