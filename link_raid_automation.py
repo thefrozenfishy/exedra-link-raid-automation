@@ -611,7 +611,12 @@ def start_play():
         single = int(single_digit_diff)
     if multi_digit_diff.isdigit():
         multi = 10 + int(multi_digit_diff) % 10
-    logger.debug("Spotted diffs: single='%d', multi='%d'", single, multi)
+    logger.debug(
+        "Spotted diffs: single='%d', multi='%d' and range is %s",
+        single,
+        multi,
+        CURRENT_DIFF_RANGE,
+    )
     diff = (
         multi
         if multi in CURRENT_DIFF_RANGE or single == multi
@@ -623,7 +628,12 @@ def start_play():
     else:
         team = teams.get(diff, default_team)
     select_correct_team(team, is_crys=False)
-    logger.debug("Starting play at difficulty %d using %s", diff, team)
+    logger.debug(
+        "Starting play at difficulty %d using %s because range is %s",
+        diff,
+        team,
+        CURRENT_DIFF_RANGE,
+    )
     click(*text_locations["play_button"])
     for _ in range(10):
         pyautogui.sleep(SLEEP_MULT * 0.2)
@@ -657,6 +667,7 @@ def set_correct_host_difficulty():
     pyautogui.sleep(SLEEP_MULT * 3)
     for _ in range(target_diff - 1):
         click(*text_locations["host_increment"])
+    translate_hsv_to_difficulty_range(*get_color_diff_range("host_difficulty"))
 
 
 def is_scroll_at_bottom():
