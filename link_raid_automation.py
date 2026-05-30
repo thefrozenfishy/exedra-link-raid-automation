@@ -805,7 +805,7 @@ class CurrentState(Enum):
 
 def current_state() -> CurrentState:
     text = normalize_1_and_0(get_text_in_img("party_box"))
-    if "party" in text:
+    if "arty" in text:
         text2 = normalize_1_and_0(get_text_in_img("play_box"))
         if "p1ay" in text2.lower():
             return CurrentState.PLAY_JOIN_SCREEN
@@ -1529,7 +1529,6 @@ def main():
                             logger.info(
                                 "Out of LP, swapping to crys farming is disabled. Quitting"
                             )
-                            return
                 case CurrentState.CRYS_SELECT_SCREEN:
                     click(*text_locations[f"crys_{CRYS_ELEMENT}_button"])
                 case CurrentState.CRYS_TOP_MENU_SCREEN:
@@ -1580,7 +1579,6 @@ def main():
                             logger.info(
                                 "Out of QP, swapping to link raid is disabled. Quitting"
                             )
-                            return
                 case CurrentState.HOST_SCREEN:
                     *_, v1 = get_color_diff_range("games_until_daily_bonus")
                     *_, v2 = get_color_diff_range("scroll_bar")
