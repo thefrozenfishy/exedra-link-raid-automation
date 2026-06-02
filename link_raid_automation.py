@@ -1529,6 +1529,7 @@ def main():
                             logger.info(
                                 "Out of LP, swapping to crys farming is disabled"
                             )
+                            click(*text_locations["host_screen_button"])
                 case CurrentState.CRYS_SELECT_SCREEN:
                     click(*text_locations[f"crys_{CRYS_ELEMENT}_button"])
                 case CurrentState.CRYS_TOP_MENU_SCREEN:
@@ -1577,6 +1578,7 @@ def main():
                             click(*text_locations["raid_button"])
                         else:
                             logger.info("Out of QP, swapping to link raid is disabled")
+                            click(*text_locations["host_screen_button"])
                 case CurrentState.HOST_SCREEN:
                     *_, v1 = get_color_diff_range("games_until_daily_bonus")
                     *_, v2 = get_color_diff_range("scroll_bar")
