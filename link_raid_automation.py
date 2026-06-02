@@ -511,11 +511,11 @@ def get_color_diff_range(offset: str) -> tuple[float, float, float]:
 def _translate_hsv_to_difficulty_range(h, s, v) -> set[int]:
     if 230 < h < 250 and s < 0.05:
         return set(range(17, 21))  # White
-    if (30 < h < 70 and s < 0.15 and 0.65 > v > 0.25) or (
-        h < 50 and s < 0.1 and v < 0.3
-    ):
-        # Different colour in host and join screens for some reason
+    # Different colour in host and join screens for some reason
+    if 30 < h < 70 and s < 0.15 and 0.65 > v > 0.25:
         return set(range(1, 5))  # Gray
+    if (h > 330 or h < 50) and s < 0.1 and v < 0.3:
+        return set(range(1, 5))  # Black
     if (h < 20 or h > 340) and s > 0.3:
         return set(range(9, 13))  # Red
     if 80 < h < 160 and s > 0.15:
@@ -1527,7 +1527,7 @@ def main():
                             click(*text_locations["crys_button"])
                         else:
                             logger.info(
-                                "Out of LP, swapping to crys farming is disabled. Quitting"
+                                "Out of LP, swapping to crys farming is disabled"
                             )
                 case CurrentState.CRYS_SELECT_SCREEN:
                     click(*text_locations[f"crys_{CRYS_ELEMENT}_button"])
@@ -1576,9 +1576,7 @@ def main():
                             pyautogui.sleep(SLEEP_MULT * 0.5)
                             click(*text_locations["raid_button"])
                         else:
-                            logger.info(
-                                "Out of QP, swapping to link raid is disabled. Quitting"
-                            )
+                            logger.info("Out of QP, swapping to link raid is disabled")
                 case CurrentState.HOST_SCREEN:
                     *_, v1 = get_color_diff_range("games_until_daily_bonus")
                     *_, v2 = get_color_diff_range("scroll_bar")
