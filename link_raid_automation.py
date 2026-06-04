@@ -707,7 +707,7 @@ def scroll(clicks: int, x: int, y: int):
         return
     prev_hwnd = win32gui.GetForegroundWindow()
     ctypes.windll.user32.SetForegroundWindow(hwnd)
-    pyautogui.sleep(0.02)
+    pyautogui.sleep(SLEEP_MULT * 0.02)
     curr = pyautogui.position()
     pydirectinput.click(x, y)
 
@@ -717,7 +717,7 @@ def scroll(clicks: int, x: int, y: int):
         pyautogui.sleep(SLEEP_MULT * 0.1)
 
     pyautogui.moveTo(curr)
-    pyautogui.sleep(0.02)
+    pyautogui.sleep(SLEEP_MULT * 0.02)
     ctypes.windll.user32.SetForegroundWindow(prev_hwnd)
 
 
@@ -979,11 +979,11 @@ def click(x: float | int, y: float | int):
         return
     prev_hwnd = win32gui.GetForegroundWindow()
     ctypes.windll.user32.SetForegroundWindow(hwnd)
-    pyautogui.sleep(0.02)
+    pyautogui.sleep(SLEEP_MULT * 0.02)
     curr = pyautogui.position()
     pydirectinput.click(int(x), int(y))
     pyautogui.moveTo(curr)
-    pyautogui.sleep(0.02)
+    pyautogui.sleep(SLEEP_MULT * 0.02)
     ctypes.windll.user32.SetForegroundWindow(prev_hwnd)
 
 
@@ -994,7 +994,7 @@ def has_gold_crys_drop():
         avg_rgb = arr.mean(axis=(0, 1))  # [R, G, B] normalized
         r, g, b = avg_rgb
         h, s, v = colorsys.rgb_to_hsv(r, g, b)
-        if 0.65 > g > 0.55 and 0.35 > b > 0.25:
+        if 0.65 > g > 0.55 and 0.35 > b >= 0.23:
             logger.debug(
                 "Found gold crys in %d w r=%.2f,g=%.2f,b=%.2f,h=%.2f,s=%.2f,v=%.2f",
                 i,
@@ -1016,6 +1016,10 @@ def has_gold_crys_drop():
                 h,
                 s,
                 v,
+            )
+            os.makedirs("debug/crys_obtain_box", exist_ok=True)
+            colour_img.save(
+                f"debug/crys_obtain_box/{r * 100:.0f}_{g * 100:.0f}_{b * 100:.0f}_{h * 100:.0f}_{s * 100:.0f}_{v * 100:.0f}.png"
             )
     return False
 
@@ -1352,13 +1356,19 @@ def setup_text_locations(first_time: bool):
         int(client_right - 0.15 * client_width),
         int(client_bottom - 0.8 * client_height),
     )
-    for i in range(5):
+    for i in range(4):
         text_locations[f"crys_obtain_box_{i}"] = (
             int(client_left + 0.62 * client_width),
-            int(client_top + (0.73 - 0.125 * i) * client_height),
-            int(client_right - 0.35 * client_width),
+            int(client_top + (0.725 - 0.125 * i) * client_height),
+            int(client_right - 0.351 * client_width),
             int(client_bottom - (0.22 + 0.125 * i) * client_height),
         )
+    text_locations["crys_obtain_box_4"] = (
+        int(client_left + 0.62 * client_width),
+        int(client_top + 0.215 * client_height),
+        int(client_right - 0.351 * client_width),
+        int(client_bottom - 0.73 * client_height),
+    )
     text_locations["crys_quest_team_select"] = (
         int(client_left + 0.36 * client_width),
         int(client_top + 0.04 * client_height),
@@ -1675,7 +1685,7 @@ def main():
                         img = grab_region(text_locations["screen"])
                         os.makedirs("continue", exist_ok=True)
                         img.save(
-                            f"continue/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')} {r:.2f}_{g:.2f}_{b:.2f}s.png"
+                            f"continue/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')} {r * 100:.0f}_{g * 100:.0f}_{b * 100:.0f}.png"
                         )
                     click(
                         int(text_locations["join_back_box"][0]),
