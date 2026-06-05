@@ -973,21 +973,33 @@ def click_box(x1: float | int, y1: float | int, x2: float | int, y2: float | int
     click((x1 + x2) / 2, (y1 + y2) / 2)
 
 
-def click(x: float | int, y: float | int):
-    logger.debug("clicking %f, %f", x, y)
+def click(x, y):
     hwnd = win32gui.FindWindow(None, TARGET_WINDOW)
+    logger.debug("click hwnd=%s target=(%d,%d)", hwnd, x, y)
     if not hwnd:
         logger.error("Could not find hwnd")
         return
+    
     prev_hwnd = win32gui.GetForegroundWindow()
-    ctypes.windll.user32.SetForegroundWindow(hwnd)
+    logger.debug("click prev_hwnd=%s", prev_hwnd)
+    
+    result = ctypes.windll.user32.SetForegroundWindow(hwnd)
+    actual_fg = win32gui.GetForegroundWindow()
+    logger.debug("click SetForegroundWindow result=%s actual_fg=%s is_game=%s", 
+                 result, actual_fg, actual_fg == hwnd)
+    
     pyautogui.sleep(SLEEP_MULT * 0.02)
     curr = pyautogui.position()
+    logger.debug("click cursor_before=%s", curr)
+    
     pydirectinput.click(int(x), int(y))
+    
+    after = pyautogui.position()
+    logger.debug("click cursor_after=%s", after)
+    
     pyautogui.moveTo(curr)
     pyautogui.sleep(SLEEP_MULT * 0.02)
     ctypes.windll.user32.SetForegroundWindow(prev_hwnd)
-
 
 def has_gold_crys_drop():
     for i in range(5):
