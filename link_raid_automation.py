@@ -1508,6 +1508,7 @@ def main():
                 continue
             if i % 10 == 0:
                 setup_text_locations(i == 0)
+                logger.debug("Updated text locations to %s", json.dumps(text_locations, indent=2))
             i += 1
             state = current_state()
             logger.info("Current State: %s", state.name)
@@ -1570,7 +1571,6 @@ def main():
                             int(text_locations["host_back_box"][1]),
                         )
                     else:
-                        print("b")
                         if CRYS_TO_LR_SWAP:
                             logger.info("Out of QP, swapping to link raid")
                             click(*text_locations["host_screen_button"])
