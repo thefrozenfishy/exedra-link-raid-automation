@@ -974,8 +974,10 @@ def click_box(x1: float | int, y1: float | int, x2: float | int, y2: float | int
 
 
 def click(x: float | int, y: float | int):
+    logger.debug("clicking %f, %f", x, y)
     hwnd = win32gui.FindWindow(None, TARGET_WINDOW)
     if not hwnd:
+        logger.error("Could not find hwnd")
         return
     prev_hwnd = win32gui.GetForegroundWindow()
     ctypes.windll.user32.SetForegroundWindow(hwnd)
