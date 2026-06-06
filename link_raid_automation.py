@@ -20,6 +20,7 @@ import pytesseract
 import win32api
 import win32con
 import win32gui
+import win32process
 import win32ui
 from Levenshtein import distance as lev_distance
 from PIL import Image, ImageDraw
@@ -975,31 +976,146 @@ def click_box(x1: float | int, y1: float | int, x2: float | int, y2: float | int
 
 def click(x, y):
     hwnd = win32gui.FindWindow(None, TARGET_WINDOW)
+    logger.debug(
+        "hwnd=%s valid=%s visible=%s",
+        hwnd,
+        win32gui.IsWindow(hwnd),
+        win32gui.IsWindowVisible(hwnd),
+    )
+    logger.debug(
+        "window_state minimized=%s iconic=%s enabled=%s",
+        win32gui.IsIconic(hwnd),
+        win32gui.IsWindowEnabled(hwnd),
+        win32gui.IsWindowVisible(hwnd),
+    )
     logger.debug("click hwnd=%s target=(%d,%d)", hwnd, x, y)
+
     if not hwnd:
         logger.error("Could not find hwnd")
         return
-    
+
+    fg = win32gui.GetForegroundWindow()
+
+    if fg:
+        fg_tid, fg_pid = win32process.GetWindowThreadProcessId(fg)
+    else:
+        fg_tid, fg_pid = None, None
+    if hwnd:
+        game_tid, game_pid = win32process.GetWindowThreadProcessId(hwnd)
+    else:
+        game_tid, game_pid = None, None
+
+    logger.debug(
+        "active desktop hwnd=%s",
+        win32gui.GetForegroundWindow(),
+    )
+    logger.debug(
+        "GetDesktopWindow=%s",
+        win32gui.GetDesktopWindow(),
+    )
+
+    logger.debug(
+        "foreground hwnd=%s tid=%s pid=%s | game tid=%s pid=%s",
+        fg,
+        fg_tid,
+        fg_pid,
+        game_tid,
+        game_pid,
+    )
+
     prev_hwnd = win32gui.GetForegroundWindow()
     logger.debug("click prev_hwnd=%s", prev_hwnd)
-    
+    logger.debug(
+        "desktop=%s input_desktop=%s",
+        win32gui.GetDesktopWindow(),
+        ctypes.windll.user32.OpenInputDesktop(
+            0, False, 0x0100  # DESKTOP_SWITCHDESKTOP
+        ),
+    )
+
+    ctypes.set_last_error(0)
     result = ctypes.windll.user32.SetForegroundWindow(hwnd)
+    err = ctypes.get_last_error()
+
+    logger.debug(
+        "SetForegroundWindow result=%s err=%s",
+        result,
+        err,
+    )
     actual_fg = win32gui.GetForegroundWindow()
-    logger.debug("click SetForegroundWindow result=%s actual_fg=%s is_game=%s", 
-                 result, actual_fg, actual_fg == hwnd)
-    
+    logger.debug(
+        "game_title=%r actual_title=%r",
+        win32gui.GetWindowText(hwnd),
+        win32gui.GetWindowText(actual_fg) if actual_fg else None,
+    )
+
+    try:
+        fg_title = win32gui.GetWindowText(actual_fg)
+    except:
+        fg_title = "<error>"
+
+    logger.debug(
+        "actual_fg=%s title=%r",
+        actual_fg,
+        fg_title,
+    )
+    logger.debug(
+        "click SetForegroundWindow result=%s actual_fg=%s is_game=%s",
+        result,
+        actual_fg,
+        actual_fg == hwnd,
+    )
+
     pyautogui.sleep(SLEEP_MULT * 0.02)
     curr = pyautogui.position()
     logger.debug("click cursor_before=%s", curr)
-    
-    pydirectinput.click(int(x), int(y))
-    
+
+    logger.debug("moving mouse")
+    before_move = win32gui.GetCursorPos()
+
+    pydirectinput.moveTo(int(x), int(y))
+
+    after_move = win32gui.GetCursorPos()
+
+    logger.debug(
+        "moveTo before=%s after=%s target=(%s,%s)",
+        before_move,
+        after_move,
+        x,
+        y,
+    )
+
+    logger.debug(
+        "after move pyautogui=%s win32=%s",
+        pyautogui.position(),
+        win32gui.GetCursorPos(),
+    )
+
+    logger.debug("before mouse down %s", win32gui.GetCursorPos())
+    down_result = pydirectinput.mouseDown()
+    logger.debug("mouseDown result=%s", down_result)
+
+    logger.debug("beforemouse up %s", win32gui.GetCursorPos())
+    up_result = pydirectinput.mouseUp()
+    logger.debug("mouseUp result=%s", up_result)
+
     after = pyautogui.position()
-    logger.debug("click cursor_after=%s", after)
-    
+    logger.debug("click cursor_after=%s and %s", after, win32gui.GetCursorPos())
+
+    logger.debug(
+        "after SetCursorPos=%s",
+        win32gui.GetCursorPos(),
+    )
+
     pyautogui.moveTo(curr)
     pyautogui.sleep(SLEEP_MULT * 0.02)
-    ctypes.windll.user32.SetForegroundWindow(prev_hwnd)
+    if prev_hwnd and win32gui.IsWindow(prev_hwnd):
+        ctypes.windll.user32.SetForegroundWindow(prev_hwnd)
+    else:
+        logger.warning(
+            "Previous hwnd %s is not valid, cannot restore foreground", prev_hwnd
+        )
+
 
 def has_gold_crys_drop():
     for i in range(5):
@@ -1520,7 +1636,9 @@ def main():
                 continue
             if i % 10 == 0:
                 setup_text_locations(i == 0)
-                logger.debug("Updated text locations to %s", json.dumps(text_locations, indent=2))
+                logger.debug(
+                    "Updated text locations to %s", json.dumps(text_locations, indent=2)
+                )
             i += 1
             state = current_state()
             logger.info("Current State: %s", state.name)
