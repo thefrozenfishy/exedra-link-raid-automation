@@ -106,3 +106,4 @@ JadeJuno
 Sora
 AceRed
 Kure
+MADOK
