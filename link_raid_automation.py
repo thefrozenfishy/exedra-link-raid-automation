@@ -20,7 +20,6 @@ import pytesseract
 import win32api
 import win32con
 import win32gui
-import win32process
 import win32ui
 from Levenshtein import distance as lev_distance
 from PIL import Image, ImageDraw
@@ -604,7 +603,7 @@ def select_correct_team(team_name, is_crys):
     raise RuntimeError(f'Could not find team named "{team_name}"')
 
 
-def start_play():
+def start_play(is_host: bool):
     single_digit_diff = get_nrs_in_img("current_difficulty_single_digit")
     multi_digit_diff = get_nrs_in_img("current_difficulty")
     single = multi = 0
@@ -635,10 +634,13 @@ def start_play():
         team,
         CURRENT_DIFF_RANGE,
     )
-    click(*text_locations["play_button"])
-    for _ in range(10):
-        pyautogui.sleep(SLEEP_MULT * 0.2)
+    if is_host:
+        click(*text_locations["host_battle_button"])
+    else:
         click(*text_locations["play_button"])
+        for _ in range(10):
+            pyautogui.sleep(SLEEP_MULT * 0.2)
+            click(*text_locations["play_button"])
 
 
 def set_correct_host_difficulty():
@@ -713,6 +715,9 @@ def scroll(clicks: int, x: int, y: int):
     pydirectinput.click(x, y)
 
     adjusted_delta = int(-120 / DPI_SCALE)
+    if clicks < 0:
+        adjusted_delta *= -1
+        clicks *= -1
     for _ in range(clicks):
         win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, 0, 0, adjusted_delta, 0)
         pyautogui.sleep(SLEEP_MULT * 0.1)
@@ -743,7 +748,7 @@ def start_join():
     global JOIN_WITH_STRONGEST_TEAM
     JOIN_WITH_STRONGEST_TEAM = False
     current_battles = get_nrs_in_img("joined_battles")
-    if current_battles.isdigit() and int(current_battles) == 10:
+    if current_battles.isdigit() and int(current_battles) >= 15:
         click(*text_locations["joined_battles_tab"])
         return
     for _ in range(60):
@@ -775,6 +780,9 @@ class CurrentState(Enum):
     HOST_SCREEN = "HOST_SCREEN"
     HOME_SCREEN_CAN_HOST = "HOME_SCREEN_CAN_HOST"
     HOME_SCREEN_CANNOT_HOST = "HOME_SCREEN_CANNOT_HOST"
+    HOME_SCREEN_WAITING_FOR_FIRST_GAME_TO_FINISH = (
+        "HOME_SCREEN_WAITING_FOR_FIRST_GAME_TO_FINISH"
+    )
     NO_ACTION = "NO_ACTION"
     RESULTS_SCREEN = "RESULTS_SCREEN"
     CRYS_RESULTS_SCREEN = "CRYS_RESULTS_SCREEN"
@@ -782,6 +790,7 @@ class CurrentState(Enum):
     CRYS_RETRY_SCREEN = "CRYS_RETRY_SCREEN"
     CRYS_FAILED = "CRYS_FAILED"
     JOIN_BACK_SCREEN = "JOIN_BACK_SCREEN"
+    MULTI_BACK_SCREEN = "MULTI_BACK_SCREEN"
     HOST_BACK_SCREEN = "HOST_BACK_SCREEN"
     PLAY_JOIN_SCREEN = "PLAY_JOIN_SCREEN"
     PLAY_HOST_SCREEN = "PLAY_HOST_SCREEN"
@@ -796,6 +805,8 @@ class CurrentState(Enum):
     DAILY_BONUS = "DAILY_BONUS"
     BATTLE_ALREADY_ENDED = "BATTLE_ALREADY_ENDED"
     CONNECTION_ISSUE = "CONNECTION_ISSUE"
+    HOST_SKIP_PROMPT = "HOST_SKIP_PROMPT"
+    CLAIM_HOST_RESULTS = "CLAIM_HOST_RESULTS"
     CURRENTLY_HOSTING_SCREEN = "CURRENTLY_HOSTING_SCREEN"
     EX_SCREEN = "EX_SCREEN"
     TOWER_NEXT_SCREEN = "TOWER_NEXT_SCREEN"
@@ -828,6 +839,8 @@ def current_state() -> CurrentState:
         return CurrentState.BATTLE_ALREADY_ENDED
     if "err0r" in error_msg:
         return CurrentState.CONNECTION_ISSUE
+    if "w1thy0ur" in error_msg:
+        return CurrentState.HOST_SKIP_PROMPT
 
     text = normalize_1_and_0(get_text_in_img("join_button_box"))
     if "etreat" in text or "ended" in text:
@@ -856,8 +869,11 @@ def current_state() -> CurrentState:
     if "round" in get_text_in_img("round_box"):
         return CurrentState.HOST_SCREEN
 
-    if "back" in get_text_in_img("join_back_box"):
+    host_end_text = get_text_in_img("join_back_box")
+    if "back" in host_end_text:
         return CurrentState.JOIN_BACK_SCREEN
+    if "next" in host_end_text:
+        return CurrentState.MULTI_BACK_SCREEN
 
     if "back" in get_text_in_img("host_back_box"):
         return CurrentState.HOST_BACK_SCREEN
@@ -866,14 +882,19 @@ def current_state() -> CurrentState:
     if "v1ewresu1ts" in in_progress_text:
         return CurrentState.HOME_SCREEN_CAN_HOST
 
-    text = normalize_1_and_0(get_text_in_img("can_host_box"))
-    if "p1ay" in text:
+    hostable_games_left = normalize_1_and_0(get_text_in_img("can_host_box"))
+    if "p1ay" in hostable_games_left:
+        ongoing_host = normalize_1_and_0(get_text_in_img("ongoing_hosts_box"))
+        if "resu" in ongoing_host:
+            return CurrentState.CLAIM_HOST_RESULTS
         if not DO_HOST:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
         if "1n" in in_progress_text:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
-        if "0" in text:
+        if "0" in hostable_games_left:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
+        if "5" in hostable_games_left and "gress" in ongoing_host:
+            return CurrentState.HOME_SCREEN_WAITING_FOR_FIRST_GAME_TO_FINISH
         return CurrentState.HOME_SCREEN_CAN_HOST
 
     if "c0nt1nue" in normalize_1_and_0(get_text_in_img("tap_to_continue")):
@@ -976,137 +997,19 @@ def click_box(x1: float | int, y1: float | int, x2: float | int, y2: float | int
 
 def click(x, y):
     hwnd = win32gui.FindWindow(None, TARGET_WINDOW)
-    logger.debug(
-        "hwnd=%s valid=%s visible=%s",
-        hwnd,
-        win32gui.IsWindow(hwnd),
-        win32gui.IsWindowVisible(hwnd),
-    )
-    logger.debug(
-        "window_state minimized=%s iconic=%s enabled=%s",
-        win32gui.IsIconic(hwnd),
-        win32gui.IsWindowEnabled(hwnd),
-        win32gui.IsWindowVisible(hwnd),
-    )
-    logger.debug("click hwnd=%s target=(%d,%d)", hwnd, x, y)
-
     if not hwnd:
         logger.error("Could not find hwnd")
         return
 
-    fg = win32gui.GetForegroundWindow()
-
-    if fg:
-        fg_tid, fg_pid = win32process.GetWindowThreadProcessId(fg)
-    else:
-        fg_tid, fg_pid = None, None
-    if hwnd:
-        game_tid, game_pid = win32process.GetWindowThreadProcessId(hwnd)
-    else:
-        game_tid, game_pid = None, None
-
-    logger.debug(
-        "active desktop hwnd=%s",
-        win32gui.GetForegroundWindow(),
-    )
-    logger.debug(
-        "GetDesktopWindow=%s",
-        win32gui.GetDesktopWindow(),
-    )
-
-    logger.debug(
-        "foreground hwnd=%s tid=%s pid=%s | game tid=%s pid=%s",
-        fg,
-        fg_tid,
-        fg_pid,
-        game_tid,
-        game_pid,
-    )
-
     prev_hwnd = win32gui.GetForegroundWindow()
-    logger.debug("click prev_hwnd=%s", prev_hwnd)
-    logger.debug(
-        "desktop=%s input_desktop=%s",
-        win32gui.GetDesktopWindow(),
-        ctypes.windll.user32.OpenInputDesktop(
-            0, False, 0x0100  # DESKTOP_SWITCHDESKTOP
-        ),
-    )
-
     ctypes.set_last_error(0)
     result = ctypes.windll.user32.SetForegroundWindow(hwnd)
     err = ctypes.get_last_error()
-
-    logger.debug(
-        "SetForegroundWindow result=%s err=%s",
-        result,
-        err,
-    )
-    actual_fg = win32gui.GetForegroundWindow()
-    logger.debug(
-        "game_title=%r actual_title=%r",
-        win32gui.GetWindowText(hwnd),
-        win32gui.GetWindowText(actual_fg) if actual_fg else None,
-    )
-
-    try:
-        fg_title = win32gui.GetWindowText(actual_fg)
-    except:
-        fg_title = "<error>"
-
-    logger.debug(
-        "actual_fg=%s title=%r",
-        actual_fg,
-        fg_title,
-    )
-    logger.debug(
-        "click SetForegroundWindow result=%s actual_fg=%s is_game=%s",
-        result,
-        actual_fg,
-        actual_fg == hwnd,
-    )
-
+    if err:
+        logger.warning("SetForegroundWindow result=%s err=%s", result, err)
     pyautogui.sleep(SLEEP_MULT * 0.02)
     curr = pyautogui.position()
-    logger.debug("click cursor_before=%s", curr)
-
-    logger.debug("moving mouse")
-    before_move = win32gui.GetCursorPos()
-
-    pydirectinput.moveTo(int(x), int(y))
-
-    after_move = win32gui.GetCursorPos()
-
-    logger.debug(
-        "moveTo before=%s after=%s target=(%s,%s)",
-        before_move,
-        after_move,
-        x,
-        y,
-    )
-
-    logger.debug(
-        "after move pyautogui=%s win32=%s",
-        pyautogui.position(),
-        win32gui.GetCursorPos(),
-    )
-
-    logger.debug("before mouse down %s", win32gui.GetCursorPos())
-    down_result = pydirectinput.mouseDown()
-    logger.debug("mouseDown result=%s", down_result)
-
-    logger.debug("beforemouse up %s", win32gui.GetCursorPos())
-    up_result = pydirectinput.mouseUp()
-    logger.debug("mouseUp result=%s", up_result)
-
-    after = pyautogui.position()
-    logger.debug("click cursor_after=%s and %s", after, win32gui.GetCursorPos())
-
-    logger.debug(
-        "after SetCursorPos=%s",
-        win32gui.GetCursorPos(),
-    )
-
+    pydirectinput.click(int(x), int(y))
     pyautogui.moveTo(curr)
     pyautogui.sleep(SLEEP_MULT * 0.02)
     if prev_hwnd and win32gui.IsWindow(prev_hwnd):
@@ -1276,9 +1179,9 @@ def setup_text_locations(first_time: bool):
         int(client_bottom - 0.5 * client_height),
     )
     text_locations["play_box"] = (
-        int(client_left + 0.5 * client_width),
+        int(client_left + 0.6 * client_width),
         int(client_top + 0.79 * client_height),
-        int(client_right - 0.4 * client_width),
+        int(client_right - 0.3 * client_width),
         int(client_bottom - 0.15 * client_height),
     )
     text_locations["join_button"] = (
@@ -1298,9 +1201,9 @@ def setup_text_locations(first_time: bool):
         int(client_bottom - 0.45 * client_height),
     )
     text_locations["games_until_daily_bonus"] = (
-        int(client_left + 0.64 * client_width),
+        int(client_left + 0.73 * client_width),
         int(client_top + 0.74 * client_height),
-        int(client_right - 0.33 * client_width),
+        int(client_right - 0.24 * client_width),
         int(client_bottom - 0.21 * client_height),
     )
     text_locations["battle_already_ended_ok"] = (
@@ -1351,6 +1254,10 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["host_screen_button"] = (
         int(client_left + 0.3 * client_width),
+        int(client_top + 0.8 * client_height),
+    )
+    text_locations["host_battle_button"] = (
+        int(client_left + 0.4 * client_width),
         int(client_top + 0.8 * client_height),
     )
     text_locations["next_team"] = (
@@ -1430,6 +1337,12 @@ def setup_text_locations(first_time: bool):
         int(client_top + 0.82 * client_height),
         int(client_right - 0.57 * client_width),
         int(client_bottom - 0.13 * client_height),
+    )
+    text_locations["ongoing_hosts_box"] = (
+        int(client_left + 0.32 * client_width),
+        int(client_top + 0.66 * client_height),
+        int(client_right - 0.60 * client_width),
+        int(client_bottom - 0.29 * client_height),
     )
     text_locations["in_progress_box"] = (
         int(client_left + 0.3 * client_width),
@@ -1739,8 +1652,15 @@ def main():
                     click(*text_locations["battle_already_ended_ok"])
                 case CurrentState.CONNECTION_ISSUE:
                     click(*text_locations["battle_already_ended_ok"])
-                case CurrentState.HOME_SCREEN_CANNOT_HOST:
+                case CurrentState.HOST_SKIP_PROMPT:
+                    click(*text_locations["play_button"])
+                case (
+                    CurrentState.HOME_SCREEN_CANNOT_HOST
+                    | CurrentState.HOME_SCREEN_WAITING_FOR_FIRST_GAME_TO_FINISH
+                ):
                     click(*text_locations["join_screen_button"])
+                case CurrentState.CLAIM_HOST_RESULTS:
+                    click_box(*text_locations["ongoing_hosts_box"])
                 case CurrentState.BATTLE_ON_MANUAL:
                     if ENABLE_AUTO:
                         click_box(*text_locations["current_play_mode"])
@@ -1751,10 +1671,10 @@ def main():
                         click_box(*text_locations["current_play_mode"])
                 case CurrentState.PLAY_JOIN_SCREEN:
                     logger.info("Joining a game...")
-                    start_play()
+                    start_play(False)
                 case CurrentState.PLAY_HOST_SCREEN:
                     logger.info("Hosting a game...")
-                    start_play()
+                    start_play(True)
                 case CurrentState.NO_ACTION:
                     pyautogui.sleep(SLEEP_MULT * 5)
                 case CurrentState.CRYS_FAILED:
@@ -1790,17 +1710,20 @@ def main():
 
                 case CurrentState.JOIN_BACK_SCREEN:
                     love_everyone()
-                    click(
-                        int(text_locations["join_back_box"][0]),
-                        int(text_locations["join_back_box"][1]),
-                    )
+                    click_box(*text_locations["join_back_box"])
                     pyautogui.sleep(SLEEP_MULT * 2)
+                case CurrentState.MULTI_BACK_SCREEN:
+                    love_everyone()
+                    click_box(*text_locations["join_back_box"])
+                    pyautogui.sleep(SLEEP_MULT * 4)
+                    click_box(*text_locations["join_back_box"])
+                    pyautogui.sleep(SLEEP_MULT * 2)
+                    for _ in range(3):
+                        pyautogui.sleep(SLEEP_MULT * 0.5)
+                        scroll(-4, *text_locations["raid_button"])
                 case CurrentState.HOST_BACK_SCREEN:
                     love_everyone()
-                    click(
-                        int(text_locations["host_back_box"][0]),
-                        int(text_locations["host_back_box"][1]),
-                    )
+                    click_box(*text_locations["host_back_box"])
                 case CurrentState.CONTINUE:
                     img = grab_region(text_locations["reward_orb_box"])
                     avg_rgb = (np.array(img).astype(float) / 255.0).mean(axis=(0, 1))
