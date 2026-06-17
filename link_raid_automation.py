@@ -1221,7 +1221,7 @@ def setup_text_locations(first_time: bool):
         int(client_bottom - 0.828 * client_height),
     )
     text_locations["joined_battles"] = (
-        int(client_left + 0.54 * client_width),
+        int(client_left + 0.545 * client_width),
         int(client_top + 0.02 * client_height),
         int(client_right - 0.43 * client_width),
         int(client_bottom - 0.92 * client_height),
