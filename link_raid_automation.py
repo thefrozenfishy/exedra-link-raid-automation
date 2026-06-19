@@ -748,7 +748,7 @@ def start_join():
     global JOIN_WITH_STRONGEST_TEAM
     JOIN_WITH_STRONGEST_TEAM = False
     current_battles = get_nrs_in_img("joined_battles")
-    if current_battles.isdigit() and int(current_battles) >= 15:
+    if current_battles.isdigit() and int(current_battles) >= 9:
         click(*text_locations["joined_battles_tab"])
         return
     for _ in range(60):
@@ -818,10 +818,11 @@ class CurrentState(Enum):
 def current_state() -> CurrentState:
     text = normalize_1_and_0(get_text_in_img("party_box"))
     if "arty" in text:
-        text2 = normalize_1_and_0(get_text_in_img("play_box"))
-        if "p1ay" in text2.lower():
-            return CurrentState.PLAY_JOIN_SCREEN
-        return CurrentState.PLAY_HOST_SCREEN
+        if "sk1p" in normalize_1_and_0(get_text_in_img("skip_box")).lower():
+            return CurrentState.PLAY_HOST_SCREEN
+        if "sk1p" in normalize_1_and_0(get_text_in_img("skip_box2")).lower():
+            return CurrentState.PLAY_HOST_SCREEN
+        return CurrentState.PLAY_JOIN_SCREEN
 
     if "1v1" in normalize_1_and_0(get_text_in_img("result_box")):
         return CurrentState.RESULTS_SCREEN
@@ -973,6 +974,8 @@ def love_everyone():
     if not DO_LOVE or not is_boss_dead():
         return
 
+    # To counteract multi host claiming not scrolling back up
+    scroll(-15, *text_locations["raid_button"])
     click(*text_locations["love_button_l"])
     pyautogui.sleep(SLEEP_MULT * 0.5)
     click(*text_locations["love_button_r"])
@@ -1178,6 +1181,18 @@ def setup_text_locations(first_time: bool):
         int(client_right - 0.65 * client_width),
         int(client_bottom - 0.5 * client_height),
     )
+    text_locations["skip_box"] = (
+        int(client_left + 0.3 * client_width),
+        int(client_top + 0.79 * client_height),
+        int(client_right - 0.6 * client_width),
+        int(client_bottom - 0.15 * client_height),
+    )
+    text_locations["skip_box2"] = (
+        int(client_left + 0.45 * client_width),
+        int(client_top + 0.79 * client_height),
+        int(client_right - 0.45 * client_width),
+        int(client_bottom - 0.15 * client_height),
+    )
     text_locations["play_box"] = (
         int(client_left + 0.6 * client_width),
         int(client_top + 0.79 * client_height),
@@ -1223,7 +1238,7 @@ def setup_text_locations(first_time: bool):
     text_locations["joined_battles"] = (
         int(client_left + 0.545 * client_width),
         int(client_top + 0.02 * client_height),
-        int(client_right - 0.43 * client_width),
+        int(client_right - 0.44 * client_width),
         int(client_bottom - 0.92 * client_height),
     )
     text_locations["join_battles_tab"] = (
@@ -1708,19 +1723,10 @@ def main():
                 case CurrentState.NO_MORE_BATTLES_JOINED:
                     click(*text_locations["join_battles_tab"])
 
-                case CurrentState.JOIN_BACK_SCREEN:
+                case CurrentState.JOIN_BACK_SCREEN | CurrentState.MULTI_BACK_SCREEN:
                     love_everyone()
                     click_box(*text_locations["join_back_box"])
                     pyautogui.sleep(SLEEP_MULT * 2)
-                case CurrentState.MULTI_BACK_SCREEN:
-                    love_everyone()
-                    click_box(*text_locations["join_back_box"])
-                    pyautogui.sleep(SLEEP_MULT * 4)
-                    click_box(*text_locations["join_back_box"])
-                    pyautogui.sleep(SLEEP_MULT * 2)
-                    for _ in range(3):
-                        pyautogui.sleep(SLEEP_MULT * 0.5)
-                        scroll(-4, *text_locations["raid_button"])
                 case CurrentState.HOST_BACK_SCREEN:
                     love_everyone()
                     click_box(*text_locations["host_back_box"])
