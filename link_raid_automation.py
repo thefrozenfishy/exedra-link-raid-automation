@@ -821,6 +821,9 @@ class CurrentState(Enum):
 
 
 def current_state() -> CurrentState:
+    if "f0110w" in normalize_1_and_0(get_text_in_img("follow_box")):
+        return CurrentState.FOLLOW_SCREEN
+
     text = normalize_1_and_0(get_text_in_img("party_box"))
     if "arty" in text:
         if "sk1p" in normalize_1_and_0(get_text_in_img("skip_box")).lower():
@@ -883,9 +886,6 @@ def current_state() -> CurrentState:
 
     if "back" in get_text_in_img("host_back_box"):
         return CurrentState.HOST_BACK_SCREEN
-
-    if "f0110w" in normalize_1_and_0(get_text_in_img("follow_box")):
-        return CurrentState.FOLLOW_SCREEN
 
     in_progress_text = normalize_1_and_0(get_text_in_img("in_progress_box"))
     if "v1ewresu1ts" in in_progress_text:
