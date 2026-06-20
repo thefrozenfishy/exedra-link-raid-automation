@@ -113,6 +113,10 @@ else:
     FIRST_HOST_DIFF = HOST_DIFF
 
 DO_LOVE = ini_config.getboolean("general", "love_everyone")
+try:
+    HALT = ini_config.getboolean("tff", "halt")
+except configparser.NoSectionError:
+    HELT = False
 DO_HOST = ini_config.getboolean("general", "auto_host")
 ENABLE_AUTO = ini_config.getboolean("general", "automatically_turn_on_auto")
 DO_REFILL_LP = ini_config.getboolean("general", "refill_lp")
@@ -1003,6 +1007,10 @@ def click(x, y):
     if not hwnd:
         logger.error("Could not find hwnd")
         return
+
+    if HALT:
+        pydirectinput.moveTo(int(x), int(y))
+        input("Continue? ")
 
     prev_hwnd = win32gui.GetForegroundWindow()
     ctypes.set_last_error(0)
