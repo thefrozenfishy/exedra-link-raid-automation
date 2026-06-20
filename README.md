@@ -35,6 +35,7 @@
     * Note: Only ♥s when the battle is won, to speed things up
   * ``automatically_turn_on_auto`` Turns on full auto if it detects the game is in manual, useful if you have a tendency to leave the script without checking if the game is actually doing anything.
   * ``sleep_multiplier`` how fast/slow the tool should work. 1 for default, increase to higher numbers if your pc is slow and loading screens etc is taking longer than expected
+  * ``continue_past_new_day`` Allow the program skip through reset issues and login rewards and go back to farming
 
 ### Crystalis farming
 

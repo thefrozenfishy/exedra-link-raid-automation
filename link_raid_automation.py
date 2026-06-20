@@ -52,6 +52,7 @@ defaults = {
     "boss": "Wheel",
     "use_online_boss": "true",
     "sleep_multiplier": "1",
+    "continue_past_new_day": "true",
 }
 join_team_override_defaults = {str(i): "" for i in range(1, 21)}
 
@@ -83,6 +84,7 @@ with open(CONFIG_FILE, "w", encoding="utf-8", newline="\n") as f:
     ini_config.write(f)
 
 SLEEP_MULT = ini_config.getfloat("general", "sleep_multiplier")
+CONTINUE_PAST_NEW_DAY = ini_config.getboolean("general", "continue_past_new_day")
 DEBUG = ini_config.getboolean("general", "debug_mode")
 if DEBUG:
     os.makedirs("debug/logs", exist_ok=True)
@@ -779,6 +781,9 @@ class CurrentState(Enum):
     JOIN_SCREEN = "JOIN_SCREEN"
     NO_JOINS_FOUND = "NO_JOINS_FOUND"
     NETWORK_ERROR = "NETWORK_ERROR"
+    NEW_DAY = "NEW_DAY"
+    NEWS = "NEWS"
+    HOME_SCREEN = "HOME_SCREEN"
     FAILED_TO_JOIN = "FAILED_TO_JOIN"
     JOINED_BATTLES_SCREEN = "JOINED_BATTLES_SCREEN"
     HOST_SCREEN = "HOST_SCREEN"
@@ -835,8 +840,11 @@ def current_state() -> CurrentState:
     if "1v1" in normalize_1_and_0(get_text_in_img("result_box")):
         return CurrentState.RESULTS_SCREEN
 
-    if "etry" in normalize_1_and_0(get_text_in_img("crys_retry_box")):
+    crys_retry_box = normalize_1_and_0(get_text_in_img("crys_retry_box"))
+    if "etry" in crys_retry_box:
         return CurrentState.CRYS_RETRY_SCREEN
+    if "quests" in crys_retry_box:
+        return CurrentState.HOME_SCREEN
 
     if "bta1ned" in normalize_1_and_0(
         get_text_in_img("crys_result_box")
@@ -915,10 +923,15 @@ def current_state() -> CurrentState:
     if "c0nt" in normalize_1_and_0(get_text_in_img("crys_ex_continue_box")):
         return CurrentState.EX_SCREEN
 
-    if "next" in get_text_in_img("next_box"):
+    next_box = normalize_1_and_0(get_text_in_img("next_box"))
+    if "next" in next_box:
         if "c0nt1n" in normalize_1_and_0(get_text_in_img("join_back_box")):
             return CurrentState.DAILY_BONUS
         return CurrentState.RESULTS_SCREEN
+    if "sk1p" in next_box:
+        return CurrentState.NEW_DAY
+    if "c10se" in next_box:
+        return CurrentState.NEWS
 
     no_join_text = normalize_1_and_0(get_text_in_img("no_join_available"))
     if "backup" in no_join_text:
@@ -927,6 +940,8 @@ def current_state() -> CurrentState:
         return CurrentState.BATTLE_ALREADY_ENDED
     if "retry" in no_join_text:
         return CurrentState.NETWORK_ERROR
+    if "return" in no_join_text:
+        return CurrentState.NEW_DAY
 
     if "0ccurred" in no_join_text:
         return CurrentState.NETWORK_ERROR
@@ -1780,6 +1795,17 @@ def main():
                     click(*text_locations["play_button"])
                 case CurrentState.FAILED_TO_JOIN:
                     click(*text_locations["battle_already_ended_ok"])
+                case CurrentState.NEW_DAY:
+                    if CONTINUE_PAST_NEW_DAY:
+                        click(*text_locations["battle_already_ended_ok"])
+                    else:
+                        pyautogui.sleep(SLEEP_MULT * 30)
+                case CurrentState.NEWS:
+                    click(*text_locations["menu_button"])
+                case CurrentState.HOME_SCREEN:
+                    click(*text_locations["quests_button"])
+                    pyautogui.sleep(SLEEP_MULT * 0.5)
+                    click(*text_locations["upgrade_button"])
                 case CurrentState.DAILY_BONUS_COUNTER:
                     host_diff = get_nrs_in_img("reward_orb_box")
                     if DEBUG:
