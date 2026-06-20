@@ -1729,7 +1729,7 @@ def main():
                     pyautogui.sleep(SLEEP_MULT * 5)
                 case CurrentState.CRYS_FAILED:
                     click(*text_locations["host_screen_button"])
-                case CurrentState.RESULTS_SCREEN:
+                case CurrentState.RESULTS_SCREEN | CurrentState.CRYS_RESULTS_SCREEN:
                     if CRYS_GOLD_SCREENSHOT:
                         pyautogui.sleep(SLEEP_MULT * 6)
                         # Allow crys animation to play out
@@ -1749,12 +1749,6 @@ def main():
                         int(text_locations["crys_retry_box"][1]),
                     )
                     pyautogui.sleep(SLEEP_MULT * 1)
-                    # This action triggers twice cause loading screen otherwise
-                case CurrentState.CRYS_RESULTS_SCREEN:
-                    click(
-                        int(text_locations["join_back_box"][2]),
-                        int(text_locations["join_back_box"][3]),
-                    )
                 case CurrentState.NO_MORE_BATTLES_JOINED:
                     click(*text_locations["join_battles_tab"])
 
