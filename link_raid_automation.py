@@ -595,7 +595,7 @@ def find_coords_for_eligable_difficulty() -> bool:
 
 
 def select_correct_team(team_name, is_crys):
-    for _ in range(100):
+    for _ in range(30):
         if team_name.lower() in get_text_in_img(
             "crys_team_name" if is_crys else "team_name"
         ):
@@ -796,6 +796,7 @@ class CurrentState(Enum):
     JOIN_BACK_SCREEN = "JOIN_BACK_SCREEN"
     MULTI_BACK_SCREEN = "MULTI_BACK_SCREEN"
     HOST_BACK_SCREEN = "HOST_BACK_SCREEN"
+    FOLLOW_SCREEN = "FOLLOW_SCREEN"
     PLAY_JOIN_SCREEN = "PLAY_JOIN_SCREEN"
     PLAY_HOST_SCREEN = "PLAY_HOST_SCREEN"
     CRYS_SELECT_SCREEN = "CRYS_SELECT_SCREEN"
@@ -882,6 +883,9 @@ def current_state() -> CurrentState:
 
     if "back" in get_text_in_img("host_back_box"):
         return CurrentState.HOST_BACK_SCREEN
+
+    if "f0110w" in normalize_1_and_0(get_text_in_img("follow_box")):
+        return CurrentState.FOLLOW_SCREEN
 
     in_progress_text = normalize_1_and_0(get_text_in_img("in_progress_box"))
     if "v1ewresu1ts" in in_progress_text:
@@ -1164,6 +1168,12 @@ def setup_text_locations(first_time: bool):
         int(client_top + 0.81 * client_height),
         int(client_right - 0.35 * client_width),
         int(client_bottom - 0.12 * client_height),
+    )
+    text_locations["follow_box"] = (
+        int(client_left + 0.56 * client_width),
+        int(client_top + 0.85 * client_height),
+        int(client_right - 0.33 * client_width),
+        int(client_bottom - 0.1 * client_height),
     )
     text_locations["crys_retry_box"] = (
         int(client_left + 0.87 * client_width),
@@ -1695,6 +1705,8 @@ def main():
                 case CurrentState.PLAY_JOIN_SCREEN:
                     logger.info("Joining a game...")
                     start_play(False)
+                case CurrentState.FOLLOW_SCREEN:
+                    click_box(*text_locations["can_host_box"])
                 case CurrentState.PLAY_HOST_SCREEN:
                     logger.info("Hosting a game...")
                     start_play(True)
