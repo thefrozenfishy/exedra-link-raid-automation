@@ -116,7 +116,7 @@ DO_LOVE = ini_config.getboolean("general", "love_everyone")
 try:
     HALT = ini_config.getboolean("tff", "halt")
 except configparser.NoSectionError:
-    HELT = False
+    HALT = False
 DO_HOST = ini_config.getboolean("general", "auto_host")
 ENABLE_AUTO = ini_config.getboolean("general", "automatically_turn_on_auto")
 DO_REFILL_LP = ini_config.getboolean("general", "refill_lp")
