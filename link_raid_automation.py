@@ -906,6 +906,9 @@ def current_state() -> CurrentState:
             return CurrentState.CLAIM_HOST_RESULTS
         if not DO_HOST:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
+        ended = get_nrs_in_img("battles_ended")
+        if ended.isdigit() and int(ended) >= 8:
+            return CurrentState.HOME_SCREEN_CANNOT_HOST
         if "1n" in in_progress_text:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
         if "0" in hostable_games_left:
@@ -1269,9 +1272,9 @@ def setup_text_locations(first_time: bool):
         int(client_bottom - 0.828 * client_height),
     )
     text_locations["joined_battles"] = (
-        int(client_left + 0.545 * client_width),
+        int(client_left + 0.542 * client_width),
         int(client_top + 0.02 * client_height),
-        int(client_right - 0.44 * client_width),
+        int(client_right - 0.436 * client_width),
         int(client_bottom - 0.92 * client_height),
     )
     text_locations["join_battles_tab"] = (
@@ -1560,6 +1563,12 @@ def setup_text_locations(first_time: bool):
         int(client_right - 0.35 * client_width),
         int(client_bottom - 0.39 * client_height),
     )
+    text_locations["host_button_colour"] = (
+        int(client_left + 0.8 * client_width),
+        int(client_top + 0.81 * client_height),
+        int(client_right - 0.18 * client_width),
+        int(client_bottom - 0.14 * client_height),
+    )
     text_locations["screen"] = (client_left, client_top, client_right, client_bottom)
 
     if DEBUG and first_time:
@@ -1683,18 +1692,17 @@ def main():
                             logger.info("Out of QP, swapping to link raid is disabled")
                             click(*text_locations["host_screen_button"])
                 case CurrentState.HOST_SCREEN:
-                    *_, v1 = get_color_diff_range("games_until_daily_bonus")
-                    *_, v2 = get_color_diff_range("scroll_bar")
+                    h, s, v = get_color_diff_range("host_button_colour")
                     # When daily bonus is available
-                    logger.debug("Games until daily bonus v1=%.2f v2=%.2f", v1, v2)
-                    if 0.3 < v1 < 0.4 or 0.3 < v2 < 0.4:
+                    logger.debug(
+                        "Games until daily bonus h=%.2f, s=%.2f, v=%.2f", h, s, v
+                    )
+                    if 0.2 > s:
                         click(*text_locations["hosting_back_button"])
                     else:
                         set_correct_host_difficulty()
                         click(*text_locations["host_button"])
                 case CurrentState.HOME_SCREEN_CAN_HOST:
-                    if "10" in get_nrs_in_img("battles_ended"):
-                        click(*text_locations["join_screen_button"])
                     click(*text_locations["host_screen_button"])
                 case CurrentState.BATTLE_ALREADY_ENDED:
                     click(*text_locations["battle_already_ended_ok"])
@@ -1826,6 +1834,7 @@ def main():
                     )
                 case CurrentState.DAILY_BONUS:
                     if DAILY_SCREENSHOT:
+                        pyautogui.sleep(SLEEP_MULT * 6)
                         img = grab_region(text_locations["daily_reward_pic_box"])
                         os.makedirs("daily_reward", exist_ok=True)
                         img.save(
