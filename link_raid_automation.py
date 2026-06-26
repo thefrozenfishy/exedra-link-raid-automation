@@ -907,7 +907,7 @@ def current_state() -> CurrentState:
         if not DO_HOST:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
         ended = get_nrs_in_img("battles_ended")
-        if ended.isdigit() and int(ended) >= 8:
+        if ended.isdigit() and int(ended) >= 16:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
         if "1n" in in_progress_text:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
