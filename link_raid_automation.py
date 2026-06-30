@@ -754,7 +754,7 @@ def start_join():
     global JOIN_WITH_STRONGEST_TEAM
     JOIN_WITH_STRONGEST_TEAM = False
     current_battles = get_nrs_in_img("joined_battles")
-    if current_battles.isdigit() and int(current_battles) >= 9:
+    if current_battles.isdigit() and int(current_battles) == 20:
         click(*text_locations["joined_battles_tab"])
         return
     for _ in range(60):
