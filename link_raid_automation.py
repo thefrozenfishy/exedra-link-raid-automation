@@ -907,7 +907,12 @@ def current_state() -> CurrentState:
         if not DO_HOST:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
         ended = get_nrs_in_img("battles_ended")
-        if ended.isdigit() and int(ended) >= 16:
+        joined = get_nrs_in_img("battles_joined")
+        if (
+            ended.isdigit()
+            and joined.isdigit()
+            and (int(ended) % 10) + (int(joined) % 10) == 10
+        ):
             return CurrentState.HOME_SCREEN_CANNOT_HOST
         if "1n" in in_progress_text:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
@@ -1132,6 +1137,12 @@ def setup_text_locations(first_time: bool):
         int(client_top + 0.85 * client_height),
         int(client_right - 0.305 * client_width),
         int(client_bottom - 0.12 * client_height),
+    )
+    text_locations["battles_joined"] = (
+        int(client_left + 0.67 * client_width),
+        int(client_top + 0.83 * client_height),
+        int(client_right - 0.31 * client_width),
+        int(client_bottom - 0.13 * client_height),
     )
     text_locations["battles_ended"] = (
         int(client_left + 0.74 * client_width),
