@@ -1726,6 +1726,8 @@ def main():
                     | CurrentState.HOME_SCREEN_WAITING_FOR_FIRST_GAME_TO_FINISH
                 ):
                     click(*text_locations["join_screen_button"])
+                    pyautogui.sleep(SLEEP_MULT * 3)
+                    click(*text_locations["joined_battles_tab"])
                 case CurrentState.CLAIM_HOST_RESULTS:
                     click_box(*text_locations["ongoing_hosts_box"])
                 case CurrentState.BATTLE_ON_MANUAL:
