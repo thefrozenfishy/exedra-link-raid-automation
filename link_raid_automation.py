@@ -242,21 +242,25 @@ hates = [
     for f in hates_file.read_text(encoding="utf-8").split("\n")
 ]
 hates = {f for f in hates if len(f) > 2}
+community = []
 if JOIN_COMMUNITY:
-    resp = get(
-        "https://raw.githubusercontent.com/thefrozenfishy/exedra-link-raid-automation/main/community.txt",
-        timeout=3,
-    )
-    if resp.ok:
-        community = [
-            re.sub(r"[^A-Za-z0-9]", "", f.lower().replace(" ", ""))
-            for f in resp.text.splitlines()
-        ]
-    else:
-        logging.error("Failed to fetch community members list.")
-        community = []
-else:
-    community = []
+    try:
+        resp = get(
+            "https://raw.githubusercontent.com/thefrozenfishy/exedra-link-raid-automation/main/community.txt",
+            timeout=3,
+        )
+        if resp.ok:
+            community = [
+                re.sub(r"[^A-Za-z0-9]", "", f.lower().replace(" ", ""))
+                for f in resp.text.splitlines()
+            ]
+        else:
+            logging.error(
+                "Failed to fetch community members list (status %s).",
+                resp.status_code,
+            )
+    except Exception as e:
+        logging.error("Failed to fetch community members list (%s).", e)
 community = {c for c in community if len(c) > 2}
 
 TESSARACT_WHITELIST = "--psm 6 -c tessedit_char_whitelist={}"
