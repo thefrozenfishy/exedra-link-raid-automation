@@ -1132,9 +1132,9 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["crys_diff"] = (
         int(client_left + 0.23 * client_width),
-        int(client_top + 0.825 * client_height),
+        int(client_top + 0.84 * client_height),
         int(client_right - 0.715 * client_width),
-        int(client_bottom - 0.13 * client_height),
+        int(client_bottom - 0.115 * client_height),
     )
     text_locations["scroll_bar"] = (
         int(client_left + 0.685 * client_width),
@@ -1268,9 +1268,9 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["games_until_daily_bonus"] = (
         int(client_left + 0.73 * client_width),
-        int(client_top + 0.74 * client_height),
+        int(client_top + 0.76 * client_height),
         int(client_right - 0.24 * client_width),
-        int(client_bottom - 0.21 * client_height),
+        int(client_bottom - 0.19 * client_height),
     )
     text_locations["battle_already_ended_ok"] = (
         int(client_left + 0.5 * client_width),
@@ -1390,13 +1390,13 @@ def setup_text_locations(first_time: bool):
 
     text_locations["round_box"] = (
         int(client_left + 0.54 * client_width),
-        int(client_top + 0.48 * client_height),
+        int(client_top + 0.50 * client_height),
         int(client_right - 0.34 * client_width),
-        int(client_bottom - 0.47 * client_height),
+        int(client_bottom - 0.45 * client_height),
     )
     text_locations["host_button"] = (
         int(client_left + 0.73 * client_width),
-        int(client_top + 0.8 * client_height),
+        int(client_top + 0.82 * client_height),
     )
     text_locations["can_host_box"] = (
         int(client_left + 0.32 * client_width),
@@ -1424,9 +1424,9 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["host_difficulty"] = (
         int(client_left + 0.73 * client_width),
-        int(client_top + 0.13 * client_height),
+        int(client_top + 0.15 * client_height),
         int(client_right - 0.18 * client_width),
-        int(client_bottom - 0.83 * client_height),
+        int(client_bottom - 0.81 * client_height),
     )
     text_locations["host_decrement"] = (
         int(client_left + 0.64 * client_width),
@@ -1580,9 +1580,9 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["host_button_colour"] = (
         int(client_left + 0.8 * client_width),
-        int(client_top + 0.81 * client_height),
+        int(client_top + 0.83 * client_height),
         int(client_right - 0.18 * client_width),
-        int(client_bottom - 0.14 * client_height),
+        int(client_bottom - 0.12 * client_height),
     )
     text_locations["screen"] = (client_left, client_top, client_right, client_bottom)
 
