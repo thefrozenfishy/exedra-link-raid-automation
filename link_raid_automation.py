@@ -1234,15 +1234,15 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["skip_box"] = (
         int(client_left + 0.3 * client_width),
-        int(client_top + 0.84 * client_height),
+        int(client_top + 0.80 * client_height),
         int(client_right - 0.6 * client_width),
-        int(client_bottom - 0.10 * client_height),
+        int(client_bottom - 0.14 * client_height),
     )
     text_locations["skip_box2"] = (
         int(client_left + 0.45 * client_width),
-        int(client_top + 0.84 * client_height),
+        int(client_top + 0.80 * client_height),
         int(client_right - 0.45 * client_width),
-        int(client_bottom - 0.10 * client_height),
+        int(client_bottom - 0.14 * client_height),
     )
     text_locations["play_box"] = (
         int(client_left + 0.6 * client_width),
@@ -1308,7 +1308,7 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["play_button"] = (
         int(client_right - 0.4 * client_width),
-        int(client_bottom - 0.13 * client_height),
+        int(client_bottom - 0.15 * client_height),
     )
     text_locations["refresh_button"] = (
         int(client_left + 0.31 * client_width),
@@ -1424,9 +1424,9 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["host_difficulty"] = (
         int(client_left + 0.73 * client_width),
-        int(client_top + 0.13 * client_height),
+        int(client_top + 0.15 * client_height),
         int(client_right - 0.18 * client_width),
-        int(client_bottom - 0.83 * client_height),
+        int(client_bottom - 0.80 * client_height),
     )
     text_locations["host_decrement"] = (
         int(client_left + 0.64 * client_width),
@@ -1443,9 +1443,9 @@ def setup_text_locations(first_time: bool):
         raise RuntimeError("Boss changed since application start")
     text_locations["current_difficulty"] = (
         int(client_left + curr_offset * client_width),
-        int(client_top + 0.04 * client_height),
+        int(client_top + 0.06 * client_height),
         int(client_right - (1 - curr_offset - 0.02) * client_width),
-        int(client_bottom - 0.91 * client_height),
+        int(client_bottom - 0.89 * client_height),
     )
     text_locations["current_difficulty_single_digit"] = (
         text_locations["current_difficulty"][0] + 3,
@@ -1824,7 +1824,7 @@ def main():
                 case CurrentState.HOME_SCREEN:
                     click(*text_locations["quests_button"])
                     pyautogui.sleep(SLEEP_MULT * 0.5)
-                    click(*text_locations["upgrade_button"])
+                    click(*text_locations["raid_button"])
                 case CurrentState.DAILY_BONUS_COUNTER:
                     host_diff = get_nrs_in_img("reward_orb_box")
                     if DEBUG:
