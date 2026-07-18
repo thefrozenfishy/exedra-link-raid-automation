@@ -1126,45 +1126,45 @@ def setup_text_locations(first_time: bool):
 
     text_locations["result_box"] = (
         int(client_left + 0.23 * client_width),
-        int(client_top + 0.785 * client_height),
+        int(client_top + 0.835 * client_height),
         int(client_right - 0.725 * client_width),
-        int(client_bottom - 0.172 * client_height),
+        int(client_bottom - 0.122 * client_height),
     )
     text_locations["crys_diff"] = (
         int(client_left + 0.23 * client_width),
         int(client_top + 0.84 * client_height),
         int(client_right - 0.715 * client_width),
-        int(client_bottom - 0.115 * client_height),
+        int(client_bottom - 0.11 * client_height),
     )
     text_locations["scroll_bar"] = (
         int(client_left + 0.685 * client_width),
-        int(client_top + 0.85 * client_height),
+        int(client_top + 0.90 * client_height),
         int(client_right - 0.305 * client_width),
-        int(client_bottom - 0.12 * client_height),
+        int(client_bottom - 0.07 * client_height),
     )
     text_locations["battles_joined"] = (
         int(client_left + 0.67 * client_width),
-        int(client_top + 0.83 * client_height),
+        int(client_top + 0.88 * client_height),
         int(client_right - 0.31 * client_width),
-        int(client_bottom - 0.13 * client_height),
+        int(client_bottom - 0.08 * client_height),
     )
     text_locations["battles_ended"] = (
         int(client_left + 0.74 * client_width),
-        int(client_top + 0.83 * client_height),
+        int(client_top + 0.88 * client_height),
         int(client_right - 0.24 * client_width),
-        int(client_bottom - 0.13 * client_height),
+        int(client_bottom - 0.08 * client_height),
     )
     text_locations["retreat_box"] = (
         int(client_left + 0.78 * client_width),
-        int(client_top + 0.83 * client_height),
+        int(client_top + 0.88 * client_height),
         int(client_right - 0.12 * client_width),
-        int(client_bottom - 0.1 * client_height),
+        int(client_bottom - 0.05 * client_height),
     )
     text_locations["crys_ex_continue_box"] = (
         int(client_left + 0.75 * client_width),
-        int(client_top + 0.85 * client_height),
+        int(client_top + 0.90 * client_height),
         int(client_right - 0.15 * client_width),
-        int(client_bottom - 0.1 * client_height),
+        int(client_bottom - 0.05 * client_height),
     )
     text_locations["daily_bonus_box"] = (
         int(client_left + 0.3 * client_width),
@@ -1192,27 +1192,27 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["join_back_box"] = (
         int(client_left + 0.45 * client_width),
-        int(client_top + 0.81 * client_height),
+        int(client_top + 0.86 * client_height),
         int(client_right - 0.45 * client_width),
-        int(client_bottom - 0.12 * client_height),
+        int(client_bottom - 0.07 * client_height),
     )
     text_locations["host_back_box"] = (
         int(client_left + 0.55 * client_width),
-        int(client_top + 0.81 * client_height),
+        int(client_top + 0.86 * client_height),
         int(client_right - 0.35 * client_width),
-        int(client_bottom - 0.12 * client_height),
+        int(client_bottom - 0.07 * client_height),
     )
     text_locations["follow_box"] = (
         int(client_left + 0.56 * client_width),
-        int(client_top + 0.85 * client_height),
+        int(client_top + 0.90 * client_height),
         int(client_right - 0.33 * client_width),
-        int(client_bottom - 0.1 * client_height),
+        int(client_bottom - 0.05 * client_height),
     )
     text_locations["crys_retry_box"] = (
         int(client_left + 0.87 * client_width),
-        int(client_top + 0.81 * client_height),
+        int(client_top + 0.86 * client_height),
         int(client_right - 0.06 * client_width),
-        int(client_bottom - 0.12 * client_height),
+        int(client_bottom - 0.07 * client_height),
     )
     text_locations["team_name"] = (
         int(client_left + 0.4 * client_width),
@@ -1234,31 +1234,31 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["skip_box"] = (
         int(client_left + 0.3 * client_width),
-        int(client_top + 0.79 * client_height),
+        int(client_top + 0.84 * client_height),
         int(client_right - 0.6 * client_width),
-        int(client_bottom - 0.15 * client_height),
+        int(client_bottom - 0.10 * client_height),
     )
     text_locations["skip_box2"] = (
         int(client_left + 0.45 * client_width),
-        int(client_top + 0.79 * client_height),
+        int(client_top + 0.84 * client_height),
         int(client_right - 0.45 * client_width),
-        int(client_bottom - 0.15 * client_height),
+        int(client_bottom - 0.10 * client_height),
     )
     text_locations["play_box"] = (
         int(client_left + 0.6 * client_width),
-        int(client_top + 0.79 * client_height),
+        int(client_top + 0.84 * client_height),
         int(client_right - 0.3 * client_width),
-        int(client_bottom - 0.15 * client_height),
+        int(client_bottom - 0.10 * client_height),
     )
     text_locations["join_button"] = (
         int(client_right - 0.15 * client_width),
-        int(client_bottom - 0.18 * client_height),
+        int(client_bottom - 0.13 * client_height),
     )
     text_locations["join_button_box"] = (
         int(client_left + 0.81 * client_width),
-        int(client_top + 0.8 * client_height),
+        int(client_top + 0.85 * client_height),
         int(client_right - 0.1 * client_width),
-        int(client_bottom - 0.14 * client_height),
+        int(client_bottom - 0.09 * client_height),
     )
     text_locations["battle_already_ended"] = (
         int(client_left + 0.4 * client_width),
@@ -1274,11 +1274,11 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["battle_already_ended_ok"] = (
         int(client_left + 0.5 * client_width),
-        int(client_top + 0.75 * client_height),
+        int(client_top + 0.77 * client_height),
     )
     text_locations["crys_multi_ticket_confirm"] = (
         int(client_left + 0.7 * client_width),
-        int(client_top + 0.75 * client_height),
+        int(client_top + 0.77 * client_height),
     )
     text_locations["boss_hp"] = (
         int(client_left + 0.385 * client_width),
@@ -1302,13 +1302,13 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["crys_kioku_tab"] = (
         int(client_left + 0.15 * client_width),
-        int(client_top + 0.25 * client_height),
+        int(client_top + 0.27 * client_height),
         int(client_right - 0.78 * client_width),
-        int(client_bottom - 0.7 * client_height),
+        int(client_bottom - 0.68 * client_height),
     )
     text_locations["play_button"] = (
         int(client_right - 0.4 * client_width),
-        int(client_bottom - 0.18 * client_height),
+        int(client_bottom - 0.13 * client_height),
     )
     text_locations["refresh_button"] = (
         int(client_left + 0.31 * client_width),
@@ -1316,15 +1316,15 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["join_screen_button"] = (
         int(client_left + 0.7 * client_width),
-        int(client_top + 0.82 * client_height),
+        int(client_top + 0.87 * client_height),
     )
     text_locations["host_screen_button"] = (
         int(client_left + 0.3 * client_width),
-        int(client_top + 0.8 * client_height),
+        int(client_top + 0.85 * client_height),
     )
     text_locations["host_battle_button"] = (
         int(client_left + 0.4 * client_width),
-        int(client_top + 0.8 * client_height),
+        int(client_top + 0.85 * client_height),
     )
     text_locations["next_team"] = (
         int(client_left + 0.28 * client_width),
@@ -1396,13 +1396,13 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["host_button"] = (
         int(client_left + 0.73 * client_width),
-        int(client_top + 0.82 * client_height),
+        int(client_top + 0.85 * client_height),
     )
     text_locations["can_host_box"] = (
         int(client_left + 0.32 * client_width),
-        int(client_top + 0.82 * client_height),
+        int(client_top + 0.87 * client_height),
         int(client_right - 0.57 * client_width),
-        int(client_bottom - 0.13 * client_height),
+        int(client_bottom - 0.08 * client_height),
     )
     text_locations["ongoing_hosts_box"] = (
         int(client_left + 0.32 * client_width),
@@ -1412,21 +1412,21 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["in_progress_box"] = (
         int(client_left + 0.3 * client_width),
-        int(client_top + 0.75 * client_height),
+        int(client_top + 0.80 * client_height),
         int(client_right - 0.55 * client_width),
-        int(client_bottom - 0.15 * client_height),
+        int(client_bottom - 0.10 * client_height),
     )
     text_locations["tap_to_continue"] = (
         int(client_left + 0.4 * client_width),
-        int(client_top + 0.85 * client_height),
+        int(client_top + 0.90 * client_height),
         int(client_right - 0.4 * client_width),
-        int(client_bottom - 0.05 * client_height),
+        int(client_bottom - 0.00 * client_height),
     )
     text_locations["host_difficulty"] = (
         int(client_left + 0.73 * client_width),
-        int(client_top + 0.15 * client_height),
+        int(client_top + 0.13 * client_height),
         int(client_right - 0.18 * client_width),
-        int(client_bottom - 0.81 * client_height),
+        int(client_bottom - 0.83 * client_height),
     )
     text_locations["host_decrement"] = (
         int(client_left + 0.64 * client_width),
@@ -1480,9 +1480,9 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["crys_quest_team_select"] = (
         int(client_left + 0.36 * client_width),
-        int(client_top + 0.04 * client_height),
+        int(client_top + 0.06 * client_height),
         int(client_right - 0.36 * client_width),
-        int(client_bottom - 0.91 * client_height),
+        int(client_bottom - 0.89 * client_height),
     )
     text_locations["upper_current_play_mode"] = (
         int(client_left + 0.813 * client_width),
@@ -1502,7 +1502,7 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["quests_button"] = (
         int(client_left + 0.9 * client_width),
-        int(client_top + 0.8 * client_height),
+        int(client_top + 0.85 * client_height),
     )
     text_locations["upgrade_button"] = (
         int(client_left + 0.45 * client_width),
@@ -1580,9 +1580,9 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["host_button_colour"] = (
         int(client_left + 0.8 * client_width),
-        int(client_top + 0.83 * client_height),
+        int(client_top + 0.86 * client_height),
         int(client_right - 0.18 * client_width),
-        int(client_bottom - 0.12 * client_height),
+        int(client_bottom - 0.09 * client_height),
     )
     text_locations["screen"] = (client_left, client_top, client_right, client_bottom)
 
