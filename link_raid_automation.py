@@ -844,6 +844,12 @@ def current_state() -> CurrentState:
     if "1v1" in normalize_1_and_0(get_text_in_img("result_box")):
         return CurrentState.RESULTS_SCREEN
 
+    host_end_text = get_text_in_img("join_back_box")
+    if "back" in host_end_text:
+        return CurrentState.JOIN_BACK_SCREEN
+    if "next" in host_end_text:
+        return CurrentState.MULTI_BACK_SCREEN
+
     crys_retry_box = normalize_1_and_0(get_text_in_img("crys_retry_box"))
     if "etry" in crys_retry_box:
         return CurrentState.CRYS_RETRY_SCREEN
@@ -889,12 +895,6 @@ def current_state() -> CurrentState:
 
     if "round" in get_text_in_img("round_box"):
         return CurrentState.HOST_SCREEN
-
-    host_end_text = get_text_in_img("join_back_box")
-    if "back" in host_end_text:
-        return CurrentState.JOIN_BACK_SCREEN
-    if "next" in host_end_text:
-        return CurrentState.MULTI_BACK_SCREEN
 
     if "back" in get_text_in_img("host_back_box"):
         return CurrentState.HOST_BACK_SCREEN
