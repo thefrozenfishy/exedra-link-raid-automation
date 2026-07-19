@@ -1204,9 +1204,9 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["follow_box"] = (
         int(client_left + 0.56 * client_width),
-        int(client_top + 0.90 * client_height),
+        int(client_top + 0.87 * client_height),
         int(client_right - 0.33 * client_width),
-        int(client_bottom - 0.05 * client_height),
+        int(client_bottom - 0.08 * client_height),
     )
     text_locations["crys_retry_box"] = (
         int(client_left + 0.87 * client_width),
