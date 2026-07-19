@@ -784,6 +784,7 @@ def start_join():
 class CurrentState(Enum):
     JOIN_SCREEN = "JOIN_SCREEN"
     NO_JOINS_FOUND = "NO_JOINS_FOUND"
+    TOP_JOIN_IS_FULL = "TOP_JOIN_IS_FULL"
     NETWORK_ERROR = "NETWORK_ERROR"
     NEW_DAY = "NEW_DAY"
     NEWS = "NEWS"
@@ -873,7 +874,7 @@ def current_state() -> CurrentState:
     if "etreat" in text or "ended" in text:
         return CurrentState.JOINED_BATTLES_SCREEN
     if "10" in normalize_1_and_0(get_text_in_img("current_player_count")):
-        return CurrentState.NO_JOINS_FOUND
+        return CurrentState.TOP_JOIN_IS_FULL
     if "j01n" in text:
         return CurrentState.JOIN_SCREEN
     if "next" in text:
@@ -1808,6 +1809,9 @@ def main():
                     )
                 case CurrentState.CURRENTLY_HOSTING_SCREEN:
                     click(*text_locations["hosting_back_button"])
+                case CurrentState.TOP_JOIN_IS_FULL:
+                    scroll(3, *text_locations["scroll_location"])
+                    click(*text_locations["scroll_location"])
                 case CurrentState.NO_JOINS_FOUND:
                     click(*text_locations["refresh_button"])
                 case CurrentState.NETWORK_ERROR:
