@@ -779,6 +779,7 @@ def start_join():
             )
             if current_players.isdigit() and int(current_players) >= 8:
                 JOIN_WITH_STRONGEST_TEAM = True
+            refresh_count = 0
             click(*text_locations["join_button"])
             pyautogui.sleep(SLEEP_MULT * 2)
             return
