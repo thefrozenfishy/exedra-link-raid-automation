@@ -156,6 +156,15 @@ teams = {
         if ini_config.get("team_overrides", str(i)).strip()
     },
 }
+is_weak_default = False
+other_team = default_team
+for lvl, team in teams.items():
+    if team == default_team:
+        if lvl <= 4:
+            is_weak_default = True
+    else:
+        other_team = team
+kill_team = other_team if is_weak_default else default_team
 
 running = True
 refresh_count = 0
@@ -635,7 +644,7 @@ def start_play(is_host: bool):
     )
     if JOIN_WITH_STRONGEST_TEAM and CURRENT_DIFF_RANGE == {1, 2, 3, 4}:
         logger.info("Found an almost full lobby, killing")
-        team = default_team
+        team = kill_team
     else:
         team = teams.get(diff, default_team)
     select_correct_team(team, is_crys=False)
@@ -1619,6 +1628,7 @@ def main():
     logger.info("Press Ctrl+Shift+Q to terminate the program.")
     logger.info("Press Ctrl+Shift+E to pause the program.")
     logger.debug("Current version %s", __version__)
+    logger.debug("Using %s as kill team", kill_team)
     check_git_version_match()
     fetch_boss_schedule()
     i = 0
