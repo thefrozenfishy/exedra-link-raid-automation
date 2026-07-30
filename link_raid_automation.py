@@ -750,12 +750,13 @@ def scroll(clicks: int, x: int, y: int):
 def claim_battles():
     current_battles = get_nrs_in_img("joined_battles")
     if not (current_battles.isdigit() and int(current_battles) <= 3):
-        for _ in range(60):
+        scroll(60, *text_locations["scroll_location"])
+        for _ in range(20):
             if "end" in get_text_in_img("join_button_box"):
                 click(*text_locations["join_button"])
                 return
 
-            scroll(3, *text_locations["scroll_location"])
+            scroll(-3, *text_locations["scroll_location"])
 
             if is_scroll_at_bottom():
                 break
@@ -930,11 +931,7 @@ def current_state() -> CurrentState:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
         ended = get_nrs_in_img("battles_ended")
         joined = get_nrs_in_img("battles_joined")
-        if (
-            ended.isdigit()
-            and joined.isdigit()
-            and (int(ended) % 10) + (int(joined) % 10) == 10
-        ):
+        if ended.isdigit() and joined.isdigit() and int(ended) + int(joined) >= 18:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
         if "1n" in in_progress_text:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
@@ -1162,15 +1159,15 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["battles_joined"] = (
         int(client_left + 0.67 * client_width),
-        int(client_top + 0.88 * client_height),
+        int(client_top + 0.86 * client_height),
         int(client_right - 0.31 * client_width),
-        int(client_bottom - 0.08 * client_height),
+        int(client_bottom - 0.10 * client_height),
     )
     text_locations["battles_ended"] = (
         int(client_left + 0.74 * client_width),
-        int(client_top + 0.88 * client_height),
+        int(client_top + 0.86 * client_height),
         int(client_right - 0.24 * client_width),
-        int(client_bottom - 0.08 * client_height),
+        int(client_bottom - 0.10 * client_height),
     )
     text_locations["retreat_box"] = (
         int(client_left + 0.78 * client_width),
