@@ -158,6 +158,7 @@ teams = {
 }
 
 running = True
+refresh_count = 0
 
 
 def toggle_running():
@@ -755,13 +756,13 @@ def claim_battles():
 
 
 def start_join():
-    global JOIN_WITH_STRONGEST_TEAM
+    global JOIN_WITH_STRONGEST_TEAM, refresh_count
     JOIN_WITH_STRONGEST_TEAM = False
     current_battles = get_nrs_in_img("joined_battles")
     if current_battles.isdigit() and int(current_battles) == 20:
         click(*text_locations["joined_battles_tab"])
         return
-    for _ in range(60):
+    for _ in range(20):
         valid_match = find_coords_for_eligable_difficulty()
         if valid_match:
             current_players = re.sub(
@@ -777,6 +778,12 @@ def start_join():
 
         if is_scroll_at_bottom():
             break
+
+    refresh_count += 1
+    if refresh_count == 5:
+        click(*text_locations["joined_battles_tab"])
+        refresh_count = 0
+        return
 
     click(*text_locations["refresh_button"])
 
@@ -1407,9 +1414,9 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["ongoing_hosts_box"] = (
         int(client_left + 0.32 * client_width),
-        int(client_top + 0.66 * client_height),
+        int(client_top + 0.69 * client_height),
         int(client_right - 0.60 * client_width),
-        int(client_bottom - 0.29 * client_height),
+        int(client_bottom - 0.26 * client_height),
     )
     text_locations["in_progress_box"] = (
         int(client_left + 0.3 * client_width),
@@ -1731,8 +1738,6 @@ def main():
                     | CurrentState.HOME_SCREEN_WAITING_FOR_FIRST_GAME_TO_FINISH
                 ):
                     click(*text_locations["join_screen_button"])
-                    pyautogui.sleep(SLEEP_MULT * 3)
-                    click(*text_locations["joined_battles_tab"])
                 case CurrentState.CLAIM_HOST_RESULTS:
                     click_box(*text_locations["ongoing_hosts_box"])
                 case CurrentState.BATTLE_ON_MANUAL:
