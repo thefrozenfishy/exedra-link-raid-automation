@@ -684,8 +684,14 @@ def set_correct_host_difficulty():
                 config=TESSARACT_WHITELIST.format(eligable_nrs_str),
             )
         )
-        if lvl.isdigit() and int(lvl) == target_diff:
-            return
+        if lvl.isdigit():
+            lvl = int(lvl)
+            if lvl + 10 in eligable_nrs:
+                lvl += 10
+            if lvl - 10 in eligable_nrs:
+                lvl -= 10
+            if lvl == target_diff:
+                return
         click(*text_locations["host_decrement"])
     pyautogui.sleep(SLEEP_MULT * 3)
     for _ in range(target_diff - 1):
