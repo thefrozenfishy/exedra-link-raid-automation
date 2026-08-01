@@ -156,15 +156,16 @@ teams = {
         if ini_config.get("team_overrides", str(i)).strip()
     },
 }
-is_weak_default = False
+
 other_team = default_team
-for lvl, team in teams.items():
-    if team == default_team:
-        if lvl <= 4:
-            is_weak_default = True
-    else:
-        other_team = team
-kill_team = other_team if is_weak_default else default_team
+for lvl in range(20, 0, -1):
+    if teams[lvl] != default_team:
+        other_team = teams[lvl]
+        break
+kill_team = (
+    other_team if default_team == teams[4] or default_team == teams[3] else default_team
+)
+
 
 running = True
 refresh_count = 0
@@ -621,8 +622,9 @@ def select_correct_team(team_name, is_crys):
         click(*text_locations["crys_next_team" if is_crys else "next_team"])
         pyautogui.sleep(SLEEP_MULT * 0.2)
 
-    input(f'Your team "{team_name}" could not be found! Make sure it exists.')
-    raise RuntimeError(f'Could not find team named "{team_name}"')
+    raise RuntimeError(
+        f'Your team "{team_name}" could not be found! Make sure it exists.'
+    )
 
 
 def start_play(is_host: bool):
