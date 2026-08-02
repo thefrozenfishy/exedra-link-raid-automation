@@ -880,9 +880,9 @@ def current_state() -> CurrentState:
         return CurrentState.MULTI_BACK_SCREEN
 
     crys_retry_box = normalize_1_and_0(get_text_in_img("crys_retry_box"))
-    if "etry" in crys_retry_box:
+    if "ret" in crys_retry_box:
         return CurrentState.CRYS_RETRY_SCREEN
-    if "quests" in crys_retry_box:
+    if "ques" in crys_retry_box:
         return CurrentState.HOME_SCREEN
 
     if "bta1ned" in normalize_1_and_0(
