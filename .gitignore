@@ -12,3 +12,5 @@ gold_drops
 test*
 continue
 daily_counter
+*.exe
+crys_export/

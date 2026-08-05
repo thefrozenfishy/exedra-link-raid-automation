@@ -10,6 +10,7 @@ from difflib import SequenceMatcher
 from enum import Enum
 from pathlib import Path
 
+import subprocess
 import cv2
 import keyboard
 import numpy as np
@@ -59,6 +60,8 @@ join_team_override_defaults = {str(i): "" for i in range(1, 21)}
 crys_defaults = {
     "swap_to_crys_farm_after_link_raid": "true",
     "swap_to_link_raid_after_crys_farm": "true",
+    "document_crys_when_out_of_qp": "true",
+    "crys_reader_exe_name": "crys_reader.exe",
     "document_ex_drops": "true",
     "document_gold_drops": "true",
     "team": "Crys Farm",
@@ -128,6 +131,10 @@ LR_TO_CRYS_SWAP = ini_config.getboolean(
 CRYS_TO_LR_SWAP = ini_config.getboolean(
     "crystalis", "swap_to_link_raid_after_crys_farm"
 )
+DOCUMENT_CRYS_WHEN_OUT_OF_QP = ini_config.getboolean(
+    "crystalis", "document_crys_when_out_of_qp"
+)
+CRYS_READER_EXE_NAME = ini_config.get("crystalis", "crys_reader_exe_name")
 CRYS_TEAM = ini_config.get("crystalis", "team").replace(" ", "").lower()
 CRYS_ELEMENT = ini_config.get("crystalis", "element").lower().strip()
 valid_elements = ("flame", "aqua", "forest", "light", "dark", "void")
@@ -619,7 +626,7 @@ def select_correct_team(team_name, is_crys):
             "crys_team_name" if is_crys else "team_name"
         ):
             return
-        click(*text_locations["crys_next_team" if is_crys else "next_team"])
+        click_name("crys_next_team" if is_crys else "next_team")
         pyautogui.sleep(SLEEP_MULT * 0.2)
 
     raise RuntimeError(
@@ -659,12 +666,12 @@ def start_play(is_host: bool):
         CURRENT_DIFF_RANGE,
     )
     if is_host:
-        click(*text_locations["host_battle_button"])
+        click_name("host_battle_button")
     else:
-        click(*text_locations["play_button"])
+        click_name("play_button")
         for _ in range(10):
             pyautogui.sleep(SLEEP_MULT * 0.2)
-            click(*text_locations["play_button"])
+            click_name("play_button")
 
 
 def set_correct_host_difficulty():
@@ -696,10 +703,10 @@ def set_correct_host_difficulty():
                 lvl -= 10
             if lvl == target_diff:
                 return
-        click(*text_locations["host_decrement"])
+        click_name("host_decrement")
     pyautogui.sleep(SLEEP_MULT * 3)
     for _ in range(target_diff - 1):
-        click(*text_locations["host_increment"])
+        click_name("host_increment")
     translate_hsv_to_difficulty_range(*get_color_diff_range("host_difficulty"))
 
 
@@ -763,7 +770,7 @@ def claim_battles():
         scroll(60, *text_locations["scroll_location"])
         for _ in range(20):
             if "end" in get_text_in_img("join_button_box"):
-                click(*text_locations["join_button"])
+                click_name("join_button")
                 return
 
             scroll(-3, *text_locations["scroll_location"])
@@ -771,8 +778,20 @@ def claim_battles():
             if is_scroll_at_bottom():
                 break
 
-    click(*text_locations["join_battles_tab"])
-    click(*text_locations["refresh_button"])
+    click_name("join_battles_tab")
+    click_name("refresh_button")
+
+
+def refresh_join() -> None:
+    global refresh_count
+    refresh_count += 1
+    if refresh_count == 5:
+        logger.debug("No joins found, changing to claims")
+        click_name("joined_battles_tab")
+        refresh_count = 0
+        return
+
+    click_name("refresh_button")
 
 
 def start_join():
@@ -780,7 +799,7 @@ def start_join():
     JOIN_WITH_STRONGEST_TEAM = False
     current_battles = get_nrs_in_img("joined_battles")
     if current_battles.isdigit() and int(current_battles) == 20:
-        click(*text_locations["joined_battles_tab"])
+        click_name("joined_battles_tab")
         return
     for _ in range(20):
         valid_match = find_coords_for_eligable_difficulty()
@@ -791,7 +810,7 @@ def start_join():
             if current_players.isdigit() and int(current_players) >= 8:
                 JOIN_WITH_STRONGEST_TEAM = True
             refresh_count = 0
-            click(*text_locations["join_button"])
+            click_name("join_button")
             pyautogui.sleep(SLEEP_MULT * 2)
             return
 
@@ -800,13 +819,7 @@ def start_join():
         if is_scroll_at_bottom():
             break
 
-    refresh_count += 1
-    if refresh_count == 5:
-        click(*text_locations["joined_battles_tab"])
-        refresh_count = 0
-        return
-
-    click(*text_locations["refresh_button"])
+    refresh_join()
 
 
 class CurrentState(Enum):
@@ -880,7 +893,7 @@ def current_state() -> CurrentState:
         return CurrentState.MULTI_BACK_SCREEN
 
     crys_retry_box = normalize_1_and_0(get_text_in_img("crys_retry_box"))
-    if "ret" in crys_retry_box:
+    if "et" in crys_retry_box:
         return CurrentState.CRYS_RETRY_SCREEN
     if "ques" in crys_retry_box:
         return CurrentState.HOME_SCREEN
@@ -1036,22 +1049,32 @@ def love_everyone():
 
     # To counteract multi host claiming not scrolling back up
     scroll(-15, *text_locations["raid_button"])
-    click(*text_locations["love_button_l"])
+    click_name("love_button_l")
     pyautogui.sleep(SLEEP_MULT * 0.5)
-    click(*text_locations["love_button_r"])
+    click_name("love_button_r")
     pyautogui.sleep(SLEEP_MULT * 0.5)
     for _ in range(3):
-        click(*text_locations["love_button_lb"])
+        click_name("love_button_lb")
         pyautogui.sleep(SLEEP_MULT * 0.5)
-        click(*text_locations["love_button_rb"])
+        click_name("love_button_rb")
         pyautogui.sleep(SLEEP_MULT * 0.5)
         scroll(4, *text_locations["raid_button"])
         pyautogui.sleep(SLEEP_MULT * 0.1)
 
-    click(*text_locations["love_button_lb"])
+    click_name("love_button_lb")
     pyautogui.sleep(SLEEP_MULT * 0.5)
-    click(*text_locations["love_button_rb"])
+    click_name("love_button_rb")
     pyautogui.sleep(SLEEP_MULT * 2.5)
+
+
+def click_name(name: str):
+    logger.debug("Clicking on %s", name)
+    click(*text_locations[name])
+
+
+def click_name_box(name: str):
+    logger.debug("Clicking on box %s", name)
+    click_box(*text_locations[name])
 
 
 def click_box(x1: float | int, y1: float | int, x2: float | int, y2: float | int):
@@ -1569,6 +1592,10 @@ def setup_text_locations(first_time: bool):
         int(client_left + 0.85 * client_width),
         int(client_top + 0.5 * client_height),
     )
+    text_locations["crys_rightmost_button"] = (
+        int(client_left + 0.93 * client_width),
+        int(client_top + 0.45 * client_height),
+    )
     text_locations["love_button_l"] = (
         int(client_left + 0.44 * client_width),
         int(client_top + 0.45 * client_height),
@@ -1670,32 +1697,32 @@ def main():
                     else:
                         if LR_TO_CRYS_SWAP:
                             logger.info("Out of LP, swapping to crys farming")
-                            click(*text_locations["menu_button"])
+                            click_name("menu_button")
                             pyautogui.sleep(SLEEP_MULT * 0.5)
-                            click(*text_locations["menu_button"])
+                            click_name("menu_button")
                             pyautogui.sleep(SLEEP_MULT * 0.5)
-                            click(*text_locations["quests_button"])
+                            click_name("quests_button")
                             pyautogui.sleep(SLEEP_MULT * 0.5)
-                            click(*text_locations["upgrade_button"])
+                            click_name("upgrade_button")
                             pyautogui.sleep(SLEEP_MULT * 10)
-                            click(*text_locations["crys_button"])
+                            click_name("crys_button")
                         else:
                             logger.info(
                                 "Out of LP, swapping to crys farming is disabled"
                             )
-                            click(*text_locations["host_screen_button"])
+                            click_name("host_screen_button")
                 case CurrentState.CRYS_SELECT_SCREEN:
-                    click(*text_locations[f"crys_{CRYS_ELEMENT}_button"])
+                    click_name(f"crys_{CRYS_ELEMENT}_button")
                 case CurrentState.CRYS_TOP_MENU_SCREEN:
-                    click(*text_locations["crys_void_button"])
+                    click_name("crys_void_button")
                 case CurrentState.CRYS_FARM_FAILED_SCREEN:
-                    click(*text_locations["host_screen_button"])
+                    click_name("host_screen_button")
                 case CurrentState.CRYS_TEAM_SELECT_SCREEN:
                     select_correct_team(CRYS_TEAM, True)
-                    click(*text_locations["play_button"])
+                    click_name("play_button")
                 case CurrentState.CRYS_MULTI_TICKET_POPUP:
-                    click(*text_locations["upgrade_button"])
-                    click(*text_locations["crys_multi_ticket_confirm"])
+                    click_name("upgrade_button")
+                    click_name("crys_multi_ticket_confirm")
                 case CurrentState.TOWER_NEXT_SCREEN:
                     click(
                         int(text_locations["join_button_box"][0]),
@@ -1712,26 +1739,56 @@ def main():
                             int(text_locations["host_back_box"][1]),
                         )
                     else:
-                        if CRYS_TO_LR_SWAP:
-                            logger.info("Out of QP, swapping to link raid")
-                            click(*text_locations["host_screen_button"])
-                            pyautogui.sleep(SLEEP_MULT * 0.5)
-                            click(*text_locations["play_button"])
-                            pyautogui.sleep(SLEEP_MULT * 0.5)
-                            click(*text_locations["hosting_back_button"])
-                            pyautogui.sleep(SLEEP_MULT * 0.5)
-                            click(*text_locations["hosting_back_button"])
-                            pyautogui.sleep(SLEEP_MULT * 0.5)
-                            click(*text_locations["hosting_back_button"])
-                            pyautogui.sleep(SLEEP_MULT * 5)
-                            click(*text_locations["menu_button"])
-                            pyautogui.sleep(SLEEP_MULT * 0.5)
-                            click(*text_locations["quests_button"])
-                            pyautogui.sleep(SLEEP_MULT * 0.5)
-                            click(*text_locations["raid_button"])
+                        logger.info("Out of QP")
+                        click_name("host_screen_button")  # Exit the modal
+                        pyautogui.sleep(SLEEP_MULT * 0.5)
+                        if "rysta" in get_text_in_img("crys_quest_team_select"):
+                            # Is top level
+                            pass
                         else:
-                            logger.info("Out of QP, swapping to link raid is disabled")
-                            click(*text_locations["host_screen_button"])
+                            pyautogui.sleep(SLEEP_MULT * 0.5)
+                            click_name("play_button")
+                            pyautogui.sleep(SLEEP_MULT * 10)
+                            click_name("crys_dark_button")  # Open team select
+                            pyautogui.sleep(SLEEP_MULT * 0.5)
+
+                        if DOCUMENT_CRYS_WHEN_OUT_OF_QP:
+                            click_name("crys_dark_button")  # Assign
+                            pyautogui.sleep(SLEEP_MULT * 10)
+                            click_name("crys_rightmost_button")
+                            pyautogui.sleep(SLEEP_MULT * 5)
+
+                            logger.info("Running Crys Reader before swapping...")
+                            try:
+                                os.makedirs("crys_export", exist_ok=True)
+                                subprocess.run(
+                                    [
+                                        CRYS_READER_EXE_NAME,
+                                        "--auto",
+                                        "--filename",
+                                        f"crys_export/{datetime.today().strftime("%Y-%m-%dT%H-%M-%S")}",
+                                    ],
+                                    check=True,
+                                )
+                            except Exception as e:
+                                logger.exception(
+                                    "Could not run crys reader. Make sure it is downloaded, stored in the same folder as this exe, and named '%s'",
+                                    CRYS_READER_EXE_NAME,
+                                )
+                            click_name("menu_button")
+                        pyautogui.sleep(SLEEP_MULT * 0.5)
+                        click_name("menu_button")
+                        pyautogui.sleep(SLEEP_MULT * 5)
+                        click_name("menu_button")
+                        pyautogui.sleep(SLEEP_MULT * 0.5)
+                        click_name("quests_button")
+                        pyautogui.sleep(SLEEP_MULT * 0.5)
+                        if CRYS_TO_LR_SWAP:
+                            logger.info("Swapping to link raid")
+                            click_name("raid_button")
+                        else:
+                            logger.info("Swapping to link raid is disabled")
+                            click_name("upgrade_button")
                 case CurrentState.HOST_SCREEN:
                     h, s, v = get_color_diff_range("host_button_colour")
                     # When daily bonus is available
@@ -1739,45 +1796,45 @@ def main():
                         "Games until daily bonus h=%.2f, s=%.2f, v=%.2f", h, s, v
                     )
                     if 0.2 > s:
-                        click(*text_locations["hosting_back_button"])
+                        click_name("hosting_back_button")
                     else:
                         set_correct_host_difficulty()
-                        click(*text_locations["host_button"])
+                        click_name("host_button")
                 case CurrentState.HOME_SCREEN_CAN_HOST:
-                    click(*text_locations["host_screen_button"])
+                    click_name("host_screen_button")
                 case CurrentState.BATTLE_ALREADY_ENDED:
-                    click(*text_locations["battle_already_ended_ok"])
+                    click_name("battle_already_ended_ok")
                 case CurrentState.CONNECTION_ISSUE:
-                    click(*text_locations["battle_already_ended_ok"])
+                    click_name("battle_already_ended_ok")
                 case CurrentState.HOST_SKIP_PROMPT:
-                    click(*text_locations["play_button"])
+                    click_name("play_button")
                 case (
                     CurrentState.HOME_SCREEN_CANNOT_HOST
                     | CurrentState.HOME_SCREEN_WAITING_FOR_FIRST_GAME_TO_FINISH
                 ):
-                    click(*text_locations["join_screen_button"])
+                    click_name("join_screen_button")
                 case CurrentState.CLAIM_HOST_RESULTS:
-                    click_box(*text_locations["ongoing_hosts_box"])
+                    click_name_box("ongoing_hosts_box")
                 case CurrentState.BATTLE_ON_MANUAL:
                     if ENABLE_AUTO:
-                        click_box(*text_locations["current_play_mode"])
+                        click_name_box("current_play_mode")
                         pyautogui.sleep(SLEEP_MULT * 1)
-                        click_box(*text_locations["current_play_mode"])
+                        click_name_box("current_play_mode")
                 case CurrentState.BATTLE_ON_SEMI:
                     if ENABLE_AUTO:
-                        click_box(*text_locations["current_play_mode"])
+                        click_name_box("current_play_mode")
                 case CurrentState.PLAY_JOIN_SCREEN:
                     logger.info("Joining a game...")
                     start_play(False)
                 case CurrentState.FOLLOW_SCREEN:
-                    click_box(*text_locations["can_host_box"])
+                    click_name_box("can_host_box")
                 case CurrentState.PLAY_HOST_SCREEN:
                     logger.info("Hosting a game...")
                     start_play(True)
                 case CurrentState.NO_ACTION:
                     pyautogui.sleep(SLEEP_MULT * 5)
                 case CurrentState.CRYS_FAILED:
-                    click(*text_locations["host_screen_button"])
+                    click_name("host_screen_button")
                 case CurrentState.RESULTS_SCREEN | CurrentState.CRYS_RESULTS_SCREEN:
                     if CRYS_GOLD_SCREENSHOT:
                         pyautogui.sleep(SLEEP_MULT * 6)
@@ -1799,15 +1856,15 @@ def main():
                     )
                     pyautogui.sleep(SLEEP_MULT * 1)
                 case CurrentState.NO_MORE_BATTLES_JOINED:
-                    click(*text_locations["join_battles_tab"])
+                    click_name("join_battles_tab")
 
                 case CurrentState.JOIN_BACK_SCREEN | CurrentState.MULTI_BACK_SCREEN:
                     love_everyone()
-                    click_box(*text_locations["join_back_box"])
+                    click_name_box("join_back_box")
                     pyautogui.sleep(SLEEP_MULT * 2)
                 case CurrentState.HOST_BACK_SCREEN:
                     love_everyone()
-                    click_box(*text_locations["host_back_box"])
+                    click_name_box("host_back_box")
                 case CurrentState.CONTINUE:
                     img = grab_region(text_locations["reward_orb_box"])
                     avg_rgb = (np.array(img).astype(float) / 255.0).mean(axis=(0, 1))
@@ -1831,27 +1888,27 @@ def main():
                         int(text_locations["join_back_box"][1]),
                     )
                 case CurrentState.CURRENTLY_HOSTING_SCREEN:
-                    click(*text_locations["hosting_back_button"])
+                    click_name("hosting_back_button")
                 case CurrentState.TOP_JOIN_IS_FULL:
                     scroll(3, *text_locations["scroll_location"])
-                    click(*text_locations["scroll_location"])
+                    click_name("scroll_location")
                 case CurrentState.NO_JOINS_FOUND:
-                    click(*text_locations["refresh_button"])
+                    refresh_join()
                 case CurrentState.NETWORK_ERROR:
-                    click(*text_locations["play_button"])
+                    click_name("play_button")
                 case CurrentState.FAILED_TO_JOIN:
-                    click(*text_locations["battle_already_ended_ok"])
+                    click_name("battle_already_ended_ok")
                 case CurrentState.NEW_DAY:
                     if CONTINUE_PAST_NEW_DAY:
-                        click(*text_locations["battle_already_ended_ok"])
+                        click_name("battle_already_ended_ok")
                     else:
                         pyautogui.sleep(SLEEP_MULT * 30)
                 case CurrentState.NEWS:
-                    click(*text_locations["menu_button"])
+                    click_name("menu_button")
                 case CurrentState.HOME_SCREEN:
-                    click(*text_locations["quests_button"])
+                    click_name("quests_button")
                     pyautogui.sleep(SLEEP_MULT * 0.5)
-                    click(*text_locations["raid_button"])
+                    click_name("raid_button")
                 case CurrentState.DAILY_BONUS_COUNTER:
                     host_diff = get_nrs_in_img("reward_orb_box")
                     if DEBUG:
