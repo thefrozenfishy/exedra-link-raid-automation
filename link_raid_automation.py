@@ -941,6 +941,9 @@ def current_state() -> CurrentState:
     if "back" in get_text_in_img("host_back_box"):
         return CurrentState.HOST_BACK_SCREEN
 
+    if "suggest" in get_text_in_img("party_suggest_box"):
+        return CurrentState.CURRENTLY_HOSTING_SCREEN
+
     in_progress_text = normalize_1_and_0(get_text_in_img("in_progress_box"))
     if "v1ewresu1ts" in in_progress_text:
         return CurrentState.HOME_SCREEN_CAN_HOST
@@ -1526,6 +1529,12 @@ def setup_text_locations(first_time: bool):
         int(client_right - 0.351 * client_width),
         int(client_bottom - 0.73 * client_height),
     )
+    text_locations["party_suggest_box"] = (
+        int(client_left + 0.02 * client_width),
+        int(client_bottom - 0.10 * client_height),
+        int(client_left + 0.08 * client_width),
+        int(client_bottom - 0.04 * client_height),
+    )
     text_locations["crys_quest_team_select"] = (
         int(client_left + 0.36 * client_width),
         int(client_top + 0.06 * client_height),
@@ -1750,7 +1759,7 @@ def main():
                             click_name("play_button")
                             pyautogui.sleep(SLEEP_MULT * 10)
                             click_name("crys_dark_button")  # Open team select
-                            pyautogui.sleep(SLEEP_MULT * 0.5)
+                            pyautogui.sleep(SLEEP_MULT * 2)
 
                         if DOCUMENT_CRYS_WHEN_OUT_OF_QP:
                             click_name("crys_dark_button")  # Assign
@@ -1779,8 +1788,6 @@ def main():
                         pyautogui.sleep(SLEEP_MULT * 0.5)
                         click_name("menu_button")
                         pyautogui.sleep(SLEEP_MULT * 5)
-                        click_name("menu_button")
-                        pyautogui.sleep(SLEEP_MULT * 0.5)
                         click_name("quests_button")
                         pyautogui.sleep(SLEEP_MULT * 0.5)
                         if CRYS_TO_LR_SWAP:
