@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from enum import Enum
 from pathlib import Path
@@ -131,6 +131,7 @@ LR_TO_CRYS_SWAP = ini_config.getboolean(
 CRYS_TO_LR_SWAP = ini_config.getboolean(
     "crystalis", "swap_to_link_raid_after_crys_farm"
 )
+FORCE_CRYS_SWAP_AFTER = timedelta(hours=6)
 DOCUMENT_CRYS_WHEN_OUT_OF_QP = ini_config.getboolean(
     "crystalis", "document_crys_when_out_of_qp"
 )
@@ -1660,10 +1661,28 @@ DPI_SCALE = get_dpi_scale()
 logger.debug("DPI scale factor detected: %.2f", DPI_SCALE)
 host_diff = ""
 orb_colour = ""
+crys_to_lr_swap_time: datetime | None = None
+
+
+def swap_to_crys_farming(from_host_screen: bool = False):
+    """Navigate from the current screen back to crys farming and clear the timer."""
+    global crys_to_lr_swap_time
+    logger.info("Swapping to crys farming")
+    if not from_host_screen:
+        click_name("menu_button")
+        pyautogui.sleep(SLEEP_MULT * 0.5)
+    click_name("menu_button")
+    pyautogui.sleep(SLEEP_MULT * 0.5)
+    click_name("quests_button")
+    pyautogui.sleep(SLEEP_MULT * 0.5)
+    click_name("upgrade_button")
+    pyautogui.sleep(SLEEP_MULT * 10)
+    click_name("crys_button")
+    crys_to_lr_swap_time = None
 
 
 def main():
-    global orb_colour, host_diff
+    global orb_colour, host_diff, crys_to_lr_swap_time
     logger.info(
         "starting with config: %s",
         {**dict(ini_config["general"]), **{"lvls": str(LEVELS_TO_FIND)}},
@@ -1711,15 +1730,7 @@ def main():
                     else:
                         if LR_TO_CRYS_SWAP:
                             logger.info("Out of LP, swapping to crys farming")
-                            click_name("menu_button")
-                            pyautogui.sleep(SLEEP_MULT * 0.5)
-                            click_name("menu_button")
-                            pyautogui.sleep(SLEEP_MULT * 0.5)
-                            click_name("quests_button")
-                            pyautogui.sleep(SLEEP_MULT * 0.5)
-                            click_name("upgrade_button")
-                            pyautogui.sleep(SLEEP_MULT * 10)
-                            click_name("crys_button")
+                            swap_to_crys_farming()
                         else:
                             logger.info(
                                 "Out of LP, swapping to crys farming is disabled"
@@ -1789,7 +1800,7 @@ def main():
                                     "Could not run crys reader. Make sure it is downloaded, stored in the same folder as this exe, and named '%s'",
                                     CRYS_READER_EXE_NAME,
                                 )
-                            click_name("menu_button")
+                        click_name("menu_button")
                         pyautogui.sleep(SLEEP_MULT * 0.5)
                         click_name("menu_button")
                         pyautogui.sleep(SLEEP_MULT * 5)
@@ -1798,6 +1809,7 @@ def main():
                         if CRYS_TO_LR_SWAP:
                             logger.info("Swapping to link raid")
                             click_name("raid_button")
+                            crys_to_lr_swap_time = datetime.now(timezone.utc)
                         else:
                             logger.info("Swapping to link raid is disabled")
                             click_name("upgrade_button")
@@ -1824,7 +1836,20 @@ def main():
                     CurrentState.HOME_SCREEN_CANNOT_HOST
                     | CurrentState.HOME_SCREEN_WAITING_FOR_FIRST_GAME_TO_FINISH
                 ):
-                    click_name("join_screen_button")
+
+                    if (
+                        LR_TO_CRYS_SWAP
+                        and crys_to_lr_swap_time is not None
+                        and datetime.now(timezone.utc) - crys_to_lr_swap_time
+                        >= FORCE_CRYS_SWAP_AFTER
+                    ):
+                        logger.info(
+                            "It's been %s since swapping to link raid, forcing a swap back to crys farming to not waste QP",
+                            FORCE_CRYS_SWAP_AFTER,
+                        )
+                        swap_to_crys_farming(from_host_screen=True)
+                    else:
+                        click_name("join_screen_button")
                 case CurrentState.CLAIM_HOST_RESULTS:
                     click_name_box("ongoing_hosts_box")
                 case CurrentState.BATTLE_ON_MANUAL:
