@@ -187,7 +187,7 @@ def toggle_running():
     running = not running
 
 
-def take_debug_screencap():
+def take_debug_screencap(dest_name="full_screencap"):
     client_left = text_locations["screen"][0]
     client_top = text_locations["screen"][1]
     img = grab_region(text_locations["screen"])
@@ -216,7 +216,7 @@ def take_debug_screencap():
             draw.ellipse((x - r, y - r, x + r, y + r), outline=colour, width=10)
 
         draw.text((x + 4, y + 4), name, fill=colour)
-    img.save("debug/full_screencap.png")
+    img.save(f"debug/{dest_name}.png")
 
     get_text_in_img("screen")
 
@@ -655,6 +655,11 @@ def start_play(is_host: bool):
     )
     if JOIN_WITH_STRONGEST_TEAM and CURRENT_DIFF_RANGE == {1, 2, 3, 4}:
         logger.info("Found an almost full lobby, killing")
+        if DEBUG:
+            os.makedirs("debug/redrum", exist_ok=True)
+            take_debug_screencap(
+                f"redrum/{datetime.today().strftime("%Y-%m-%dT%H-%M-%S")}"
+            )
         team = kill_team
     else:
         team = teams.get(diff, default_team)
