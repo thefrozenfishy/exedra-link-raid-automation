@@ -7,7 +7,8 @@ on:
     paths:
       - link_raid_automation.py
       - requirements.txt
-
+  workflow_dispatch:
+  
 permissions:
   contents: write
 
