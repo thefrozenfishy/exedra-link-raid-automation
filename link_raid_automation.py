@@ -1682,7 +1682,7 @@ def swap_to_crys_farming(from_host_screen: bool = False):
 
 
 def main():
-    global orb_colour, host_diff, crys_to_lr_swap_time
+    global orb_colour, host_diff, crys_to_lr_swap_time, JOIN_WITH_STRONGEST_TEAM
     logger.info(
         "starting with config: %s",
         {**dict(ini_config["general"]), **{"lvls": str(LEVELS_TO_FIND)}},
@@ -1828,6 +1828,7 @@ def main():
                     click_name("host_screen_button")
                 case CurrentState.BATTLE_ALREADY_ENDED:
                     click_name("battle_already_ended_ok")
+                    JOIN_WITH_STRONGEST_TEAM = False
                 case CurrentState.CONNECTION_ISSUE:
                     click_name("battle_already_ended_ok")
                 case CurrentState.HOST_SKIP_PROMPT:
@@ -1929,6 +1930,7 @@ def main():
                 case CurrentState.TOP_JOIN_IS_FULL:
                     scroll(3, *text_locations["scroll_location"])
                     click_name("scroll_location")
+                    JOIN_WITH_STRONGEST_TEAM = False
                 case CurrentState.NO_JOINS_FOUND:
                     refresh_join()
                 case CurrentState.NETWORK_ERROR:
