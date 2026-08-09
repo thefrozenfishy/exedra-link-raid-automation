@@ -1149,10 +1149,11 @@ def has_gold_crys_drop():
                 s,
                 v,
             )
-            os.makedirs("debug/crys_obtain_box", exist_ok=True)
-            colour_img.save(
-                f"debug/crys_obtain_box/{r * 100:.0f}_{g * 100:.0f}_{b * 100:.0f}_{h * 100:.0f}_{s * 100:.0f}_{v * 100:.0f}.png"
-            )
+            if DEBUG:
+                os.makedirs("debug/crys_obtain_box", exist_ok=True)
+                colour_img.save(
+                    f"debug/crys_obtain_box/{r * 100:.0f}_{g * 100:.0f}_{b * 100:.0f}_{h * 100:.0f}_{s * 100:.0f}_{v * 100:.0f}.png"
+                )
     return False
 
 
@@ -1879,10 +1880,11 @@ def main():
                         # Allow crys animation to play out
                         if has_gold_crys_drop():
                             img = grab_region(text_locations["screen"])
-                            os.makedirs("gold_drops", exist_ok=True)
-                            img.save(
-                                f"gold_drops/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')}.png"
-                            )
+                            if DEBUG:
+                                os.makedirs("gold_drops", exist_ok=True)
+                                img.save(
+                                    f"gold_drops/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')}.png"
+                                )
                     click(
                         int(text_locations["join_back_box"][2]),
                         int(text_locations["join_back_box"][3]),
