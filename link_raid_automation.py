@@ -171,7 +171,7 @@ for lvl in range(20, 0, -1):
         other_team = teams[lvl]
         break
 kill_team = (
-    other_team if default_team == teams[4] or default_team == teams[3] else default_team
+    other_team if default_team == teams[4] else default_team
 )
 
 
