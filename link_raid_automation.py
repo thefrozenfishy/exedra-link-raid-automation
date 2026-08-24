@@ -117,11 +117,11 @@ if first_host_text.isdigit():
 else:
     FIRST_HOST_DIFF = HOST_DIFF
 
+
+HALT = ini_config.getboolean("tff", "halt", fallback=False)
+MAKE_CANDIDATES = ini_config.getboolean("tff", "cand", fallback=False)
+
 DO_LOVE = ini_config.getboolean("general", "love_everyone")
-try:
-    HALT = ini_config.getboolean("tff", "halt")
-except configparser.NoSectionError:
-    HALT = False
 DO_HOST = ini_config.getboolean("general", "auto_host")
 ENABLE_AUTO = ini_config.getboolean("general", "automatically_turn_on_auto")
 DO_REFILL_LP = ini_config.getboolean("general", "refill_lp")
@@ -170,9 +170,7 @@ for lvl in range(20, 0, -1):
     if teams[lvl] != default_team:
         other_team = teams[lvl]
         break
-kill_team = (
-    other_team if default_team == teams[4] else default_team
-)
+kill_team = other_team if default_team == teams[4] else default_team
 
 
 running = True
@@ -188,7 +186,11 @@ def toggle_running():
     running = not running
 
 
-def take_debug_screencap(dest_name="full_screencap"):
+STORED_IMG = None
+
+
+def take_debug_screencap(dest_name="full_screencap", save_for_later=False):
+    global STORED_IMG
     client_left = text_locations["screen"][0]
     client_top = text_locations["screen"][1]
     img = grab_region(text_locations["screen"])
@@ -217,7 +219,10 @@ def take_debug_screencap(dest_name="full_screencap"):
             draw.ellipse((x - r, y - r, x + r, y + r), outline=colour, width=10)
 
         draw.text((x + 4, y + 4), name, fill=colour)
-    img.save(f"debug/{dest_name}.png")
+    if save_for_later:
+        STORED_IMG = img
+    else:
+        img.save(f"debug/{dest_name}.png")
 
     get_text_in_img("screen")
 
@@ -504,10 +509,122 @@ def get_text_in_img(cords: str, config="", make_bw=False) -> str:
     return re.sub(r"[^A-Za-z0-9]", "", "".join(data["text"]).lower().replace(" ", ""))
 
 
-def get_nrs_in_img(cords: str) -> str:
-    return normalize_1_and_0(
-        get_text_in_img(cords, config=TESSARACT_WHITELIST.format("0oO123456789ilI"))
+TEMPLATE_SIZE = (40, 64)  # (width, height) — canvas glyphs get normalized into
+
+
+def normalize_glyph(glyph_fg255, size=TEMPLATE_SIZE):
+    """Tight-crop to the foreground bbox, then resize preserving aspect
+    ratio to a fixed-height canvas, centered horizontally. Keeps a '1'
+    narrow and a '0' wide instead of squashing every digit into the same
+    box, which would make them all look more alike."""
+    ys, xs = np.where(glyph_fg255 > 0)
+    if len(ys) == 0:
+        return np.zeros((size[1], size[0]), dtype=np.uint8)
+    y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+    tight = glyph_fg255[y0:y1, x0:x1]
+
+    W, H = size
+    h, w = tight.shape
+    scale = H / h
+    new_w = max(1, min(W, int(round(w * scale))))
+    resized = cv2.resize(tight, (new_w, H), interpolation=cv2.INTER_AREA)
+    canvas = np.zeros((H, W), dtype=np.uint8)
+    x_off = (W - new_w) // 2
+    canvas[:, x_off : x_off + new_w] = resized
+    return canvas
+
+
+_DIGIT_TEMPLATES = None  # cached after first load
+
+
+def _load_digit_templates(path="digit_templates"):
+    global _DIGIT_TEMPLATES
+    if _DIGIT_TEMPLATES is not None:
+        return _DIGIT_TEMPLATES
+    templates = {}
+    if os.path.isdir(path):
+        for digit in os.listdir(path):
+            if not digit.isdigit():
+                continue
+            samples = []
+            for fname in os.listdir(os.path.join(path, digit)):
+                img = cv2.imread(os.path.join(path, digit, fname), cv2.IMREAD_GRAYSCALE)
+                if img is not None:
+                    samples.append(img)
+            if samples:
+                templates[digit] = samples
+    _DIGIT_TEMPLATES = templates
+    return templates
+
+
+def _classify_glyph(glyph_norm, templates, min_score=0.5):
+    best_digit, best_score = "?", -1.0
+    for digit, samples in templates.items():
+        for tmpl in samples:
+            score = cv2.matchTemplate(
+                glyph_norm.astype(np.float32),
+                tmpl.astype(np.float32),
+                cv2.TM_CCOEFF_NORMED,
+            )[0][0]
+            if score > best_score:
+                best_score, best_digit = score, digit
+    if best_score < min_score:
+        return "?", best_score
+    return best_digit, best_score
+
+
+def _segment_glyphs(bw_upscaled):
+    """bw_upscaled: already upscaled + binarized, foreground pixels == 255."""
+    n, _, stats, _ = cv2.connectedComponentsWithStats(bw_upscaled, connectivity=8)
+    max_h = max((stats[i][3] for i in range(1, n)), default=0)
+    comps = sorted(
+        (tuple(stats[i][:4]) for i in range(1, n) if stats[i][3] >= max_h * 0.3),
+        key=lambda c: c[0],
     )
+    Hh, Ww = bw_upscaled.shape
+    glyphs = []
+    for idx, (x, y, cw, ch) in enumerate(comps):
+        left = 0 if idx == 0 else (comps[idx - 1][0] + comps[idx - 1][2] + x) // 2
+        right = Ww if idx == len(comps) - 1 else (x + cw + comps[idx + 1][0]) // 2
+        pad = 15
+        x0, x1 = max(left, x - pad), min(right, x + cw + pad)
+        y0, y1 = max(0, y - pad), min(Hh, y + ch + pad)
+        glyphs.append(bw_upscaled[y0:y1, x0:x1])
+    return glyphs
+
+
+def get_nrs_in_img(cords: str, upscale=8) -> str:
+    img = grab_region(text_locations[cords])
+    gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
+    h, w = gray.shape
+    up = cv2.resize(gray, (w * upscale, h * upscale), interpolation=cv2.INTER_CUBIC)
+    _, bw = cv2.threshold(up, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    if np.count_nonzero(bw == 255) > np.count_nonzero(bw == 0):
+        bw = 255 - bw
+
+    templates = _load_digit_templates()
+    result = ""
+    for idx, glyph in enumerate(_segment_glyphs(bw)):
+        norm = normalize_glyph(glyph)
+        digit, score = _classify_glyph(norm, templates)
+
+        if digit == "?" and MAKE_CANDIDATES:
+            os.makedirs("debug/candidates", exist_ok=True)
+            fname = f"debug/candidates/{cords}_{datetime.now().strftime('%Y%m%d-%H%M%S-%f')}.png"
+            cv2.imwrite(fname, norm)
+            logger.warning(
+                "Unrecognized digit glyph saved to %s (best score %.2f) — move it into digit_templates/<digit>/ to teach it",
+                fname,
+                score,
+            )
+
+        if DEBUG:
+            os.makedirs("debug", exist_ok=True)
+            cv2.imwrite(f"debug/{cords}_{idx}_{digit}_{score:.2f}.png", norm)
+            logger.debug("%s glyph %d -> %s (score %.2f)", cords, idx, digit, score)
+
+        result += digit if digit != "?" else ""
+    return result
 
 
 def get_color_diff_range(offset: str) -> tuple[float, float, float]:
@@ -656,10 +773,10 @@ def start_play(is_host: bool):
     )
     if JOIN_WITH_STRONGEST_TEAM and CURRENT_DIFF_RANGE == {1, 2, 3, 4}:
         logger.info("Found an almost full lobby, killing")
-        if DEBUG:
+        if DEBUG and STORED_IMG:
             os.makedirs("debug/redrum", exist_ok=True)
-            take_debug_screencap(
-                f"redrum/{datetime.today().strftime("%Y-%m-%dT%H-%M-%S")}"
+            STORED_IMG.save(
+                f"debug/redrum/{datetime.today().strftime("%Y-%m-%dT%H-%M-%S")}.png"
             )
         team = kill_team
     else:
@@ -810,9 +927,7 @@ def start_join():
     for _ in range(20):
         valid_match = find_coords_for_eligable_difficulty()
         if valid_match:
-            current_players = re.sub(
-                r"\D", "", normalize_1_and_0(get_text_in_img("current_player_count"))
-            )
+            current_players = get_nrs_in_img("current_player_count")
             if current_players.isdigit() and int(current_players) >= 8:
                 JOIN_WITH_STRONGEST_TEAM = True
             refresh_count = 0
@@ -920,7 +1035,7 @@ def current_state() -> CurrentState:
     text = normalize_1_and_0(get_text_in_img("join_button_box"))
     if "etreat" in text or "ended" in text:
         return CurrentState.JOINED_BATTLES_SCREEN
-    if "10" in normalize_1_and_0(get_text_in_img("current_player_count")):
+    if get_nrs_in_img("current_player_count") == "10":
         return CurrentState.TOP_JOIN_IS_FULL
     if "j01n" in text:
         return CurrentState.JOIN_SCREEN
@@ -1718,6 +1833,8 @@ def main():
                 case CurrentState.JOINED_BATTLES_SCREEN:
                     claim_battles()
                 case CurrentState.JOIN_SCREEN:
+                    if DEBUG:
+                        take_debug_screencap(save_for_later=True)
                     start_join()
                 case CurrentState.REFILL_LP:
                     if (
