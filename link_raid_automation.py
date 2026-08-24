@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+import sys
 from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from enum import Enum
@@ -29,6 +30,21 @@ from requests import get
 pyautogui.FAILSAFE = False
 pydirectinput.FAILSAFE = False
 __version__ = "vDEV"
+
+
+def resource_path(relative_path: str) -> str:
+    """Resolve a path to a bundled data file/folder.
+
+    When running as a PyInstaller onefile exe, bundled data (via
+    --add-data) gets extracted to a temp dir at sys._MEIPASS on launch.
+    When running from source (python link_raid_automation.py), there is
+    no _MEIPASS, so this just resolves relative to the current directory
+    -- which is what lets `digit_templates/` be a live, editable folder
+    during local dev while still being baked into the shipped exe.
+    """
+    base_path = getattr(sys, "_MEIPASS", os.path.abspath("."))
+    return os.path.join(base_path, relative_path)
+
 
 CONFIG_FILE = "link-raid-automation-settings.ini"
 
@@ -117,11 +133,15 @@ if first_host_text.isdigit():
 else:
     FIRST_HOST_DIFF = HOST_DIFF
 
-
-HALT = ini_config.getboolean("tff", "halt", fallback=False)
-MAKE_CANDIDATES = ini_config.getboolean("tff", "cand", fallback=False)
-
 DO_LOVE = ini_config.getboolean("general", "love_everyone")
+try:
+    HALT = ini_config.getboolean("tff", "halt")
+except configparser.NoSectionError:
+    HALT = False
+try:
+    MAKE_CANDIDATES = ini_config.getboolean("tff", "cand")
+except configparser.NoSectionError:
+    MAKE_CANDIDATES = False
 DO_HOST = ini_config.getboolean("general", "auto_host")
 ENABLE_AUTO = ini_config.getboolean("general", "automatically_turn_on_auto")
 DO_REFILL_LP = ini_config.getboolean("general", "refill_lp")
@@ -537,10 +557,12 @@ def normalize_glyph(glyph_fg255, size=TEMPLATE_SIZE):
 _DIGIT_TEMPLATES = None  # cached after first load
 
 
-def _load_digit_templates(path="digit_templates"):
+def _load_digit_templates(path=None):
     global _DIGIT_TEMPLATES
     if _DIGIT_TEMPLATES is not None:
         return _DIGIT_TEMPLATES
+    if path is None:
+        path = resource_path("digit_templates")
     templates = {}
     if os.path.isdir(path):
         for digit in os.listdir(path):
