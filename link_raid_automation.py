@@ -133,15 +133,11 @@ if first_host_text.isdigit():
 else:
     FIRST_HOST_DIFF = HOST_DIFF
 
+HALT = ini_config.getboolean("tff", "halt", fallback=False)
+MAKE_CANDIDATES = ini_config.getboolean("tff", "cand", fallback=False)
+DOC_EACH_KILL = ini_config.getboolean("tff", "kill", fallback=False)
+
 DO_LOVE = ini_config.getboolean("general", "love_everyone")
-try:
-    HALT = ini_config.getboolean("tff", "halt")
-except configparser.NoSectionError:
-    HALT = False
-try:
-    MAKE_CANDIDATES = ini_config.getboolean("tff", "cand")
-except configparser.NoSectionError:
-    MAKE_CANDIDATES = False
 DO_HOST = ini_config.getboolean("general", "auto_host")
 ENABLE_AUTO = ini_config.getboolean("general", "automatically_turn_on_auto")
 DO_REFILL_LP = ini_config.getboolean("general", "refill_lp")
@@ -793,16 +789,20 @@ def start_play(is_host: bool):
         if multi in CURRENT_DIFF_RANGE or single == multi
         else single % 10 if single % 10 in CURRENT_DIFF_RANGE else 20
     )
+    folder = "normal"
     if JOIN_WITH_STRONGEST_TEAM and CURRENT_DIFF_RANGE == {1, 2, 3, 4}:
         logger.info("Found an almost full lobby, killing")
-        if DEBUG and STORED_IMG:
-            os.makedirs("debug/redrum", exist_ok=True)
-            STORED_IMG.save(
-                f"debug/redrum/{datetime.today().strftime("%Y-%m-%dT%H-%M-%S")}.png"
-            )
         team = kill_team
+        folder = "redrum"
     else:
         team = teams.get(diff, default_team)
+
+    if DOC_EACH_KILL and STORED_IMG:
+        os.makedirs(f"debug/{folder}", exist_ok=True)
+        STORED_IMG.save(
+            f"debug/{folder}/{datetime.today().strftime("%Y-%m-%dT%H-%M-%S")}D{diff}.png"
+        )
+
     select_correct_team(team, is_crys=False)
     logger.debug(
         "Starting play at difficulty %d using %s because range is %s",
@@ -950,7 +950,10 @@ def start_join():
         valid_match = find_coords_for_eligable_difficulty()
         if valid_match:
             current_players = get_nrs_in_img("current_player_count")
+            if DEBUG:
+                take_debug_screencap(save_for_later=True)
             if current_players.isdigit() and int(current_players) >= 8:
+                logger.debug("Found room with %s players, killing", current_players)
                 JOIN_WITH_STRONGEST_TEAM = True
             refresh_count = 0
             click_name("join_button")
@@ -1546,9 +1549,9 @@ def setup_text_locations(first_time: bool):
         int(client_bottom - 0.48 * client_height),
     )
     text_locations["current_player_count"] = (
-        int(client_left + 0.73 * client_width),
+        int(client_left + 0.75 * client_width),
         int(client_top + 0.41 * client_height),
-        int(client_right - 0.23 * client_width),
+        int(client_right - 0.24 * client_width),
         int(client_bottom - 0.54 * client_height),
     )
     text_locations["union_0"] = (
@@ -1855,8 +1858,6 @@ def main():
                 case CurrentState.JOINED_BATTLES_SCREEN:
                     claim_battles()
                 case CurrentState.JOIN_SCREEN:
-                    if DEBUG:
-                        take_debug_screencap(save_for_later=True)
                     start_join()
                 case CurrentState.REFILL_LP:
                     if (
