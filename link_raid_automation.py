@@ -611,7 +611,7 @@ def _segment_glyphs(bw_upscaled):
     return glyphs
 
 
-def get_nrs_in_img(cords: str, upscale=8) -> str:
+def get_nrs_in_img(cords: str, upscale=8) -> int:
     img = grab_region(text_locations[cords])
     gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
     h, w = gray.shape
@@ -642,6 +642,9 @@ def get_nrs_in_img(cords: str, upscale=8) -> str:
             logger.debug("%s glyph %d -> %s (score %.2f)", cords, idx, digit, score)
 
         result += digit if digit != "?" else ""
+    clean = re.sub(r"[^0-9]", "", result)
+    result = int(clean) if clean else 0
+    logger.debug("For %s found %d", cords, result)
     return result
 
 
@@ -771,13 +774,10 @@ def select_correct_team(team_name, is_crys):
 
 
 def start_play(is_host: bool):
-    single_digit_diff = get_nrs_in_img("current_difficulty_single_digit")
-    multi_digit_diff = get_nrs_in_img("current_difficulty")
-    single = multi = 0
-    if single_digit_diff.isdigit():
-        single = int(single_digit_diff)
-    if multi_digit_diff.isdigit():
-        multi = 10 + int(multi_digit_diff) % 10
+    single = get_nrs_in_img("current_difficulty_single_digit") or 0
+    multi = get_nrs_in_img("current_difficulty")
+    if multi is not None:
+        multi = 10 + multi % 10
     logger.debug(
         "Spotted diffs: single='%d', multi='%d' and range is %s",
         single,
@@ -822,7 +822,7 @@ def start_play(is_host: bool):
 def set_correct_host_difficulty():
     target_diff = (
         FIRST_HOST_DIFF
-        if "3" in get_nrs_in_img("games_until_daily_bonus")
+        if "3" in str(get_nrs_in_img("games_until_daily_bonus"))
         else HOST_DIFF
     )
     lvl = ""
@@ -911,7 +911,7 @@ def scroll(clicks: int, x: int, y: int):
 
 def claim_battles():
     current_battles = get_nrs_in_img("joined_battles")
-    if not (current_battles.isdigit() and int(current_battles) <= 3):
+    if int(current_battles) > 3:
         scroll(60, *text_locations["scroll_location"])
         for _ in range(20):
             if "end" in get_text_in_img("join_button_box"):
@@ -943,7 +943,7 @@ def start_join():
     global JOIN_WITH_STRONGEST_TEAM, refresh_count
     JOIN_WITH_STRONGEST_TEAM = False
     current_battles = get_nrs_in_img("joined_battles")
-    if current_battles.isdigit() and int(current_battles) == 20:
+    if current_battles >= 18:
         click_name("joined_battles_tab")
         return
     for _ in range(20):
@@ -952,7 +952,7 @@ def start_join():
             current_players = get_nrs_in_img("current_player_count")
             if DEBUG:
                 take_debug_screencap(save_for_later=True)
-            if current_players.isdigit() and int(current_players) >= 8:
+            if current_players >= 8:
                 logger.debug("Found room with %s players, killing", current_players)
                 JOIN_WITH_STRONGEST_TEAM = True
             refresh_count = 0
@@ -1060,7 +1060,8 @@ def current_state() -> CurrentState:
     text = normalize_1_and_0(get_text_in_img("join_button_box"))
     if "etreat" in text or "ended" in text:
         return CurrentState.JOINED_BATTLES_SCREEN
-    if get_nrs_in_img("current_player_count") == "10":
+    curr_player_count = get_nrs_in_img("current_player_count")
+    if curr_player_count >= 10:
         return CurrentState.TOP_JOIN_IS_FULL
     if "j01n" in text:
         return CurrentState.JOIN_SCREEN
@@ -1103,7 +1104,7 @@ def current_state() -> CurrentState:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
         ended = get_nrs_in_img("battles_ended")
         joined = get_nrs_in_img("battles_joined")
-        if ended.isdigit() and joined.isdigit() and int(ended) + int(joined) >= 18:
+        if ended + joined >= 18:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
         if "1n" in in_progress_text:
             return CurrentState.HOME_SCREEN_CANNOT_HOST
@@ -1465,9 +1466,9 @@ def setup_text_locations(first_time: bool):
         int(client_bottom - 0.45 * client_height),
     )
     text_locations["games_until_daily_bonus"] = (
-        int(client_left + 0.73 * client_width),
+        int(client_left + 0.74 * client_width),
         int(client_top + 0.76 * client_height),
-        int(client_right - 0.24 * client_width),
+        int(client_right - 0.245 * client_width),
         int(client_bottom - 0.19 * client_height),
     )
     text_locations["battle_already_ended_ok"] = (
@@ -1862,7 +1863,8 @@ def main():
                 case CurrentState.REFILL_LP:
                     if (
                         DO_REFILL_LP
-                        and not get_nrs_in_img("lp_refills_remaining").count("0") >= 2
+                        and not str(get_nrs_in_img("lp_refills_remaining")).count("0")
+                        >= 2
                     ):
                         click(
                             int(text_locations["host_back_box"][0]),
@@ -1897,7 +1899,7 @@ def main():
                 case CurrentState.REFILL_QP:
                     if (
                         DO_REFILL_QP
-                        and not get_nrs_in_img("crys_qp_refills_remaining").count("0")
+                        and not str(get_nrs_in_img("lp_refills_remaining")).count("0")
                         >= 2
                     ):
                         click(
