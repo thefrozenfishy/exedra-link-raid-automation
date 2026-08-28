@@ -950,7 +950,7 @@ def scroll(clicks: int, x: int, y: int):
 
 def claim_battles():
     current_battles = get_nrs_in_img("joined_battles")
-    if int(current_battles) > 3:
+    if current_battles > 3 and current_battles % 10 != 1:
         scroll(60, *text_locations["scroll_location"])
         for _ in range(20):
             if "end" in get_text_in_img("join_button_box"):
@@ -970,10 +970,12 @@ def refresh_join() -> None:
     global refresh_count
     refresh_count += 1
     if refresh_count == 5:
-        logger.debug("No joins found, changing to claims")
-        click_name("joined_battles_tab")
         refresh_count = 0
-        return
+        current_battles = get_nrs_in_img("joined_battles")
+        if int(current_battles) > 5:
+            logger.debug("No joins found, changing to claims")
+            click_name("joined_battles_tab")
+            return
 
     click_name("refresh_button")
 
@@ -982,7 +984,7 @@ def start_join():
     global JOIN_WITH_STRONGEST_TEAM, refresh_count
     JOIN_WITH_STRONGEST_TEAM = False
     current_battles = get_nrs_in_img("joined_battles")
-    if current_battles >= 18:
+    if current_battles >= 18 and current_battles % 10 != 1:
         click_name("joined_battles_tab")
         return
     for _ in range(20):
