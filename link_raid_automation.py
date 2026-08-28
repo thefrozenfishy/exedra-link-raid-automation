@@ -972,7 +972,7 @@ def refresh_join() -> None:
     if refresh_count == 5:
         refresh_count = 0
         current_battles = get_nrs_in_img("joined_battles")
-        if int(current_battles) > 5:
+        if current_battles > 5:
             logger.debug("No joins found, changing to claims")
             click_name("joined_battles_tab")
             return
