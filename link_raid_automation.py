@@ -611,28 +611,66 @@ def _segment_glyphs(bw_upscaled):
     return glyphs
 
 
-def get_nrs_in_img(cords: str, upscale=8) -> int:
+def _binarize_bright_text(gray: np.ndarray) -> np.ndarray:
+    _, bw = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    white_ratio = np.count_nonzero(bw == 255) / bw.size
+    if white_ratio > 0.95 or white_ratio < 0.05:
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+        enhanced = clahe.apply(gray)
+        _, bw = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    if np.count_nonzero(bw == 255) > np.count_nonzero(bw == 0):
+        bw = 255 - bw
+    return bw
+
+
+def get_nrs_in_img(
+    cords: str, upscale=8, bright_range: tuple[int, int] | None = None
+) -> int:
     img = grab_region(text_locations[cords])
     gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
     h, w = gray.shape
     up = cv2.resize(gray, (w * upscale, h * upscale), interpolation=cv2.INTER_CUBIC)
-    _, bw = cv2.threshold(up, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    if np.count_nonzero(bw == 255) > np.count_nonzero(bw == 0):
-        bw = 255 - bw
+
+    if bright_range is not None:
+        lo, hi = bright_range
+        bw = cv2.inRange(up, lo, hi)
+    else:
+        bw = _binarize_bright_text(up)
 
     templates = _load_digit_templates()
     result = ""
-    for idx, glyph in enumerate(_segment_glyphs(bw)):
+    glyphs = _segment_glyphs(bw)
+
+    if MAKE_CANDIDATES and not glyphs:
+        os.makedirs("debug/candidates", exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+        img.save(f"debug/candidates/{cords}_{stamp}_rawcrop_empty.png")
+
+    for idx, glyph in enumerate(glyphs):
+        fg_ratio = np.count_nonzero(glyph) / glyph.size
+        if fg_ratio > 0.97:
+            if MAKE_CANDIDATES:
+                os.makedirs("debug/candidates", exist_ok=True)
+                stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+                img.save(f"debug/candidates/{cords}_{stamp}_rawcrop_degenerate.png")
+                logger.warning(
+                    "%s glyph %d discarded as a solid blob (%.0f%% fg) -- raw crop saved for inspection",
+                    cords,
+                    idx,
+                    fg_ratio * 100,
+                )
+            continue
+
         norm = normalize_glyph(glyph)
         digit, score = _classify_glyph(norm, templates)
 
         if digit == "?" and MAKE_CANDIDATES:
             os.makedirs("debug/candidates", exist_ok=True)
-            fname = f"debug/candidates/{cords}_{datetime.now().strftime('%Y%m%d-%H%M%S-%f')}.png"
-            cv2.imwrite(fname, norm)
+            stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+            cv2.imwrite(f"debug/candidates/{cords}_{stamp}.png", norm)
+            img.save(f"debug/candidates/{cords}_{stamp}_rawcrop.png")
             logger.warning(
-                "Unrecognized digit glyph saved to %s (best score %.2f) — move it into digit_templates/<digit>/ to teach it",
-                fname,
+                "Unrecognized digit glyph saved (score %.2f) — raw crop saved alongside it",
                 score,
             )
 
@@ -822,7 +860,8 @@ def start_play(is_host: bool):
 def set_correct_host_difficulty():
     target_diff = (
         FIRST_HOST_DIFF
-        if "3" in str(get_nrs_in_img("games_until_daily_bonus"))
+        if "3"
+        in str(get_nrs_in_img("games_until_daily_bonus", bright_range=(170, 235)))
         else HOST_DIFF
     )
     lvl = ""
@@ -1847,7 +1886,7 @@ def main():
             pyautogui.sleep(SLEEP_MULT * 1)
             if not running:
                 continue
-            if i % 10 == 0:
+            if i % 3 == 0:
                 setup_text_locations(i == 0)
                 logger.debug(
                     "Updated text locations to %s", json.dumps(text_locations, indent=2)
