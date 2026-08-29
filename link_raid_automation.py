@@ -384,6 +384,8 @@ def boss_to_offset(curr_boss):
             return 0.46
         case "yagi":
             return 0.438
+        case "birdcage":
+            return 0.45
         case _:
             logger.error("Unknown boss '%s', using Wheel coords", curr_boss)
             return 0.36
