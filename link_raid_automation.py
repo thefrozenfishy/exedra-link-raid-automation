@@ -64,7 +64,6 @@ defaults = {
     "join_community": "false",
     "only_join_friends_and_community": "false",
     "join_friends_and_community_max_difficulty": "",
-    "love_everyone": "true",
     "automatically_turn_on_auto": "false",
     "boss": "Wheel",
     "use_online_boss": "true",
@@ -137,7 +136,6 @@ HALT = ini_config.getboolean("tff", "halt", fallback=False)
 MAKE_CANDIDATES = ini_config.getboolean("tff", "cand", fallback=False)
 DOC_EACH_KILL = ini_config.getboolean("tff", "kill", fallback=False)
 
-DO_LOVE = ini_config.getboolean("general", "love_everyone")
 DO_HOST = ini_config.getboolean("general", "auto_host")
 ENABLE_AUTO = ini_config.getboolean("general", "automatically_turn_on_auto")
 DO_REFILL_LP = ini_config.getboolean("general", "refill_lp")
@@ -1234,30 +1232,6 @@ def is_boss_dead() -> bool:
     return v < 0.1
 
 
-def love_everyone():
-    if not DO_LOVE or not is_boss_dead():
-        return
-
-    # To counteract multi host claiming not scrolling back up
-    scroll(-15, *text_locations["raid_button"])
-    click_name("love_button_l")
-    pyautogui.sleep(SLEEP_MULT * 0.5)
-    click_name("love_button_r")
-    pyautogui.sleep(SLEEP_MULT * 0.5)
-    for _ in range(3):
-        click_name("love_button_lb")
-        pyautogui.sleep(SLEEP_MULT * 0.5)
-        click_name("love_button_rb")
-        pyautogui.sleep(SLEEP_MULT * 0.5)
-        scroll(4, *text_locations["raid_button"])
-        pyautogui.sleep(SLEEP_MULT * 0.1)
-
-    click_name("love_button_lb")
-    pyautogui.sleep(SLEEP_MULT * 0.5)
-    click_name("love_button_rb")
-    pyautogui.sleep(SLEEP_MULT * 2.5)
-
-
 def click_name(name: str):
     logger.debug("Clicking on %s", name)
     click(*text_locations[name])
@@ -1794,22 +1768,6 @@ def setup_text_locations(first_time: bool):
         int(client_left + 0.93 * client_width),
         int(client_top + 0.45 * client_height),
     )
-    text_locations["love_button_l"] = (
-        int(client_left + 0.44 * client_width),
-        int(client_top + 0.45 * client_height),
-    )
-    text_locations["love_button_lb"] = (
-        int(client_left + 0.44 * client_width),
-        int(client_top + 0.7 * client_height),
-    )
-    text_locations["love_button_r"] = (
-        int(client_left + 0.9 * client_width),
-        int(client_top + 0.45 * client_height),
-    )
-    text_locations["love_button_rb"] = (
-        int(client_left + 0.9 * client_width),
-        int(client_top + 0.7 * client_height),
-    )
     text_locations["next_box"] = (
         int(client_left + 0.95 * client_width),
         int(client_top + 0.95 * client_height),
@@ -2082,11 +2040,9 @@ def main():
                     click_name("join_battles_tab")
 
                 case CurrentState.JOIN_BACK_SCREEN | CurrentState.MULTI_BACK_SCREEN:
-                    love_everyone()
                     click_name_box("join_back_box")
                     pyautogui.sleep(SLEEP_MULT * 2)
                 case CurrentState.HOST_BACK_SCREEN:
-                    love_everyone()
                     click_name_box("host_back_box")
                 case CurrentState.CONTINUE:
                     img = grab_region(text_locations["reward_orb_box"])
