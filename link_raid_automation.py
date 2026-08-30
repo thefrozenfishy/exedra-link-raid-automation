@@ -1389,16 +1389,10 @@ def setup_text_locations(first_time: bool):
         int(client_bottom - 0.7 * client_height),
     )
     text_locations["lp_refills_remaining"] = (
-        int(client_left + 0.5 * client_width),
+        int(client_left + 0.52 * client_width),
         int(client_top + 0.55 * client_height),
         int(client_right - 0.45 * client_width),
         int(client_bottom - 0.4 * client_height),
-    )
-    text_locations["crys_qp_refills_remaining"] = (
-        int(client_left + 0.5 * client_width),
-        int(client_top + 0.55 * client_height),
-        int(client_right - 0.45 * client_width),
-        int(client_bottom - 0.35 * client_height),
     )
     text_locations["daily_reward_pic_box"] = (
         int(client_left + 0.35 * client_width),
@@ -1862,11 +1856,7 @@ def main():
                 case CurrentState.JOIN_SCREEN:
                     start_join()
                 case CurrentState.REFILL_LP:
-                    if (
-                        DO_REFILL_LP
-                        and not str(get_nrs_in_img("lp_refills_remaining")).count("0")
-                        >= 2
-                    ):
+                    if DO_REFILL_LP and get_nrs_in_img("lp_refills_remaining") != 0:
                         click(
                             int(text_locations["host_back_box"][0]),
                             int(text_locations["host_back_box"][1]),
@@ -1898,11 +1888,7 @@ def main():
                         int(text_locations["join_button_box"][1]),
                     )
                 case CurrentState.REFILL_QP:
-                    if (
-                        DO_REFILL_QP
-                        and not str(get_nrs_in_img("lp_refills_remaining")).count("0")
-                        >= 2
-                    ):
+                    if DO_REFILL_QP and get_nrs_in_img("lp_refills_remaining") != 0:
                         click(
                             int(text_locations["host_back_box"][0]),
                             int(text_locations["host_back_box"][1]),
