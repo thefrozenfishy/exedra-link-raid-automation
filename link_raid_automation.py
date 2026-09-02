@@ -627,6 +627,8 @@ def get_nrs_in_img(
     cords: str, upscale=8, bright_range: tuple[int, int] | None = None
 ) -> int:
     img = grab_region(text_locations[cords])
+    if DEBUG:
+        img.save(f"debug/{cords}.png")
     gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
     h, w = gray.shape
     up = cv2.resize(gray, (w * upscale, h * upscale), interpolation=cv2.INTER_CUBIC)
@@ -1389,10 +1391,16 @@ def setup_text_locations(first_time: bool):
         int(client_bottom - 0.7 * client_height),
     )
     text_locations["lp_refills_remaining"] = (
-        int(client_left + 0.52 * client_width),
+        int(client_left + 0.525 * client_width),
         int(client_top + 0.55 * client_height),
-        int(client_right - 0.45 * client_width),
+        int(client_right - 0.455 * client_width),
         int(client_bottom - 0.4 * client_height),
+    )
+    text_locations["qp_refills_remaining"] = (
+        int(client_left + 0.525 * client_width),
+        int(client_top + 0.58 * client_height),
+        int(client_right - 0.455 * client_width),
+        int(client_bottom - 0.37 * client_height),
     )
     text_locations["daily_reward_pic_box"] = (
         int(client_left + 0.35 * client_width),
@@ -1888,7 +1896,7 @@ def main():
                         int(text_locations["join_button_box"][1]),
                     )
                 case CurrentState.REFILL_QP:
-                    if DO_REFILL_QP and get_nrs_in_img("lp_refills_remaining") != 0:
+                    if DO_REFILL_QP and get_nrs_in_img("qp_refills_remaining") != 0:
                         click(
                             int(text_locations["host_back_box"][0]),
                             int(text_locations["host_back_box"][1]),
