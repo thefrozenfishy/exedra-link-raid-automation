@@ -927,7 +927,7 @@ def get_dpi_scale() -> float:
         return 1.0
 
 
-def fling(x: int, start_y: int, end_y: int, duration: float = 0.03, steps: int = 10):
+def fling(x: int, start_y: int, end_y: int, duration: float = 0.03, steps: int = 30):
     hwnd = win32gui.FindWindow(None, TARGET_WINDOW)
     if not hwnd:
         return
@@ -986,7 +986,7 @@ def claim_battles():
     current_battles = get_nrs_in_img("joined_battles")
     if current_battles > 3 and current_battles % 10 != 1:
         x, y = text_locations["scroll_location"]
-        fling(x, y + 300, y - 300)
+        fling(x, y, y - 1000)
         for _ in range(20):
             if "end" in get_text_in_img("join_button_box"):
                 click_name("join_button")
@@ -1587,7 +1587,7 @@ def setup_text_locations(first_time: bool):
     )
     text_locations["scroll_location"] = (
         client_left + 2 * client_width // 3,
-        client_top + client_height // 4,
+        client_bottom - client_height // 4,
     )
     text_locations["join_lvl"] = (
         int(client_left + 0.705 * client_width),
