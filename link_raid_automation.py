@@ -1023,7 +1023,9 @@ def start_join():
     global JOIN_WITH_STRONGEST_TEAM, refresh_count
     JOIN_WITH_STRONGEST_TEAM = False
     current_battles = get_nrs_in_img("joined_battles")
-    if current_battles >= 18 and current_battles % 10 != 1:
+    if current_battles % 10 == 1:
+        current_battles //= 10
+    if current_battles >= 18:
         click_name("joined_battles_tab")
         return
     for _ in range(20):
