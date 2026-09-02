@@ -927,6 +927,38 @@ def get_dpi_scale() -> float:
         return 1.0
 
 
+def fling(x: int, start_y: int, end_y: int, duration: float = 0.03, steps: int = 10):
+    hwnd = win32gui.FindWindow(None, TARGET_WINDOW)
+    if not hwnd:
+        return
+    prev_hwnd = win32gui.GetForegroundWindow()
+    ctypes.windll.user32.SetForegroundWindow(hwnd)
+    pyautogui.sleep(SLEEP_MULT * 0.02)
+    curr = pyautogui.position()
+
+    prev_pause = pydirectinput.PAUSE
+    pydirectinput.PAUSE = 0  # don't let pydirectinput's default pause slow the fling
+
+    try:
+        pydirectinput.moveTo(x, start_y)
+        pydirectinput.mouseDown()
+
+        step_delay = duration / steps
+        for i in range(1, steps + 1):
+            t = i / steps
+            y = int(start_y + (end_y - start_y) * t)
+            pydirectinput.moveTo(x, y)
+            pyautogui.sleep(SLEEP_MULT * step_delay)
+
+        pydirectinput.mouseUp()
+    finally:
+        pydirectinput.PAUSE = prev_pause
+
+    pyautogui.moveTo(curr)
+    pyautogui.sleep(SLEEP_MULT * 0.02)
+    ctypes.windll.user32.SetForegroundWindow(prev_hwnd)
+
+
 def scroll(clicks: int, x: int, y: int):
     hwnd = win32gui.FindWindow(None, TARGET_WINDOW)
     if not hwnd:
@@ -953,7 +985,8 @@ def scroll(clicks: int, x: int, y: int):
 def claim_battles():
     current_battles = get_nrs_in_img("joined_battles")
     if current_battles > 3 and current_battles % 10 != 1:
-        scroll(60, *text_locations["scroll_location"])
+        x, y = text_locations["scroll_location"]
+        fling(x, y + 300, y - 300)
         for _ in range(20):
             if "end" in get_text_in_img("join_button_box"):
                 click_name("join_button")
