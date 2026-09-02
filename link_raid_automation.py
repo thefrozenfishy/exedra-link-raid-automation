@@ -135,6 +135,7 @@ else:
 HALT = ini_config.getboolean("tff", "halt", fallback=False)
 MAKE_CANDIDATES = ini_config.getboolean("tff", "cand", fallback=False)
 DOC_EACH_KILL = ini_config.getboolean("tff", "kill", fallback=False)
+FLING = ini_config.getboolean("test", "fling", fallback=False)
 
 DO_HOST = ini_config.getboolean("general", "auto_host")
 ENABLE_AUTO = ini_config.getboolean("general", "automatically_turn_on_auto")
@@ -985,8 +986,11 @@ def scroll(clicks: int, x: int, y: int):
 def claim_battles():
     current_battles = get_nrs_in_img("joined_battles")
     if current_battles > 3 and current_battles % 10 != 1:
-        x, y = text_locations["scroll_location"]
-        fling(x, y, y - 1000)
+        if FLING:
+            x, y = text_locations["scroll_location"]
+            fling(x, y, y - 1000)
+        else:
+            scroll(60, *text_locations["scroll_location"])
         for _ in range(20):
             if "end" in get_text_in_img("join_button_box"):
                 click_name("join_button")
