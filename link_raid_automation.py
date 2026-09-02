@@ -1860,7 +1860,7 @@ def swap_to_crys_farming(from_host_screen: bool = False):
 
 
 def main():
-    global orb_colour, host_diff, crys_to_lr_swap_time, JOIN_WITH_STRONGEST_TEAM
+    global orb_colour, host_diff, crys_to_lr_swap_time, JOIN_WITH_STRONGEST_TEAM, refresh_count
     logger.info(
         "starting with config: %s",
         {**dict(ini_config["general"]), **{"lvls": str(LEVELS_TO_FIND)}},
@@ -2098,6 +2098,10 @@ def main():
                 case CurrentState.CURRENTLY_HOSTING_SCREEN:
                     click_name("hosting_back_button")
                 case CurrentState.TOP_JOIN_IS_FULL:
+                    refresh_count += 1
+                    if refresh_count == 5:
+                        refresh_count = 0
+                        click_name("refresh_button")
                     scroll(3, *text_locations["scroll_location"])
                     click_name("scroll_location")
                     JOIN_WITH_STRONGEST_TEAM = False
