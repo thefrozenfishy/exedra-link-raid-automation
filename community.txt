@@ -127,3 +127,4 @@ Snowball
 Qulnix
 Nhut
 Sui
+Ezzy
