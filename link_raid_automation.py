@@ -1010,6 +1010,7 @@ def refresh_join() -> None:
     refresh_count += 1
     if refresh_count == 5:
         refresh_count = 0
+        logger.info("Was unable to join, going to claim")
         current_battles = get_nrs_in_img("joined_battles")
         if current_battles > 5:
             logger.debug("No joins found, changing to claims")
@@ -1037,6 +1038,7 @@ def start_join():
             if current_players >= 8:
                 logger.debug("Found room with %s players, killing", current_players)
                 JOIN_WITH_STRONGEST_TEAM = True
+            logger.info("Joining a battle")
             refresh_count = 0
             click_name("join_button")
             pyautogui.sleep(SLEEP_MULT * 2)
@@ -2107,6 +2109,7 @@ def main():
                     refresh_count += 1
                     if refresh_count == 5:
                         refresh_count = 0
+                        logger.info("Was unable to join, refreshing")
                         click_name("refresh_button")
                     scroll(3, *text_locations["scroll_location"])
                     click_name("scroll_location")
