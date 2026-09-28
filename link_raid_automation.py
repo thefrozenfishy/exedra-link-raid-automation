@@ -2058,14 +2058,18 @@ def main():
                         # Allow crys animation to play out
                         if has_gold_crys_drop():
                             img = grab_region(text_locations["screen"])
-                            if DEBUG:
-                                os.makedirs("gold_drops", exist_ok=True)
-                                img.save(
-                                    f"gold_drops/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')}.png"
-                                )
+                            os.makedirs("gold_drops", exist_ok=True)
+                            img.save(
+                                f"gold_drops/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')}.png"
+                            )
+                    
                     click(
                         int(text_locations["join_back_box"][2]),
                         int(text_locations["join_back_box"][3]),
+                    )
+                    click(
+                        int(text_locations["join_back_box"][0]),
+                        int(text_locations["join_back_box"][1]),
                     )
                 case CurrentState.CRYS_RETRY_SCREEN:
                     click(
