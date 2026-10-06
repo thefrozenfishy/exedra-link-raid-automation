@@ -7,6 +7,7 @@
 
 ## Usage
 
+* Can be used to autoplay next floor in Tower and retry stages in Score Attack as well.
 * This assumes your game runs in 16:9 aspect ratio. I have not tested on emulator myself so do tell if it doesn't work
 * Download exe from [releases](https://github.com/thefrozenfishy/exedra-link-raid-automation/releases) and run. Keep in mind the window needs to be visible on the screen for the OCR to function properly.
 * At any point, press ``ctrl+shift+q`` to exit the program

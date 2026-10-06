@@ -1062,6 +1062,8 @@ class CurrentState(Enum):
     HOME_SCREEN = "HOME_SCREEN"
     FAILED_TO_JOIN = "FAILED_TO_JOIN"
     JOINED_BATTLES_SCREEN = "JOINED_BATTLES_SCREEN"
+    SA_RETRY = "SA_RETRY"
+    SA_EXIT = "SA_EXIT"
     HOST_SCREEN = "HOST_SCREEN"
     HOME_SCREEN_CAN_HOST = "HOME_SCREEN_CAN_HOST"
     HOME_SCREEN_CANNOT_HOST = "HOME_SCREEN_CANNOT_HOST"
@@ -1099,6 +1101,9 @@ class CurrentState(Enum):
     BATTLE_ON_MANUAL = "BATTLE_ON_MANUAL"
     BATTLE_ON_SEMI = "BATTLE_ON_SEMI"
     CONTINUE = "CONTINUE"
+
+
+sa_retry_count = 0
 
 
 def current_state() -> CurrentState:
@@ -1144,6 +1149,11 @@ def current_state() -> CurrentState:
     text = normalize_1_and_0(get_text_in_img("join_button_box"))
     if "etreat" in text or "ended" in text:
         return CurrentState.JOINED_BATTLES_SCREEN
+    if "retry" in text.lower():
+        if sa_retry_count < 10:
+            return CurrentState.SA_RETRY
+        else:
+            return CurrentState.SA_EXIT
     curr_player_count = get_nrs_in_img("current_player_count")
     if curr_player_count >= 10:
         return CurrentState.TOP_JOIN_IS_FULL
@@ -1868,7 +1878,7 @@ def swap_to_crys_farming(from_host_screen: bool = False):
 
 
 def main():
-    global orb_colour, host_diff, crys_to_lr_swap_time, JOIN_WITH_STRONGEST_TEAM, refresh_count
+    global orb_colour, host_diff, crys_to_lr_swap_time, JOIN_WITH_STRONGEST_TEAM, refresh_count, sa_retry_count
     logger.info(
         "starting with config: %s",
         {**dict(ini_config["general"]), **{"lvls": str(LEVELS_TO_FIND)}},
@@ -1900,6 +1910,12 @@ def main():
             state = current_state()
             logger.info("Current State: %s", state.name)
             match state:
+                case CurrentState.SA_RETRY:
+                    sa_retry_count += 1
+                    click_name("join_button")
+                case CurrentState.SA_EXIT:
+                    logger.info("Retried SA %d times, exitting", sa_retry_count)
+                    click_name("join_screen_button")
                 case CurrentState.JOINED_BATTLES_SCREEN:
                     claim_battles()
                 case CurrentState.JOIN_SCREEN:
@@ -2062,7 +2078,7 @@ def main():
                             img.save(
                                 f"gold_drops/{datetime.today().strftime('%Y-%m-%dT%H-%M-%S')}.png"
                             )
-                    
+
                     click(
                         int(text_locations["join_back_box"][2]),
                         int(text_locations["join_back_box"][3]),
