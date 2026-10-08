@@ -54,7 +54,7 @@ The tool is able to swap between crys farming and link raids once running out of
   * Upload the results to the [Exedra Toolbox](https://thefrozenfishy.github.io/exedra-dmg-calc/#/character-crys) to visualize the results.
 * ``crys_reader_exe_name`` Name of the crys reader exe. Defaults to ``crys_reader.exe``
 * ``use_online_boss`` true to make the program automatically fetch the LR schedule.
-* ``boss`` Which boss is currently being fought, is used for the tool to know what difficulty you are currently fighting. Options: ``Sandbox``, ``Wheel``, ``Spindle``, ``Horse``, ``AI``, ``Kumo``, ``Walpy`` and ``Yagi``.
+* ``boss`` Which boss is currently being fought, is used for the tool to know what difficulty you are currently fighting. Options: ``Sandbox``, ``Wheel``, ``Spindle``, ``Horse``, ``AI``, ``Kumo``, ``Walpy``, ``Yagi`` and ``Darkness``.
   * Only has effect if ``use_online_boss`` is ``false`` or schedule can not be fetched.
 
 ## Bug notes
