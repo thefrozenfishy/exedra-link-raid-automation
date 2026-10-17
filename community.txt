@@ -139,3 +139,4 @@ YkCheyenne
 [M.T.] キュリキン
 Thimbie
 Geekbar
+JustSomeRuby
