@@ -389,6 +389,8 @@ def boss_to_offset(curr_boss):
             return 0.45
         case "darkness":
             return 0.45
+        case "dessert":
+            return 0.455
         case _:
             logger.error("Unknown boss '%s', using Wheel coords", curr_boss)
             return 0.36
