@@ -1960,7 +1960,9 @@ def main():
                     click_name("join_screen_button")
                 case CurrentState.CRISIS_SELECT_SCREEN:
                     if "easy" not in normalize_1_and_0(get_text_in_img("crys_result_box2")):
-                        for i in range(5): click_name("crisis_host_decrement")
+                        for i in range(5): 
+                            click_name("crisis_host_decrement")    
+                            pyautogui.sleep(SLEEP_MULT * 0.5)
                         pyautogui.sleep(SLEEP_MULT * 3)
                     click_name("join_button")
                 case CurrentState.CRISIS_TEAM_SELECT_SCREEN:
