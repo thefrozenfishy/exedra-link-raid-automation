@@ -86,6 +86,7 @@ crys_defaults = {
 
 crisis_defaults = {
     "team": "Crisis Farm",
+    "spam_click_in_crisis_mode": "true"
 }
 
 ini_config.read(CONFIG_FILE)
@@ -169,6 +170,8 @@ CRYS_EX_SCREENSHOT = ini_config.getboolean("crystalis", "document_ex_drops")
 CRYS_GOLD_SCREENSHOT = ini_config.getboolean("crystalis", "document_gold_drops")
 
 CRISIS_TEAM = ini_config.get("crisis", "team").replace(" ", "").lower()
+SHOULD_SPAM_IN_CRISIS_MODE = ini_config.getboolean("crisis", "spam_click_in_crisis_mode")
+CRISIS_MODE = False
 
 DAILY_SCREENSHOT = ini_config.getboolean("general", "document_daily_reward")
 TARGET_WINDOW = ini_config.get("general", "exe_name")
@@ -1116,12 +1119,27 @@ class CurrentState(Enum):
     BATTLE_ON_MANUAL = "BATTLE_ON_MANUAL"
     BATTLE_ON_SEMI = "BATTLE_ON_SEMI"
     CONTINUE = "CONTINUE"
+    SPAM = "SPAM"
 
 
 sa_retry_count = 0
 
 
 def current_state() -> CurrentState:
+    global CRISIS_MODE
+    if CRISIS_MODE:
+        join_button_box = normalize_1_and_0(get_text_in_img("join_button_box"))
+
+        if "prep" in join_button_box:
+            return CurrentState.CRISIS_SELECT_SCREEN
+
+        if "a11en" in normalize_1_and_0(get_text_in_img("crys_result_box2")):
+            return CurrentState.CRISIS_TEAM_SELECT_SCREEN
+
+        if "usc" in normalize_1_and_0(get_text_in_img("crys_result_box2")):
+            return CurrentState.CRIRIS_SCORE_SCREEN
+        return CurrentState.SPAM
+
     if "f0110w" in normalize_1_and_0(get_text_in_img("follow_box")):
         return CurrentState.FOLLOW_SCREEN
 
@@ -1161,18 +1179,22 @@ def current_state() -> CurrentState:
     if "w1thy0ur" in error_msg:
         return CurrentState.HOST_SKIP_PROMPT
 
-    text = normalize_1_and_0(get_text_in_img("join_button_box"))
-    if "etreat" in text or "ended" in text:
+    join_button_box = normalize_1_and_0(get_text_in_img("join_button_box"))
+    if "etreat" in join_button_box or "ended" in join_button_box:
         return CurrentState.JOINED_BATTLES_SCREEN
-    if "retry" in text.lower():
+    if "retry" in join_button_box.lower():
         if sa_retry_count < 10:
             return CurrentState.SA_RETRY
         else:
             return CurrentState.SA_EXIT
-    if "prep" in text:
+
+    if "prep" in join_button_box:
         return CurrentState.CRISIS_SELECT_SCREEN
 
     if "a11en" in normalize_1_and_0(get_text_in_img("crys_result_box2")):
+        if SHOULD_SPAM_IN_CRISIS_MODE: 
+            logger.info("Entering crisis spam mode")
+            CRISIS_MODE = True
         return CurrentState.CRISIS_TEAM_SELECT_SCREEN
 
     if "usc" in normalize_1_and_0(get_text_in_img("crys_result_box2")):
@@ -1311,9 +1333,9 @@ def is_boss_dead() -> bool:
     return v < 0.1
 
 
-def click_name(name: str):
-    logger.debug("Clicking on %s", name)
-    click(*text_locations[name])
+def click_name(name: str, button=pyautogui.LEFT):
+    logger.debug("%s Clicking on %s", button, name)
+    click(text_locations[name][0],text_locations[name][1], button)
 
 
 def click_name_box(name: str):
@@ -1325,7 +1347,7 @@ def click_box(x1: float | int, y1: float | int, x2: float | int, y2: float | int
     click((x1 + x2) / 2, (y1 + y2) / 2)
 
 
-def click(x, y):
+def click(x, y, button=pyautogui.LEFT):
     hwnd = win32gui.FindWindow(None, TARGET_WINDOW)
     if not hwnd:
         logger.error("Could not find hwnd")
@@ -1343,7 +1365,7 @@ def click(x, y):
         logger.warning("SetForegroundWindow result=%s err=%s", result, err)
     pyautogui.sleep(SLEEP_MULT * 0.02)
     curr = pyautogui.position()
-    pydirectinput.click(int(x), int(y))
+    pydirectinput.click(int(x), int(y), button=button)
     pyautogui.moveTo(curr)
     pyautogui.sleep(SLEEP_MULT * 0.02)
     if prev_hwnd and win32gui.IsWindow(prev_hwnd):
@@ -1943,7 +1965,7 @@ def main():
             pyautogui.sleep(SLEEP_MULT * 1)
             if not running:
                 continue
-            if i % 3 == 0:
+            if i % 10 == 0:
                 setup_text_locations(i == 0)
                 logger.debug(
                     "Updated text locations to %s", json.dumps(text_locations, indent=2)
@@ -1952,6 +1974,8 @@ def main():
             state = current_state()
             logger.info("Current State: %s", state.name)
             match state:
+                case CurrentState.SPAM:
+                    click_name("joined_battles_tab", pyautogui.RIGHT)
                 case CurrentState.SA_RETRY:
                     sa_retry_count += 1
                     click_name("join_button")
@@ -2123,7 +2147,7 @@ def main():
                 case CurrentState.CRYS_FAILED:
                     click_name("host_screen_button")
                 case CurrentState.RESULTS_SCREEN | CurrentState.CRYS_RESULTS_SCREEN:
-                    if CRYS_GOLD_SCREENSHOT:
+                    if CRYS_GOLD_SCREENSHOT and not CRISIS_MODE:
                         pyautogui.sleep(SLEEP_MULT * 6)
                         # Allow crys animation to play out
                         if has_gold_crys_drop():

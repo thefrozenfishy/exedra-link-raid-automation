@@ -63,6 +63,8 @@ Since November 2026 there are infinite plays for Crisis, and silver tokens can b
 
 * ``team`` What team should be used in crisis easy farm.
   * Note: this _must_ match a team name you have. Do note that numbers and only small letters are more likely to be read wrong, prefer using capitalized words without numbers for the best experience.
+* ``spam_click_in_crisis_mode`` Enable this to have the tool spam click on the screen, skipping various animations. 
+  * Note: This sets the tool to crisis mode, where it will continue spamming until you exit the program.
 
 ## Bug notes
 
