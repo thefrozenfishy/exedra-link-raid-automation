@@ -84,6 +84,10 @@ crys_defaults = {
     "refill_qp": "false",
 }
 
+crisis_defaults = {
+    "team": "Crisis Farm",
+}
+
 ini_config.read(CONFIG_FILE)
 ini_config["general"] = {
     **defaults,
@@ -96,6 +100,10 @@ ini_config["team_overrides"] = {
 ini_config["crystalis"] = {
     **crys_defaults,
     **(ini_config["crystalis"] if "crystalis" in ini_config else {}),
+}
+ini_config["crisis"] = {
+    **crisis_defaults,
+    **(ini_config["crisis"] if "crisis" in ini_config else {}),
 }
 
 with open(CONFIG_FILE, "w", encoding="utf-8", newline="\n") as f:
@@ -159,6 +167,8 @@ if CRYS_ELEMENT not in valid_elements:
 DO_REFILL_QP = ini_config.getboolean("crystalis", "refill_qp")
 CRYS_EX_SCREENSHOT = ini_config.getboolean("crystalis", "document_ex_drops")
 CRYS_GOLD_SCREENSHOT = ini_config.getboolean("crystalis", "document_gold_drops")
+
+CRISIS_TEAM = ini_config.get("crisis", "team").replace(" ", "").lower()
 
 DAILY_SCREENSHOT = ini_config.getboolean("general", "document_daily_reward")
 TARGET_WINDOW = ini_config.get("general", "exe_name")
@@ -804,13 +814,11 @@ def find_coords_for_eligable_difficulty() -> bool:
     return False
 
 
-def select_correct_team(team_name, is_crys):
+def select_correct_team(team_name, team_label: str, next_button: str):
     for _ in range(30):
-        if team_name.lower() in get_text_in_img(
-            "crys_team_name" if is_crys else "team_name"
-        ):
+        if team_name.lower() in get_text_in_img(team_label):
             return
-        click_name("crys_next_team" if is_crys else "next_team")
+        click_name(next_button)
         pyautogui.sleep(SLEEP_MULT * 0.2)
 
     raise RuntimeError(
@@ -848,7 +856,7 @@ def start_play(is_host: bool):
             f"debug/{folder}/{datetime.today().strftime("%Y-%m-%dT%H-%M-%S")}D{diff}.png"
         )
 
-    select_correct_team(team, is_crys=False)
+    select_correct_team(team, "team_name", "next_team")
     logger.debug(
         "Starting play at difficulty %d using %s because range is %s",
         diff,
@@ -1068,6 +1076,9 @@ class CurrentState(Enum):
     JOINED_BATTLES_SCREEN = "JOINED_BATTLES_SCREEN"
     SA_RETRY = "SA_RETRY"
     SA_EXIT = "SA_EXIT"
+    CRISIS_SELECT_SCREEN = "CRISIS_SELECT_SCREEN"
+    CRISIS_TEAM_SELECT_SCREEN = "CRISIS_TEAM_SELECT_SCREEN"
+    CRIRIS_SCORE_SCREEN = "CRIRIS_SCORE_SCREEN"
     HOST_SCREEN = "HOST_SCREEN"
     HOME_SCREEN_CAN_HOST = "HOME_SCREEN_CAN_HOST"
     HOME_SCREEN_CANNOT_HOST = "HOME_SCREEN_CANNOT_HOST"
@@ -1158,6 +1169,15 @@ def current_state() -> CurrentState:
             return CurrentState.SA_RETRY
         else:
             return CurrentState.SA_EXIT
+    if "prep" in text:
+        return CurrentState.CRISIS_SELECT_SCREEN
+
+    if "a11en" in normalize_1_and_0(get_text_in_img("crys_result_box2")):
+        return CurrentState.CRISIS_TEAM_SELECT_SCREEN
+
+    if "usc" in normalize_1_and_0(get_text_in_img("crys_result_box2")):
+        return CurrentState.CRIRIS_SCORE_SCREEN
+
     curr_player_count = get_nrs_in_img("current_player_count")
     if curr_player_count >= 10:
         return CurrentState.TOP_JOIN_IS_FULL
@@ -1705,9 +1725,27 @@ def setup_text_locations(first_time: bool):
         int(client_left + 0.64 * client_width),
         int(client_top + 0.19 * client_height),
     )
+    text_locations["crisis_host_decrement"] = (
+        int(client_left + 0.64 * client_width),
+        int(client_top + 0.11 * client_height),
+    )
     text_locations["host_increment"] = (
         int(client_left + 0.84 * client_width),
         int(client_top + 0.19 * client_height),
+    )
+    text_locations["crisis_host_increment"] = (
+        int(client_left + 0.84 * client_width),
+        int(client_top + 0.11 * client_height),
+    )
+    text_locations["crisis_team_name"] = (
+        int(client_left + 0.66 * client_width),
+        int(client_top + 0.66 * client_height),
+        int(client_right - 0.22 * client_width),
+        int(client_bottom - 0.28 * client_height),
+    )
+    text_locations["crisis_next_team"] = (
+        int(client_left + 0.47 * client_width),
+        int(client_top + 0.47 * client_height),
     )
     if curr_offset != get_current_boss_offset():
         input(
@@ -1920,6 +1958,16 @@ def main():
                 case CurrentState.SA_EXIT:
                     logger.info("Retried SA %d times, exitting", sa_retry_count)
                     click_name("join_screen_button")
+                case CurrentState.CRISIS_SELECT_SCREEN:
+                    if "easy" not in normalize_1_and_0(get_text_in_img("crys_result_box2")):
+                        for i in range(5): click_name("crisis_host_decrement")
+                        pyautogui.sleep(SLEEP_MULT * 3)
+                    click_name("join_button")
+                case CurrentState.CRISIS_TEAM_SELECT_SCREEN:
+                    select_correct_team(CRISIS_TEAM, "crisis_team_name", "crisis_next_team")
+                    click_name("join_screen_button")
+                case CurrentState.CRIRIS_SCORE_SCREEN:
+                    click_name("join_screen_button")
                 case CurrentState.JOINED_BATTLES_SCREEN:
                     claim_battles()
                 case CurrentState.JOIN_SCREEN:
@@ -1946,7 +1994,7 @@ def main():
                 case CurrentState.CRYS_FARM_FAILED_SCREEN:
                     click_name("host_screen_button")
                 case CurrentState.CRYS_TEAM_SELECT_SCREEN:
-                    select_correct_team(CRYS_TEAM, True)
+                    select_correct_team(CRYS_TEAM, "crys_team_name", "crys_next_team")
                     click_name("play_button")
                 case CurrentState.CRYS_MULTI_TICKET_POPUP:
                     click_name("upgrade_button")

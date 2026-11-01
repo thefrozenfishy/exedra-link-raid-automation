@@ -57,6 +57,13 @@ The tool is able to swap between crys farming and link raids once running out of
 * ``boss`` Which boss is currently being fought, is used for the tool to know what difficulty you are currently fighting. Options: ``Sandbox``, ``Wheel``, ``Spindle``, ``Horse``, ``AI``, ``Kumo``, ``Walpy``, ``Yagi``, ``Darkness`` and ``Dessert``.
   * Only has effect if ``use_online_boss`` is ``false`` or schedule can not be fetched.
 
+### Crisis
+
+Since November 2026 there are infinite plays for Crisis, and silver tokens can be converted to AQ chips. The Crisis skip is completely self contained, playing easy on repeat forever.
+
+* ``team`` What team should be used in crisis easy farm.
+  * Note: this _must_ match a team name you have. Do note that numbers and only small letters are more likely to be read wrong, prefer using capitalized words without numbers for the best experience.
+
 ## Bug notes
 
 * The OCR is a bit touchy, so some actions like scrolling manually in the join list or various resolutions can mess things up. just changing screens will resolve any issue. I run Windowed 1024x576, so that's the best tested resolution.
