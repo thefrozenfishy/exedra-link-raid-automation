@@ -74,7 +74,7 @@ Every time the tool presses start in crisis it times the cycle since the previou
 Stats are saved in a ``crisis_stats`` folder next to the exe, one set of files per run, updated after every cycle (so they are kept no matter how the program is closed):
 
 * ``<start time>_summary.txt`` running stats: n, avg, stdev, min, max, median and runs per hour, plus the difficulty/team/settings used.
-  * Also shows silver/gold medals generated in total and per hour, and what that trades into (50 silver = 100 AQ chips or 1000 kioku exp, 50 gold = 1000 kioku exp).
+  * Also shows silver/gold medals generated in total and per hour/day/week (projected from the average cycle, running nonstop), and what that trades into (50 silver = 100 AQ chips or 1000 kioku exp, 50 gold = 1000 kioku exp).
   * Medals per run: Easy 800 silver, Normal 1000 silver, Hard 1200 silver + 600 gold, Very Hard 1400 + 700, Extra 1600 + 800, Crisis 2000 + 1000.
 * ``<start time>.csv`` every single cycle time, for your own analysis.
 

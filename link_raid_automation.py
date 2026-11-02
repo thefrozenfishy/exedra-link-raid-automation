@@ -257,15 +257,30 @@ class CrisisCycleStats:
         self.summary_path = os.path.join(self.FOLDER, f"{stamp}_summary.txt")
         self.times: list[float] = []
         self.last_start: float | None = None
+        # Start can be pressed several times on the same team select screen (a press
+        # before the button has finished animating in is ignored by the game). The
+        # lap only ends at the last press before the game leaves that screen.
+        self.pending_press: float | None = None
 
     def reset_timer(self):
         """Forget the last start so the next cycle is not measured (pause etc.)."""
-        if self.last_start is not None:
+        if self.last_start is not None or self.pending_press is not None:
             logger.info("Crisis cycle timer reset, the current run will not be counted")
         self.last_start = None
+        self.pending_press = None
 
     def record_start(self):
-        now = time.perf_counter()
+        """Note a start press. Counted once the game has left team select (commit)."""
+        if self.pending_press is not None:
+            logger.info("Pressing crisis start again, previous press did not register")
+        self.pending_press = time.perf_counter()
+
+    def commit(self):
+        """Call once the team select screen is gone; the last start press was the real one."""
+        if self.pending_press is None:
+            return
+        now = self.pending_press
+        self.pending_press = None
         if self.last_start is not None:
             self._add(now - self.last_start)
         else:
@@ -378,7 +393,10 @@ class CrisisCycleStats:
                 f"runs/h:  {st['runs_per_hour']:.1f}",
             ]
             lines += self._reward_lines("Generated in total", self.rewards(st["n"]))
-            lines += self._reward_lines("Per hour (at avg cycle)", self.rewards(st["runs_per_hour"]))
+            rph = st["runs_per_hour"]
+            lines += self._reward_lines(f"Per hour (at avg cycle, {rph:,.1f} runs)", self.rewards(rph))
+            lines += self._reward_lines(f"Per day (24h, {rph * 24:,.0f} runs)", self.rewards(rph * 24))
+            lines += self._reward_lines(f"Per week (7 x 24h, {rph * 24 * 7:,.0f} runs)", self.rewards(rph * 24 * 7))
         lines += ["", f"Every cycle: {os.path.basename(self.csv_path)}", ""]
         tmp = self.summary_path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
@@ -2197,6 +2215,8 @@ def main():
             i += 1
             state = current_state()
             logger.info("Current State: %s", state.name)
+            if state != CurrentState.CRISIS_TEAM_SELECT_SCREEN:
+                crisis_stats.commit()
             match state:
                 case CurrentState.SPAM:
                     click_name("joined_battles_tab", pyautogui.RIGHT)
