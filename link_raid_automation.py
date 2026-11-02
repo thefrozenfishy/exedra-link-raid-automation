@@ -5,7 +5,9 @@ import json
 import logging
 import os
 import re
+import statistics
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from enum import Enum
@@ -86,7 +88,8 @@ crys_defaults = {
 
 crisis_defaults = {
     "team": "Crisis Farm",
-    "spam_click_in_crisis_mode": "true"
+    "spam_click_in_crisis_mode": "true",
+    "diff": "Easy",
 }
 
 ini_config.read(CONFIG_FILE)
@@ -172,6 +175,28 @@ CRYS_GOLD_SCREENSHOT = ini_config.getboolean("crystalis", "document_gold_drops")
 CRISIS_TEAM = ini_config.get("crisis", "team").replace(" ", "").lower()
 SHOULD_SPAM_IN_CRISIS_MODE = ini_config.getboolean("crisis", "spam_click_in_crisis_mode")
 CRISIS_MODE = False
+CRISIS_DIFFICULTIES = ["Easy", "Normal", "Hard", "Very Hard", "Extra", "Crisis"]
+_crisis_diff_text = ini_config.get("crisis", "diff").replace(" ", "").lower()
+_crisis_diff_keys = [d.replace(" ", "").lower() for d in CRISIS_DIFFICULTIES]
+if _crisis_diff_text not in _crisis_diff_keys:
+    input(f"ERROR: crisis diff must be one of {', '.join(CRISIS_DIFFICULTIES)}")
+    raise SystemExit(1)
+CRISIS_DIFF_INDEX = _crisis_diff_keys.index(_crisis_diff_text)
+CRISIS_DIFF = CRISIS_DIFFICULTIES[CRISIS_DIFF_INDEX]
+# (silver medals, gold medals) per run
+CRISIS_REWARDS = {
+    "Easy": (800, 0),
+    "Normal": (1000, 0),
+    "Hard": (1200, 600),
+    "Very Hard": (1400, 700),
+    "Extra": (1600, 800),
+    "Crisis": (2000, 1000),
+}
+CRISIS_SILVER, CRISIS_GOLD = CRISIS_REWARDS[CRISIS_DIFF]
+# Medal exchange rates: 50 silver -> 100 AQ chips or 1000 kioku exp, 50 gold -> 1000 kioku exp
+AQ_CHIPS_PER_SILVER = 100 / 50
+KIOKU_EXP_PER_SILVER = 1000 / 50
+KIOKU_EXP_PER_GOLD = 1000 / 50
 
 DAILY_SCREENSHOT = ini_config.getboolean("general", "document_daily_reward")
 TARGET_WINDOW = ini_config.get("general", "exe_name")
@@ -212,6 +237,156 @@ def toggle_running():
     else:
         logger.info("Resuming")
     running = not running
+    crisis_stats.reset_timer()
+
+
+class CrisisCycleStats:
+    """Times each crisis start press and keeps running stats.
+
+    Every completed cycle is appended to crisis_stats/<session>.csv and the
+    summary file is rewritten, so the numbers survive however the program is
+    closed (Ctrl+Shift+Q, closing the window, a crash).
+    """
+
+    FOLDER = "crisis_stats"
+
+    def __init__(self):
+        self.session_start = datetime.now()
+        stamp = self.session_start.strftime("%Y-%m-%dT%H-%M-%S")
+        self.csv_path = os.path.join(self.FOLDER, f"{stamp}.csv")
+        self.summary_path = os.path.join(self.FOLDER, f"{stamp}_summary.txt")
+        self.times: list[float] = []
+        self.last_start: float | None = None
+
+    def reset_timer(self):
+        """Forget the last start so the next cycle is not measured (pause etc.)."""
+        if self.last_start is not None:
+            logger.info("Crisis cycle timer reset, the current run will not be counted")
+        self.last_start = None
+
+    def record_start(self):
+        now = time.perf_counter()
+        if self.last_start is not None:
+            self._add(now - self.last_start)
+        else:
+            logger.info("Crisis cycle timer started (first cycle is measured from the next start)")
+        self.last_start = now
+
+    def summary(self) -> dict:
+        n = len(self.times)
+        if n == 0:
+            return {"n": 0}
+        avg = statistics.fmean(self.times)
+        return {
+            "n": n,
+            "avg": avg,
+            "stdev": statistics.stdev(self.times) if n > 1 else 0.0,
+            "min": min(self.times),
+            "max": max(self.times),
+            "median": statistics.median(self.times),
+            "runs_per_hour": 3600 / avg if avg > 0 else 0.0,
+        }
+
+    @staticmethod
+    def rewards(runs: float) -> dict:
+        silver = runs * CRISIS_SILVER
+        gold = runs * CRISIS_GOLD
+        return {
+            "silver": silver,
+            "gold": gold,
+            # Silver can go to AQ chips OR kioku exp, gold only to kioku exp
+            "aq_chips": silver * AQ_CHIPS_PER_SILVER,
+            "kioku_exp_gold": gold * KIOKU_EXP_PER_GOLD,
+            "kioku_exp_all": silver * KIOKU_EXP_PER_SILVER + gold * KIOKU_EXP_PER_GOLD,
+        }
+
+    def summary_line(self) -> str:
+        st = self.summary()
+        if st["n"] == 0:
+            return "no crisis cycles timed yet"
+        total = self.rewards(st["n"])
+        hourly = self.rewards(st["runs_per_hour"])
+        line = (
+            "n={n} avg={avg:.2f}s stdev={stdev:.2f}s min={min:.2f}s "
+            "max={max:.2f}s median={median:.2f}s ({runs_per_hour:.1f} runs/h)"
+        ).format(**st)
+        line += f" | total {total['silver']:,.0f} silver"
+        if CRISIS_GOLD:
+            line += f" {total['gold']:,.0f} gold"
+        line += f" | per hour {hourly['silver']:,.0f} silver"
+        if CRISIS_GOLD:
+            line += f" {hourly['gold']:,.0f} gold"
+        return line
+
+    def _add(self, cycle: float):
+        self.times.append(cycle)
+        try:
+            os.makedirs(self.FOLDER, exist_ok=True)
+            new_file = not os.path.exists(self.csv_path)
+            with open(self.csv_path, "a", encoding="utf-8", newline="") as f:
+                if new_file:
+                    f.write(
+                        "cycle,finished_at,cycle_seconds,difficulty,team,sleep_multiplier,spam_mode,"
+                        "total_silver,total_gold\n"
+                    )
+                n = len(self.times)
+                f.write(
+                    f"{n},{datetime.now().isoformat(timespec='seconds')},"
+                    f"{cycle:.3f},{CRISIS_DIFF},{CRISIS_TEAM},{SLEEP_MULT},{SHOULD_SPAM_IN_CRISIS_MODE},"
+                    f"{n * CRISIS_SILVER},{n * CRISIS_GOLD}\n"
+                )
+            self._write_summary()
+        except OSError:
+            logger.exception("Could not save crisis stats")
+        logger.info("Crisis cycle %d: %.2fs | %s", len(self.times), cycle, self.summary_line())
+
+    @staticmethod
+    def _reward_lines(title: str, r: dict) -> list[str]:
+        lines = [
+            "",
+            f"{title}:",
+            f"  silver medals: {r['silver']:,.0f}",
+            f"  gold medals:   {r['gold']:,.0f}",
+            "  traded (50 silver = 100 AQ chips or 1000 kioku exp, 50 gold = 1000 kioku exp):",
+            f"    all silver to AQ chips: {r['aq_chips']:,.0f} AQ chips"
+            + (f" + {r['kioku_exp_gold']:,.0f} kioku exp from gold" if r["gold"] else ""),
+            f"    everything to kioku exp: {r['kioku_exp_all']:,.0f} kioku exp",
+        ]
+        return lines
+
+    def _write_summary(self):
+        st = self.summary()
+        lines = [
+            "Crisis cycle stats (time between each press of start)",
+            f"Version:          {__version__}",
+            f"Session started:  {self.session_start.isoformat(timespec='seconds')}",
+            f"Last updated:     {datetime.now().isoformat(timespec='seconds')}",
+            f"Difficulty:       {CRISIS_DIFF} ({CRISIS_SILVER} silver, {CRISIS_GOLD} gold per run)",
+            f"Team:             {CRISIS_TEAM}",
+            f"Sleep multiplier: {SLEEP_MULT}",
+            f"Spam mode:        {SHOULD_SPAM_IN_CRISIS_MODE}",
+            "",
+            f"n:       {st['n']}",
+        ]
+        if st["n"]:
+            lines += [
+                f"avg:     {st['avg']:.2f}s",
+                f"stdev:   {st['stdev']:.2f}s",
+                f"min:     {st['min']:.2f}s",
+                f"max:     {st['max']:.2f}s",
+                f"median:  {st['median']:.2f}s",
+                f"runs/h:  {st['runs_per_hour']:.1f}",
+            ]
+            lines += self._reward_lines("Generated in total", self.rewards(st["n"]))
+            lines += self._reward_lines("Per hour (at avg cycle)", self.rewards(st["runs_per_hour"]))
+        lines += ["", f"Every cycle: {os.path.basename(self.csv_path)}", ""]
+        tmp = self.summary_path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines))
+        os.replace(tmp, self.summary_path)
+
+
+crisis_stats = CrisisCycleStats()
 
 
 STORED_IMG = None
@@ -255,7 +430,14 @@ def take_debug_screencap(dest_name="full_screencap", save_for_later=False):
     get_text_in_img("screen")
 
 
-keyboard.add_hotkey("ctrl+shift+q", lambda: os._exit(0))
+def quit_program():
+    if crisis_stats.times:
+        logger.info("Final crisis stats: %s", crisis_stats.summary_line())
+        logger.info("Saved to %s", os.path.abspath(crisis_stats.summary_path))
+    os._exit(0)
+
+
+keyboard.add_hotkey("ctrl+shift+q", quit_program)
 keyboard.add_hotkey("ctrl+shift+e", toggle_running)
 keyboard.add_hotkey("ctrl+shift+p", take_debug_screencap)
 
@@ -826,6 +1008,48 @@ def select_correct_team(team_name, team_label: str, next_button: str):
 
     raise RuntimeError(
         f'Your team "{team_name}" could not be found! Make sure it exists.'
+    )
+
+
+def read_crisis_difficulty() -> int | None:
+    text = normalize_1_and_0(get_text_in_img("crys_result_box2"))
+    # Order matters: "veryhard" contains "hard"
+    if "very" in text:
+        return 3
+    if "hard" in text or "hata" in text:
+        return 2
+    if "eas" in text:
+        return 0
+    if "rma" in text or "n0r" in text:
+        return 1
+    if "xtr" in text:
+        return 4
+    if "cr1s" in text or "1s1s" in text:
+        return 5
+    logger.debug("Could not read '%s'", text)
+    return None
+
+
+def set_crisis_difficulty():
+    unreadable = 0
+    for _ in range(15):
+        current = read_crisis_difficulty()
+        if current == CRISIS_DIFF_INDEX:
+            return
+        if current is None:
+            unreadable += 1
+            if unreadable < 3:
+                pyautogui.sleep(SLEEP_MULT * 0.5)
+                continue
+            # Can't read it, walk down towards Easy which is always readable
+            click_name("crisis_host_decrement")
+        elif current < CRISIS_DIFF_INDEX:
+            click_name("crisis_host_increment")
+        else:
+            click_name("crisis_host_decrement")
+        pyautogui.sleep(SLEEP_MULT * 0.5)
+    logger.warning(
+        "Could not confirm crisis difficulty %s, starting anyway", CRISIS_DIFF
     )
 
 
@@ -1983,15 +2207,12 @@ def main():
                     logger.info("Retried SA %d times, exitting", sa_retry_count)
                     click_name("join_screen_button")
                 case CurrentState.CRISIS_SELECT_SCREEN:
-                    for i in range(5): 
-                        if "easy" in normalize_1_and_0(get_text_in_img("crys_result_box2")):
-                            break
-                        click_name("crisis_host_decrement")    
-                        pyautogui.sleep(SLEEP_MULT * 0.5)
+                    set_crisis_difficulty()
                     click_name("join_button")
                 case CurrentState.CRISIS_TEAM_SELECT_SCREEN:
                     select_correct_team(CRISIS_TEAM, "crisis_team_name", "crisis_next_team")
                     click_name("join_screen_button")
+                    crisis_stats.record_start()
                 case CurrentState.CRIRIS_SCORE_SCREEN:
                     click_name("join_screen_button")
                 case CurrentState.JOINED_BATTLES_SCREEN:

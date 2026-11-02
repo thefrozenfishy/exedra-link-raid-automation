@@ -59,12 +59,26 @@ The tool is able to swap between crys farming and link raids once running out of
 
 ### Crisis
 
-Since November 2026 there are infinite plays for Crisis, and silver tokens can be converted to AQ chips. The Crisis skip is completely self contained, playing easy on repeat forever.
+Since November 2026 there are infinite plays for Crisis, and silver tokens can be converted to AQ chips. The Crisis skip is completely self contained, playing the chosen difficulty on repeat forever.
 
-* ``team`` What team should be used in crisis easy farm.
+* ``team`` What team should be used in crisis farm.
   * Note: this _must_ match a team name you have. Do note that numbers and only small letters are more likely to be read wrong, prefer using capitalized words without numbers for the best experience.
 * ``spam_click_in_crisis_mode`` Enable this to have the tool spam click on the screen, skipping various animations. 
   * Note: This sets the tool to crisis mode, where it will continue spamming until you exit the program.
+* ``diff`` Which crisis difficulty to farm. Options: ``Easy``, ``Normal``, ``Hard``, ``Very Hard``, ``Extra`` and ``Crisis``. Defaults to ``Easy``.
+
+#### Crisis cycle stats
+
+Every time the tool presses start in crisis it times the cycle since the previous start, so different teams/setups can be compared in a standardized way. Pausing (Ctrl+Shift+E) resets the timer so paused time is not counted.
+
+Stats are saved in a ``crisis_stats`` folder next to the exe, one set of files per run, updated after every cycle (so they are kept no matter how the program is closed):
+
+* ``<start time>_summary.txt`` running stats: n, avg, stdev, min, max, median and runs per hour, plus the difficulty/team/settings used.
+  * Also shows silver/gold medals generated in total and per hour, and what that trades into (50 silver = 100 AQ chips or 1000 kioku exp, 50 gold = 1000 kioku exp).
+  * Medals per run: Easy 800 silver, Normal 1000 silver, Hard 1200 silver + 600 gold, Very Hard 1400 + 700, Extra 1600 + 800, Crisis 2000 + 1000.
+* ``<start time>.csv`` every single cycle time, for your own analysis.
+
+The running stats are also printed in the console after every cycle.
 
 ## Bug notes
 
