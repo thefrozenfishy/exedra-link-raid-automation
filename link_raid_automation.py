@@ -1369,16 +1369,16 @@ sa_retry_count = 0
 
 def current_state() -> CurrentState:
     global CRISIS_MODE
-    no_join_text = normalize_1_and_0(get_text_in_img("no_join_available"))
-
-    if "retry" in no_join_text:
-        return CurrentState.NETWORK_ERROR
-    if "return" in no_join_text:
-        return CurrentState.NEW_DAY
-    if "0ccurred" in no_join_text:
-        return CurrentState.NETWORK_ERROR
 
     if CRISIS_MODE:
+        no_join_text = normalize_1_and_0(get_text_in_img("no_join_available"))
+        if "retry" in no_join_text:
+            return CurrentState.NETWORK_ERROR
+        if "return" in no_join_text:
+            return CurrentState.NEW_DAY
+        if "0ccurred" in no_join_text:
+            return CurrentState.NETWORK_ERROR
+
         join_button_box = normalize_1_and_0(get_text_in_img("join_button_box"))
 
         if "prep" in join_button_box:
@@ -1454,9 +1454,9 @@ def current_state() -> CurrentState:
     curr_player_count = get_nrs_in_img("current_player_count")
     if curr_player_count >= 10:
         return CurrentState.TOP_JOIN_IS_FULL
-    if "j01n" in text:
+    if "j01n" in join_button_box:
         return CurrentState.JOIN_SCREEN
-    if "next" in text:
+    if "next" in join_button_box:
         return CurrentState.TOWER_NEXT_SCREEN
 
     text = normalize_1_and_0(get_text_in_img("daily_bonus_box"))
@@ -1524,6 +1524,7 @@ def current_state() -> CurrentState:
     if "c10se" in next_box:
         return CurrentState.NEWS
 
+    no_join_text = normalize_1_and_0(get_text_in_img("no_join_available"))
     if "backup" in no_join_text:
         return CurrentState.NO_JOINS_FOUND
     if "reached" in no_join_text:
