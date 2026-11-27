@@ -700,8 +700,31 @@ _client_left: int = 0
 _client_top: int = 0
 
 
+def move_cursor_off_game():
+    """If the mouse is over the game, park it in the game's bottom-right corner
+    so the cursor and hover effects don't end up in the OCR captures. Leaves
+    the mouse alone when it is elsewhere on screen."""
+    if not _game_hwnd or not win32gui.IsWindow(_game_hwnd):
+        return
+    try:
+        mx, my = win32api.GetCursorPos()
+        _, _, cw, ch = win32gui.GetClientRect(_game_hwnd)
+        left, top = win32gui.ClientToScreen(_game_hwnd, (0, 0))
+    except Exception:
+        return
+    right, bottom = left + cw, top + ch
+    if not (left <= mx < right and top <= my < bottom):
+        return
+    corner = (right - 2, bottom - 2)
+    if (mx, my) == corner:
+        return
+    win32api.SetCursorPos(corner)
+    pyautogui.sleep(0.05)  # Let the game drop any hover highlight before capturing
+
+
 def grab_region(bbox) -> Image.Image:
     x1, y1, x2, y2 = bbox
+    move_cursor_off_game()
     img = _capture_client(_game_hwnd)
     ox, oy = _client_left, _client_top
     return img.crop((x1 - ox, y1 - oy, x2 - ox, y2 - oy))
