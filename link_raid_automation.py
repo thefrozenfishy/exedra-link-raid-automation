@@ -491,8 +491,14 @@ if DEBUG:
 FRIEND_FILE = "friends.txt"
 friend_file = Path(FRIEND_FILE)
 friend_file.touch(exist_ok=True)
+def normalize_list_name(name: str) -> str:
+    # Names in the lists may carry in-game colour tags like "<#0FA>Aoi"
+    name = re.sub(r"<[^>]*>", "", name)
+    return re.sub(r"[^A-Za-z0-9]", "", name.lower())
+
+
 friends = [
-    re.sub(r"[^A-Za-z0-9]", "", f.lower().replace(" ", ""))
+    normalize_list_name(f)
     for f in friend_file.read_text(encoding="utf-8").split("\n")
 ]
 friends = {f for f in friends if len(f) > 2}
@@ -500,7 +506,7 @@ HATES_FILE = "hates.txt"
 hates_file = Path(HATES_FILE)
 hates_file.touch(exist_ok=True)
 hates = [
-    re.sub(r"[^A-Za-z0-9]", "", f.lower().replace(" ", ""))
+    normalize_list_name(f)
     for f in hates_file.read_text(encoding="utf-8").split("\n")
 ]
 hates = {f for f in hates if len(f) > 2}
@@ -513,7 +519,7 @@ if JOIN_COMMUNITY:
         )
         if resp.ok:
             community = [
-                re.sub(r"[^A-Za-z0-9]", "", f.lower().replace(" ", ""))
+                normalize_list_name(f)
                 for f in resp.text.splitlines()
             ]
         else:
@@ -1005,7 +1011,8 @@ def find_coords_for_eligable_difficulty() -> bool:
         return False
     if JOIN_FRIENDS or JOIN_COMMUNITY or IGNORE_HATES:
         for i in range(3):
-            is_union = "union" in get_text_in_img(f"union_{i}").lower()
+            union_text = get_text_in_img(f"union_{i}").lower()
+            is_union = any(t in union_text for t in ("union", "unio", "nion"))
             if is_union and JOIN_FRIENDS:
                 logger.info("Joining union member")
                 return True
@@ -1972,36 +1979,28 @@ def setup_text_locations(first_time: bool):
         int(client_right - 0.24 * client_width),
         int(client_bottom - 0.54 * client_height),
     )
-    text_locations["union_0"] = (
-        int(client_left + 0.76 * client_width),
-        int(client_top + 0.51 * client_height),
-        int(client_right - 0.175 * client_width),
-        int(client_bottom - 0.455 * client_height),
-    )
-    text_locations["union_1"] = (
-        int(client_left + 0.76 * client_width),
-        int(client_top + 0.60 * client_height),
-        int(client_right - 0.175 * client_width),
-        int(client_bottom - 0.365 * client_height),
-    )
-    text_locations["union_2"] = (
-        int(client_left + 0.76 * client_width),
-        int(client_top + 0.69 * client_height),
-        int(client_right - 0.175 * client_width),
-        int(client_bottom - 0.275 * client_height),
-    )
+    # Right-hand player list on the join screen, one row per ~0.093 of height.
+    # With a union the "Union" tag sits above the name; without it the name
+    # sits roughly where the tag would be.
     for i in range(3):
+        row = 0.093 * i
+        text_locations[f"union_{i}"] = (
+            int(client_left + 0.745 * client_width),
+            int(client_top + (0.475 + row) * client_height),
+            int(client_left + 0.83 * client_width),
+            int(client_top + (0.51 + row) * client_height),
+        )
         text_locations[f"player_with_union_{i}"] = (
-            int(text_locations[f"union_{i}"][0] - 0.02 * client_width),
-            int(text_locations[f"union_{i}"][1] + 0.025 * client_height),
-            int(text_locations[f"union_{i}"][2] + 0.15 * client_width),
-            int(text_locations[f"union_{i}"][3] + 0.05 * client_height),
+            int(client_left + 0.745 * client_width),
+            int(client_top + (0.505 + row) * client_height),
+            int(client_left + 0.92 * client_width),
+            int(client_top + (0.555 + row) * client_height),
         )
         text_locations[f"player_without_union_{i}"] = (
-            int(text_locations[f"union_{i}"][0] - 0.02 * client_width),
-            int(text_locations[f"union_{i}"][1] + 0.01 * client_height),
-            int(text_locations[f"union_{i}"][2] + 0.15 * client_width),
-            int(text_locations[f"union_{i}"][3] + 0.03 * client_height),
+            int(client_left + 0.745 * client_width),
+            int(client_top + (0.49 + row) * client_height),
+            int(client_left + 0.92 * client_width),
+            int(client_top + (0.54 + row) * client_height),
         )
 
     text_locations["round_box"] = (
