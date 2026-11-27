@@ -72,7 +72,7 @@ defaults = {
     "sleep_multiplier": "1",
     "continue_past_new_day": "true",
 }
-join_team_override_defaults = {str(i): "" for i in range(1, 21)}
+join_team_override_defaults = {**{str(i): "" for i in range(1, 21)}, "ex": ""}
 
 crys_defaults = {
     "swap_to_crys_farm_after_link_raid": "true",
@@ -120,29 +120,37 @@ if DEBUG:
     os.makedirs("debug/logs", exist_ok=True)
 
 default_team = ini_config.get("general", "default_team").replace(" ", "").lower()
+EX_HOST_DIFF = 21  # Internal value for the "EX Lvl." difficulty, treated as above 20
+
+
+def parse_host_diff(text: str) -> int | None:
+    text = text.strip().lower()
+    if text == "ex":
+        return EX_HOST_DIFF
+    if text.isdigit():
+        return int(text)
+    return None
+
+
 JOIN_DIFF = ini_config.get("general", "join_diff")
 LEVELS_TO_FIND = []
 for diffs in JOIN_DIFF.split(","):
     if "-" in diffs:
-        start, end = map(int, diffs.split("-"))
+        start, end = map(parse_host_diff, diffs.split("-"))
         LEVELS_TO_FIND += list(range(start, end + 1))
     else:
-        LEVELS_TO_FIND.append(int(diffs))
+        LEVELS_TO_FIND.append(parse_host_diff(diffs))
 
 join_max_text: str = ini_config.get(
     "general", "join_friends_and_community_max_difficulty"
 )
-if join_max_text.isdigit():
-    JOIN_MAX_DIFFICULTY = int(join_max_text)
-else:
-    JOIN_MAX_DIFFICULTY = LEVELS_TO_FIND[-1]
+JOIN_MAX_DIFFICULTY = parse_host_diff(join_max_text) or LEVELS_TO_FIND[-1]
 
-HOST_DIFF = ini_config.getint("general", "host_diff")
+HOST_DIFF = parse_host_diff(ini_config.get("general", "host_diff"))
+if HOST_DIFF is None:
+    raise ValueError("host_diff must be a number between 1 and 20, or 'ex'")
 first_host_text: str = ini_config.get("general", "first_host_of_the_day_diff")
-if first_host_text.isdigit():
-    FIRST_HOST_DIFF = int(first_host_text)
-else:
-    FIRST_HOST_DIFF = HOST_DIFF
+FIRST_HOST_DIFF = parse_host_diff(first_host_text) or HOST_DIFF
 
 HALT = ini_config.getboolean("tff", "halt", fallback=False)
 MAKE_CANDIDATES = ini_config.getboolean("tff", "cand", fallback=False)
@@ -210,16 +218,18 @@ ONLY_JOIN_FRIENDS_AND_COMMUNITY = ini_config.getboolean(
 JOIN_WITH_STRONGEST_TEAM = False
 
 teams = {
-    **{i: default_team for i in range(1, 21)},
+    **{i: default_team for i in range(1, 22)},
     **{
         i: ini_config.get("team_overrides", str(i)).replace(" ", "").lower()
         for i in range(1, 21)
         if ini_config.get("team_overrides", str(i)).strip()
     },
 }
+if ini_config.get("team_overrides", "ex").strip():
+    teams[EX_HOST_DIFF] = ini_config.get("team_overrides", "ex").replace(" ", "").lower()
 
 other_team = default_team
-for lvl in range(20, 0, -1):
+for lvl in range(EX_HOST_DIFF, 0, -1):
     if teams[lvl] != default_team:
         other_team = teams[lvl]
         break
@@ -970,20 +980,26 @@ def find_coords_for_eligable_difficulty() -> bool:
     if 1 in eligable_nrs:
         eligable_nrs_str += "ilI"
     logger.debug("eligible NRs %s", eligable_nrs_str)
-    lvl = normalize_1_and_0(
+    lvl_text = normalize_1_and_0(
         get_text_in_img(
             "join_lvl",
-            config=TESSARACT_WHITELIST.format("Lvl" + eligable_nrs_str),
+            config=TESSARACT_WHITELIST.format("LvlEX" + eligable_nrs_str),
         )
     )
-    lvl = lvl.removeprefix("1v1").removeprefix(".")
-    if not lvl.isdigit():
-        return False
-    lvl = int(lvl)
-    if lvl not in eligable_nrs and lvl + 10 in eligable_nrs:
-        lvl += 10
-    if lvl not in eligable_nrs and lvl - 10 in eligable_nrs:
-        lvl -= 10
+    if "ex" in lvl_text:
+        # EX has its own black box with white text, not one of the colour bands
+        lvl = EX_HOST_DIFF
+        CURRENT_DIFF_RANGE.clear()
+        CURRENT_DIFF_RANGE.add(EX_HOST_DIFF)
+    else:
+        lvl_text = lvl_text.removeprefix("1v1").removeprefix(".")
+        if not lvl_text.isdigit():
+            return False
+        lvl = int(lvl_text)
+        if lvl not in eligable_nrs and lvl + 10 in eligable_nrs:
+            lvl += 10
+        if lvl not in eligable_nrs and lvl - 10 in eligable_nrs:
+            lvl -= 10
     logger.debug("Found lvl %d", lvl)
     if JOIN_MAX_DIFFICULTY < lvl and lvl not in LEVELS_TO_FIND:
         return False
@@ -1082,11 +1098,14 @@ def start_play(is_host: bool):
         multi,
         CURRENT_DIFF_RANGE,
     )
-    diff = (
-        multi
-        if multi in CURRENT_DIFF_RANGE or single == multi
-        else single % 10 if single % 10 in CURRENT_DIFF_RANGE else 20
-    )
+    if CURRENT_DIFF_RANGE == {EX_HOST_DIFF}:
+        diff = EX_HOST_DIFF
+    else:
+        diff = (
+            multi
+            if multi in CURRENT_DIFF_RANGE or single == multi
+            else single % 10 if single % 10 in CURRENT_DIFF_RANGE else 20
+        )
     folder = "normal"
     if JOIN_WITH_STRONGEST_TEAM and CURRENT_DIFF_RANGE == {1, 2, 3, 4}:
         logger.info("Found an almost full lobby, killing")
@@ -1124,6 +1143,20 @@ def set_correct_host_difficulty():
         in str(get_nrs_in_img("games_until_daily_bonus", bright_range=(170, 235)))
         else HOST_DIFF
     )
+    # The EX toggle is available from any level, and leaving EX returns to
+    # whatever level was selected before, so the level must be re-read after.
+    if target_diff == EX_HOST_DIFF:
+        if not is_host_ex_mode():
+            enter_host_ex_mode()
+        CURRENT_DIFF_RANGE.clear()
+        CURRENT_DIFF_RANGE.add(EX_HOST_DIFF)
+        return
+    for _ in range(3):
+        if not is_host_ex_mode():
+            break
+        logger.info("Host screen is in EX mode, switching back to normal levels")
+        click_name("host_ex_exit")
+        pyautogui.sleep(SLEEP_MULT * 1)
     lvl = ""
     for _ in range(19):
         eligable_nrs = translate_hsv_to_difficulty_range(
@@ -1152,6 +1185,23 @@ def set_correct_host_difficulty():
     for _ in range(target_diff - 1):
         click_name("host_increment")
     translate_hsv_to_difficulty_range(*get_color_diff_range("host_difficulty"))
+
+
+def is_host_ex_mode() -> bool:
+    text = get_text_in_img(
+        "host_ex_label", config=TESSARACT_WHITELIST.format("EXLvl.0123456789")
+    )
+    return "ex" in text
+
+
+def enter_host_ex_mode():
+    for _ in range(3):
+        click_name("host_ex_enter")
+        pyautogui.sleep(SLEEP_MULT * 1)
+        if is_host_ex_mode():
+            logger.info("Switched host screen to EX mode")
+            return
+    logger.warning("Could not confirm switching to EX mode")
 
 
 def is_scroll_at_bottom():
@@ -2001,6 +2051,20 @@ def setup_text_locations(first_time: bool):
     text_locations["crisis_host_decrement"] = (
         int(client_left + 0.64 * client_width),
         int(client_top + 0.11 * client_height),
+    )
+    text_locations["host_ex_label"] = (
+        int(client_left + 0.68 * client_width),
+        int(client_top + 0.14 * client_height),
+        int(client_right - 0.20 * client_width),
+        int(client_bottom - 0.80 * client_height),
+    )
+    text_locations["host_ex_exit"] = (
+        int(client_left + 0.569 * client_width),
+        int(client_top + 0.17 * client_height),
+    )
+    text_locations["host_ex_enter"] = (
+        int(client_left + 0.915 * client_width),
+        int(client_top + 0.172 * client_height),
     )
     text_locations["host_increment"] = (
         int(client_left + 0.84 * client_width),

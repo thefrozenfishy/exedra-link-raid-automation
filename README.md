@@ -16,9 +16,9 @@
 * Configure settings in `link-raid-automation-settings.ini`. This file is created automatically on first run with default settings.
   * ``default_team`` Team name to use when doing Link Raid.
     * Note: this _must_ match a team name you have. Do note that numbers and only small letters are more likely to be read wrong, prefer using capitalized words without numbers for the best experience.
-  * ``join_diff`` for multiple difficulties to be chosen by writing e.g. "4,8-12" meaning 4 and 8 to 12 inclusive.  
+  * ``join_diff`` for multiple difficulties to be chosen by writing e.g. "4,8-12" meaning 4 and 8 to 12 inclusive. Use ``ex`` for the EX level, e.g. "4,ex" or "18-ex".  
   * ``auto_host`` Set this to true if you wish the game to automatically host games, false for the application to only join games.
-  * ``host_diff`` Which difficulty you wish the game to host battles in.
+  * ``host_diff`` Which difficulty you wish the game to host battles in (1-20, or ``ex`` for the EX level).
   * ``first_host_of_the_day_diff`` If set the first host battle of the day will use this difficulty instead of ``host_diff``.
   * ``debug_mode`` Enable to save OCR screen grabs to a debug folder and log detailed.
   * ``refill_lp`` Use 3 rings to refill LP daily.
@@ -31,7 +31,7 @@
   * ``only_join_friends_and_community`` Ignore all games that are not friends or community.
   * ``join_friends_and_community_max_difficulty`` The max difficulty to join friends and community stages in. Defaults to the highest difficulty given in ``join_diff``.
   * ``ignore_hates`` Enable this to ignore games where any of the top 3 players in a raid are in your local ``hates.txt`` file as long as a friend or community member isn't in the game.
-  * ``team_overrides`` If you for some difficulties wish to run other teams than ``default_team`` you can override it here.
+  * ``team_overrides`` If you for some difficulties wish to run other teams than ``default_team`` you can override it here. Use the ``ex`` key for the EX level.
   * ``automatically_turn_on_auto`` Turns on full auto if it detects the game is in manual, useful if you have a tendency to leave the script without checking if the game is actually doing anything.
   * ``sleep_multiplier`` how fast/slow the tool should work. 1 for default, increase to higher numbers if your pc is slow and loading screens etc is taking longer than expected
   * ``continue_past_new_day`` Allow the program skip through reset issues and login rewards and go back to farming
