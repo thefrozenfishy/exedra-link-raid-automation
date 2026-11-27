@@ -701,9 +701,10 @@ _client_top: int = 0
 
 
 def move_cursor_off_game():
-    """If the mouse is over the game, park it in the game's bottom-right corner
-    so the cursor and hover effects don't end up in the OCR captures. Leaves
-    the mouse alone when it is elsewhere on screen."""
+    """If the mouse is over the game (and the game is the topmost window at
+    that spot), park it in the game's bottom-right corner so the cursor and
+    hover effects don't end up in the OCR captures. Leaves the mouse alone
+    when it is elsewhere on screen or over another window covering the game."""
     if not _game_hwnd or not win32gui.IsWindow(_game_hwnd):
         return
     try:
@@ -714,6 +715,13 @@ def move_cursor_off_game():
         return
     right, bottom = left + cw, top + ch
     if not (left <= mx < right and top <= my < bottom):
+        return
+    # If another window is on top at the cursor, the game isn't drawing a hover
+    try:
+        under = win32gui.WindowFromPoint((mx, my))
+        if win32gui.GetAncestor(under, 2) != _game_hwnd:  # 2 = GA_ROOT
+            return
+    except Exception:
         return
     corner = (right - 2, bottom - 2)
     if (mx, my) == corner:
